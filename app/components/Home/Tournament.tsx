@@ -1,9 +1,8 @@
 "use client";
 
-import Image from 'next/image'; // Next.js ka Image component import kiya
+import Image from 'next/image';
 import { MapPin, Calendar, Clock } from 'lucide-react';
 
-// Apne public folder ke path yahan daal lena (e.g., /tournaments/football.png)
 const tournamentData = [
   {
     id: 1,
@@ -14,7 +13,7 @@ const tournamentData = [
     entryFee: '₹2,500',
     date: 'Aug 15-20',
     time: '09:00 AM',
-    img: '/Tournamentfootball.jpg', // Local public path
+    img: '/Tournamentfootball.jpg', 
   },
   {
     id: 2,
@@ -25,7 +24,7 @@ const tournamentData = [
     entryFee: '₹2,500',
     date: 'Aug 15-20',
     time: '09:00 AM',
-    img: '/Tournamentcricket.png', // Local public path
+    img: '/Tournamentcricket.png',
   }
 ];
 
@@ -36,6 +35,7 @@ export default function Tournaments() {
         
         {/* --- Section Header --- */}
         <div className="text-center mb-12">
+          {/* Main Title ko wapas dark kiya jaisa screenshot me hai */}
           <h2 className="text-4xl font-bold text-gray-900 mb-3">Tournaments</h2>
           <p className="text-gray-500 text-[15px]">
             Rise through the ranks and prove your skills in our curated seasonal leagues.
@@ -47,60 +47,50 @@ export default function Tournaments() {
           {tournamentData.map((tournament) => (
             <div 
               key={tournament.id}
-              // parent div mein relative dena zaroori hai jab hum Image mein 'fill' use karte hain
               className="relative rounded-[24px] overflow-hidden h-[320px] flex flex-col justify-end p-8 group cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300"
             >
-              {/* --- Next.js Optimized Image --- */}
               <Image 
                 src={tournament.img} 
                 alt={tournament.title} 
-                fill // 'fill' property image ko container ke barabar kar deti hai
+                fill 
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
               />
               
-              {/* Dark Gradient Overlay for Text Readability */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/70 to-transparent z-0" />
+              {/* Gradient dark background */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent z-0" />
 
-              {/* Content */}
               <div className="relative z-10 w-full">
-                
-                {/* Green Sport Badge */}
+                {/* Green Badge */}
                 <span className="bg-[#1abc60] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-sm inline-block mb-4">
                   {tournament.sport}
                 </span>
 
-                {/* Tournament Title */}
-                <h3 className="text-3xl font-bold text-white mb-1.5">
+                {/* FIX: Card Title ko !text-white kiya taaki ekdum chamke */}
+                <h3 className="text-3xl font-bold !text-white mb-1.5 drop-shadow-sm">
                   {tournament.title}
                 </h3>
 
-                {/* Location with Golden Icon */}
+                {/* Location */}
                 <div className="flex items-center text-gray-300 text-[13px] mb-6">
                   <MapPin className="w-4 h-4 text-[#FFB800] mr-1.5" /> 
                   {tournament.location}
                 </div>
 
-                {/* Prize Pool & Entry Fee Grid */}
+                {/* Prize Pool & Entry Fee */}
                 <div className="flex items-center gap-12 mb-4">
                   <div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-0.5">
-                      Prize Pool
-                    </div>
-                    <div className="text-[22px] font-bold text-white">
-                      {tournament.prizePool}
-                    </div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-0.5">Prize Pool</div>
+                    {/* Numbers ko bhi force white kiya */}
+                    <div className="text-[22px] font-bold !text-white">{tournament.prizePool}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-0.5">
-                      Entry Fee
-                    </div>
-                    <div className="text-[22px] font-bold text-white">
-                      {tournament.entryFee}
-                    </div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-0.5">Entry Fee</div>
+                    <div className="text-[22px] font-bold !text-white">{tournament.entryFee}</div>
                   </div>
                 </div>
 
-                {/* Date & Time with Golden Icons */}
+                {/* Date & Time */}
                 <div className="flex items-center gap-6 mb-6 text-[13px] text-gray-300 font-medium">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4 text-[#FFB800]" />
@@ -112,11 +102,9 @@ export default function Tournaments() {
                   </div>
                 </div>
 
-                {/* Register Button */}
-                <button className="bg-[#1abc60] hover:bg-[#169c4e] text-white font-bold py-2.5 px-6 rounded-lg text-[14px] transition-colors shadow-md w-fit">
+                <button className="bg-[#1abc60] hover:bg-[#169c4e] text-white font-bold py-2.5 px-6 rounded-lg text-[14px] transition-colors shadow-md w-fit border-none">
                   Register Team
                 </button>
-                
               </div>
             </div>
           ))}

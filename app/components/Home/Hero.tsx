@@ -1,5 +1,5 @@
 "use client";
-
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Search, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
@@ -55,35 +55,41 @@ export default function Hero() {
           alt="Sports Turf Banner"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/30" />
+        
       </div>
 
       <div className="relative z-10 w-full max-w-[1200px] mx-auto px-4 md:px-6 text-center mt-[-60px]">
         
         {/* Main Heading */}
+        {/* FIX 1 & 2: `animate` ki jagah `whileInView` lagaya aur `!text-white` kiya */}
         <motion.h1 
           initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-5xl sm:text-6xl md:text-[90px] font-semibold text-white uppercase tracking-tight mb-4 leading-none drop-shadow-md whitespace-nowrap"
+          className="text-4xl sm:text-6xl md:text-[90px] font-semibold !text-white uppercase tracking-tight mb-4 leading-none drop-shadow-md whitespace-nowrap"
         >
           UP YOUR <span className="text-[#1abc60]">GAME</span>
         </motion.h1>
 
         {/* Sub-heading */}
+        {/* Yahan bhi whileInView aur !text-white lagaya */}
         <motion.p 
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="text-white text-[14px] md:text-[17px] font-semibold mb-12 max-w-4xl mx-auto leading-relaxed drop-shadow-sm px-2"
+          className="!text-white text-[14px] md:text-[17px] font-semibold mb-12 max-w-4xl mx-auto leading-relaxed drop-shadow-sm px-2"
         >
           Premium sports venues, professional training, and competitive <br className="hidden md:block" /> matches. Book your victory in seconds.
         </motion.p>
 
         {/* --- INTERACTIVE SEARCH BAR --- */}
+        {/* Yahan bhi whileInView lagaya taaki back aane par gayab na ho */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
           transition={{ delay: 0.4, duration: 0.6 }}
           className="bg-white p-1.5 shadow-2xl flex flex-row items-center max-w-[550px] mx-auto gap-0 border border-gray-100 rounded-[14px]"
         >
@@ -188,10 +194,13 @@ export default function Hero() {
           </div>
 
           {/* Green Search Button */}
-          <button className="bg-[#1abc60] hover:bg-[#169c4e] text-white font-semibold py-2 md:py-2.5 px-4 md:px-8 rounded-[10px] transition-all duration-300 flex items-center justify-center gap-2 text-[13px] md:text-[15.5px] shadow-sm hover:shadow-md ml-1 flex-shrink-0">
-            <span className="hidden sm:inline">Search</span>
-            <Search className="w-[16px] h-[16px] md:w-[18px] md:h-[18px]" strokeWidth={2.5} />
-          </button>
+     <Link 
+  href="/ground"
+  className="!bg-[#1abc60] hover:!bg-[#169c4e] !text-white font-semibold py-2 md:py-2.5 px-4 md:px-8 rounded-[10px] transition-all duration-300 flex items-center justify-center gap-2 text-[13px] md:text-[15.5px] !shadow-md hover:!shadow-lg ml-1 flex-shrink-0 !border-none"
+>
+  <span className="hidden sm:inline">Search</span>
+  <Search className="w-[16px] h-[16px] md:w-[18px] md:h-[18px] !text-white" strokeWidth={2.5} />
+</Link>
         </motion.div>
 
       </div>

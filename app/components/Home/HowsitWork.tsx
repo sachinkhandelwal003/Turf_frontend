@@ -56,26 +56,28 @@ export default function ProcessAndPartner() {
         {/* --- 2. Partner CTA Section (Own a Sports Ground) --- */}
         <div className="relative rounded-[32px] overflow-hidden bg-gray-900 min-h-[380px] flex items-center p-8 md:p-16 group">
           
-          {/* --- BACKGROUND IMAGE YAHAN LAGI HAI --- */}
+          {/* --- BACKGROUND IMAGE --- */}
           <div className="absolute inset-0 z-0">
             <img 
               src="/WorkGround.png" 
               alt="Turf Partner Background" 
               className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000"
             />
-            {/* Dark fade gradient taaki text clear dikhe */}
+            {/* Dark fade gradient */}
             {/* <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent" /> */}
           </div>
 
           {/* CTA Content */}
           <div className="relative z-10 max-w-2xl">
-            <h2 className="text-3xl md:text-[42px] font-bold text-white mb-5 leading-tight">
+            {/* FIX: Title aur text me !text-white lagaya */}
+            <h2 className="text-3xl md:text-[42px] font-bold !text-white mb-5 leading-tight">
               Own a Sports Ground?
             </h2>
-            <p className="text-gray-300 text-base md:text-lg font-light mb-8 leading-relaxed max-w-lg">
+            <p className="!text-white opacity-90 text-base md:text-lg font-light mb-8 leading-relaxed max-w-lg">
               Join the GameOn ecosystem. List your venue, manage bookings effortlessly, and grow your revenue today.
             </p>
-            <button className="bg-[#1abc60] hover:bg-[#169c4e] text-white font-bold py-3.5 px-10 rounded-full transition-all duration-300 shadow-lg text-[15px]">
+            {/* FIX: Button rounded-full tha, isko design ke hisaab se normal rounded kiya hai agar chahe toh */}
+            <button className="bg-[#1abc60] hover:bg-[#169c4e] !text-white font-bold py-3.5 px-10 rounded-[10px] transition-all duration-300 shadow-md text-[15px] border-none">
               List Your Ground Now
             </button>
           </div>

@@ -50,11 +50,18 @@ export default function SignUp() {
     try {
       const response = await apiRequest('/auth/register', 'POST', formData as any);
       setSuccessMsg("Signed up successfully!");
-      if (response.token) localStorage.setItem("token", response.token);
+      
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+      }
+      if (response.user) {
+        localStorage.setItem("adminUser", JSON.stringify(response.user));
+      }
+
       setTimeout(() => {
         setSuccessMsg("");
-        router.push('/login');
-      }, 2000);
+        window.location.href = '/profile'; // Force reload to pick up context
+      }, 1500);
     } catch (error: any) {
       setErrorMsg(error?.message || "Failed to create account. Please try again.");
     } finally {

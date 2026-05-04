@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
@@ -17,25 +17,23 @@ import {
   X,
   Phone,
   Shield,
-  Share2
+  Share2,
+  Database
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import api from '@/app/services/api';
 
 const baseMenuItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/contact-details', label: 'Site Settings', icon: Settings },
-  { href: '/admin/social-icons', label: 'Social Icons', icon: Share2 },
-  { href: '/admin/founder', label: 'Founder', icon: UserPlus },
-  { href: '/admin/team', label: 'Team Roster', icon: Users },
-  { href: '/admin/projects', label: 'Projects', icon: FolderOpen },
-  { href: '/admin/contacts', label: 'Inquiries', icon: Mail },
-  { href: '/admin/estimates', label: 'Estimates', icon: Calculator },
+  { href: '/admin/turfs', label: 'Turfs', icon: FolderOpen },
+  { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/roles', label: 'Roles & Permissions', icon: Shield },
+  { href: '/admin/masters', label: 'Masters', icon: Database },
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
-const superadminMenuItems = [
-  { href: '/admin/manage-admins', label: 'Manage Admins', icon: Shield },
-];
+const superadminMenuItems: any[] = [];
 
 interface AdminSidebarProps {
   sidebarOpen?: boolean;
@@ -45,7 +43,25 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: AdminSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const { isSuperadmin } = useAuth();
+  const { isSuperadmin, isAuthenticated } = useAuth();
+  const [logo, setLogo] = useState<string>('/logo2.png');
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const res = await api.get('/settings');
+        if (res.data.success && res.data.settings.backendLogo) {
+          const backendLogo = res.data.settings.backendLogo;
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
+          setLogo(backendLogo.startsWith('http') ? backendLogo : `${baseUrl}${backendLogo}`);
+        }
+      } catch (error) {
+        // Silent error for settings fetch
+      }
+    };
+    fetchSettings();
+  }, [isAuthenticated]);
 
   const menuItems = isSuperadmin ? [...baseMenuItems, ...superadminMenuItems] : baseMenuItems;
 
@@ -62,12 +78,13 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
           <div className={`flex items-center overflow-hidden transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-36 opacity-100'}`}>
             <div className="relative h-12 w-full">
               <Image 
-                src="/logo2.png" 
+                src={logo} 
                 alt="Studio Logo" 
                 fill 
                 sizes="144px"
                 className="object-contain object-left" 
                 priority
+                unoptimized
               />
             </div>
           </div>
@@ -154,12 +171,13 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                 {/* Custom Logo Image (Mobile) */}
                 <div className="relative h-12 w-36">
                   <Image 
-                    src="/logo1.png" 
+                    src={logo} 
                     alt="Studio Logo" 
                     fill 
                     sizes="144px"
                     className="object-contain object-left" 
                     priority
+                    unoptimized
                   />
                 </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Upload, X, Image as ImageIcon, Video, FileText, AlertCircle } from 'lucide-react';
 
 interface UploadedFile {
@@ -14,6 +14,7 @@ interface UploadedFile {
 
 interface MediaUploadProps {
   onFilesChange: (files: UploadedFile[]) => void;
+  initialFiles?: (string | UploadedFile)[];
   maxFiles?: number;
   acceptedTypes?: ('image' | 'video')[];
   className?: string;
@@ -21,14 +22,66 @@ interface MediaUploadProps {
 
 export default function MediaUpload({ 
   onFilesChange, 
+  initialFiles = [],
   maxFiles = 10, 
   acceptedTypes = ['image', 'video'],
   className = "" 
 }: MediaUploadProps) {
-  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [files, setFiles] = useState<UploadedFile[]>(() => {
+    return initialFiles.map(file => {
+      if (typeof file === 'string') {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:5001';
+        return {
+          id: Math.random().toString(36).substr(2, 9),
+          name: file.split('/').pop() || 'Existing File',
+          url: file.startsWith('http') ? file : `${baseUrl}${file}`,
+          type: 'image', // Assume image for strings, can be improved
+          size: 0
+        };
+      }
+      return file;
+    });
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update local files when initialFiles changes
+  useEffect(() => {
+    if (initialFiles.length > 0) {
+      const formattedFiles = initialFiles.map(file => {
+        if (typeof file === 'string') {
+          // Only add if it's not already in the files list (by checking URL)
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:5001';
+          const url = file.startsWith('http') ? file : `${baseUrl}${file}`;
+          return {
+            id: Math.random().toString(36).substr(2, 9),
+            name: file.split('/').pop() || 'Existing File',
+            url: url,
+            type: 'image' as const,
+            size: 0
+          };
+        }
+        return file;
+      });
+      
+      // Check if we actually need to update to avoid infinite loops
+      // We compare URLs of existing files vs new initial files
+      const currentUrls = files.map(f => f.url);
+      const newUrls = formattedFiles.map(f => f.url);
+      
+      if (JSON.stringify(currentUrls) !== JSON.stringify(newUrls)) {
+        setFiles(formattedFiles);
+      }
+    } else if (files.length > 0 && initialFiles.length === 0) {
+      // If initialFiles becomes empty and we have files, check if they are all "existing" files
+      // If they are, we should clear them.
+      const hasOnlyExisting = files.every(f => !f.originalFile);
+      if (hasOnlyExisting) {
+        setFiles([]);
+      }
+    }
+  }, [initialFiles]);
 
   const convertToPng = async (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
@@ -310,9 +363,16 @@ export default function MediaUpload({
                   <p className="text-sm font-medium text-gray-900 truncate" title={file.name}>
                     {file.name}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    {formatFileSize(file.size)}
-                  </p>
+                  {file.size > 0 && (
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(file.size)}
+                    </p>
+                  )}
+                  {file.size === 0 && (
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-tight">
+                      Existing Server File
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

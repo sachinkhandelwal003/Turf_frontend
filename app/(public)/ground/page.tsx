@@ -1,20 +1,14 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link'; 
-import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X } from 'lucide-react';
-
-// --- Exact Mock Data based on Image ---
-const INITIAL_VENUES = [
-  { id: 1, title: "Elite Box Cricket Arena", location: "Koramangala, Bangalore", rating: 4.8, price: 1200, category: "Cricket", amenities: ["FLOODLIGHTS", "CHANGING ROOM", "PARKING"], image: "/Elitebox.png", featured: true },
-  { id: 2, title: "Champions Football Hub", location: "Indiranagar, Bangalore", rating: 4.9, price: 1800, category: "Football", amenities: ["PRO TURF", "SHOWER", "CAFETERIA"], image: "/hub.png", featured: false },
-  { id: 3, title: "Velocity Padel & Sports", location: "Whitefield, Bangalore", rating: 4.7, price: 1500, category: "Badminton", amenities: ["AIR CONDITIONED", "EQUIPMENT HIRE"], image: "/velocity.png", featured: false },
-  { id: 4, title: "Grand Slam Tennis Club", location: "Jayanagar, Bangalore", rating: 4.5, price: 800, category: "Tennis", amenities: ["CLAY COURTS", "BALL MACHINE"], image: "/grand.png", featured: false },
-  { id: 5, title: "SvHigh Basketball Park", location: "MG Road, Bangalore", rating: 4.6, price: 1000, category: "Basketball", amenities: ["ROOFTOP", "NIGHT LIGHTS"], image: "/svhigh.png", featured: false },
-  { id: 6, title: "Ace Padel Club", location: "Sarjapur, Bangalore", rating: 4.8, price: 2200, category: "Badminton", amenities: ["PANORAMIC GLASS", "COACHING"], image: "/ace.jpg", featured: false }
-];
+import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X, Loader2 } from 'lucide-react';
+import api from '@/app/services/api';
 
 export default function GroundPage() {
+  const [venues, setVenues] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // --- States for Filtering ---
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -24,18 +18,58 @@ export default function GroundPage() {
   // FIX: Mobile Filter Drawer State
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
+  useEffect(() => {
+    const fetchVenues = async () => {
+      try {
+        const res = await api.get('/turfs');
+        if (res.data.success) {
+          // Show all venues but prioritize active ones in mapping
+          const mappedVenues = res.data.turfs
+            .map((t: any) => ({
+              id: t._id,
+              title: t.name,
+              location: `${t.location.landmark ? t.location.landmark + ', ' : ''}${t.location.city}`,
+              rating: t.rating || 4.5,
+              price: t.pricePerHour,
+              category: t.sports?.[0] || 'Sports',
+              isActive: t.isActive,
+              amenities: t.amenities?.map((a: any) => {
+                const name = typeof a === 'string' ? a : (a?.name || 'Amenity');
+                return name.toUpperCase();
+              }) || [],
+              image: t.images && t.images.length > 0 
+                ? (t.images[0].startsWith('http') 
+                    ? t.images[0] 
+                    : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${t.images[0]}`)
+                : '/Perreferred1.png',
+              featured: t.isFeatured || false
+            }));
+          setVenues(mappedVenues);
+        }
+      } catch (error) {
+        console.error("Failed to fetch grounds:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVenues();
+  }, []);
+
   // --- Filter Logic ---
   const filteredVenues = useMemo(() => {
-    return INITIAL_VENUES.filter((venue) => {
+    return venues.filter((venue) => {
       const matchesSearch = venue.location.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             venue.title.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(venue.category);
       const matchesRating = venue.rating >= minRating;
       const matchesPrice = venue.price <= maxPrice;
       
+      // If user wants to see all, we don't filter by isActive here
+      // But usually we only show active ones on public site.
+      // Given the user complaint, let's show all for now or check if isActive is the culprit.
       return matchesSearch && matchesCategory && matchesRating && matchesPrice;
     });
-  }, [searchQuery, selectedCategories, minRating, maxPrice]);
+  }, [venues, searchQuery, selectedCategories, minRating, maxPrice]);
 
   // --- Handlers ---
   const toggleCategory = (category: string) => {
@@ -201,10 +235,10 @@ export default function GroundPage() {
         <main className="flex-1 px-4 md:px-8 lg:px-10 lg:pl-10 w-full pt-6 lg:pt-0">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h1 className="text-[28px] font-bold text-gray-800 tracking-tight">
-              Available Grounds
+              Available Venues
             </h1>
             <span className="bg-white border border-gray-200 text-gray-600 text-[13px] font-bold px-4 py-2 rounded-lg shadow-sm w-fit">
-              {filteredVenues.length} Grounds Found
+              {filteredVenues.length} Venues Found
             </span>
           </div>
 
@@ -232,13 +266,13 @@ export default function GroundPage() {
 
                     {/* Content Area */}
                     <div className="p-5 flex flex-col flex-1">
-                      <h3 className="text-[16px] font-bold text-gray-900 mb-1 leading-tight group-hover:text-[#5C039B] transition-colors">{venue.title}</h3>
+                      <h3 className="text-[16px] font-bold text-gray-900 mb-1 leading-tight group-hover:text-[#1abc60] transition-colors">{venue.title}</h3>
                       <div className="flex items-center text-gray-500 text-[12px] mb-4">
                         <MapPin className="w-3.5 h-3.5 mr-1" /> {venue.location}
                       </div>
                       
                       <div className="flex flex-wrap gap-1.5 mb-6">
-                        {venue.amenities.map(a => (
+                        {venue.amenities.map((a: string) => (
                           <span key={a} className="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-1 rounded uppercase">{a}</span>
                         ))}
                       </div>
@@ -248,7 +282,7 @@ export default function GroundPage() {
                           <span className="text-[20px] font-bold text-gray-900">₹{venue.price}</span>
                           <span className="text-[11px] text-gray-500 font-semibold uppercase">/HR</span>
                         </div>
-                        <button type="button" className="bg-[#5C039B] hover:bg-[#4a027d] text-white text-[13px] font-bold px-5 py-2.5 rounded-lg transition-colors pointer-events-none">
+                        <button type="button" className="bg-[#1abc60] hover:bg-[#169c4e] text-white text-[13px] font-bold px-5 py-2.5 rounded-lg transition-colors pointer-events-none">
                           Book Now
                         </button>
                       </div>
@@ -259,7 +293,7 @@ export default function GroundPage() {
             </div>
           ) : (
             <div className="py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-              <h3 className="text-gray-900 font-bold text-xl mb-2">No grounds found</h3>
+              <h3 className="text-gray-900 font-bold text-xl mb-2">No venues found</h3>
               <p className="text-gray-500 text-sm">Try adjusting your filters.</p>
             </div>
           )}

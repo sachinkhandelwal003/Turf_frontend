@@ -53,7 +53,7 @@ export default function ProcessAndPartner() {
           </div>
         </div>
 
-        {/* --- 2. Partner CTA Section (Own a Sports Ground) --- */}
+        {/* --- 2. Partner CTA Section (Own a Sports Venue) --- */}
         <div className="relative rounded-[32px] overflow-hidden bg-gray-900 min-h-[380px] flex items-center p-8 md:p-16 group">
           
           {/* --- BACKGROUND IMAGE --- */}
@@ -71,14 +71,14 @@ export default function ProcessAndPartner() {
           <div className="relative z-10 max-w-2xl">
             {/* FIX: Title aur text me !text-white lagaya */}
             <h2 className="text-3xl md:text-[42px] font-bold !text-white mb-5 leading-tight">
-              Own a Sports Ground?
+              Own a Sports Venue?
             </h2>
             <p className="!text-white opacity-90 text-base md:text-lg font-light mb-8 leading-relaxed max-w-lg">
               Join the GameOn ecosystem. List your venue, manage bookings effortlessly, and grow your revenue today.
             </p>
             {/* FIX: Button rounded-full tha, isko design ke hisaab se normal rounded kiya hai agar chahe toh */}
             <button className="bg-[#1abc60] hover:bg-[#169c4e] !text-white font-bold py-3.5 px-10 rounded-[10px] transition-all duration-300 shadow-md text-[15px] border-none">
-              List Your Ground Now
+              List Your Venue Now
             </button>
           </div>
         </div>

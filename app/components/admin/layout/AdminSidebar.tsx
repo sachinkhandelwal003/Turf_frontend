@@ -26,7 +26,7 @@ import api from '@/app/services/api';
 
 const baseMenuItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/turfs', label: 'Turfs', icon: FolderOpen },
+  { href: '/admin/turfs', label: 'Venues', icon: FolderOpen },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/roles', label: 'Roles & Permissions', icon: Shield },
   { href: '/admin/masters', label: 'Masters', icon: Database },

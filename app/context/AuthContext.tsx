@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Invalid credentials');
+        throw new Error(data.msg || data.message || 'Invalid credentials');
       }
 
       const userData: User = {

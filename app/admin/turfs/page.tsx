@@ -780,6 +780,16 @@ export default function AdminTurfPage() {
                           </div>
 
                           <div className="space-y-4">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">About Venue</label>
+                            <textarea 
+                              value={formData.description} 
+                              onChange={e => setFormData({...formData, description: e.target.value})}
+                              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-slate-900 font-semibold h-32 resize-none" 
+                              placeholder="Describe your venue, its highlights, and any special instructions for players..."
+                            />
+                          </div>
+
+                          <div className="space-y-4">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Gallery</label>
                             <div className="bg-slate-50/50 rounded-2xl p-6 border-2 border-dashed border-slate-200">
                               <MediaUpload 

@@ -137,7 +137,6 @@ export default function VenueDetailsPage() {
   const params = useParams();
   const id = Array.isArray(params?.id) ? params.id[0] : (params?.id || "1"); 
   
-  // DYNAMIC FETCHING: ID match karega to wahi ground dikhega
   const venue = ALL_VENUES.find(v => v.id === id) || ALL_VENUES[0];
 
   // === UI STATES ===
@@ -148,42 +147,43 @@ export default function VenueDetailsPage() {
   const [isCourtModalOpen, setIsCourtModalOpen] = useState(false);
   const [selectedCourt, setSelectedCourt] = useState("Court 1");
 
-  // Format date to look like "May 24, 2024"
   const formattedDate = new Date(selectedDate).toLocaleDateString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric'
   });
 
   return (
-    <div className="min-h-screen bg-white font-sans pb-20 pt-[90px]">
-      <div className="max-w-[1150px] mx-auto px-4 md:px-6 pt-6">
+    <div className="min-h-screen bg-white pb-20 pt-[100px] font-sans">
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8">
         
         {/* Back Button */}
-        <Link href="/ground" className="inline-flex items-center text-gray-500 hover:text-[#1abc60] font-bold mb-6 transition-colors !no-underline">
-          <ChevronLeft className="w-5 h-5 mr-1" /> Back to Grounds
+        <Link href="/ground" className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-[#1abc60] mb-6 transition-colors !no-underline">
+          <ChevronLeft className="w-4 h-4 mr-1" /> Back to Grounds
         </Link>
 
         {/* ================= MAIN LAYOUT ================= */}
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-10">
           
           {/* LEFT COLUMN (Content) */}
           <div className="flex-1 min-w-0">
             {/* Header Area */}
             <div className="mb-6">
-              <h1 className="text-[30px] md:text-[34px] font-extrabold text-[#111111] mb-3 tracking-tight">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
                 {venue.title}
               </h1>
-              <div className="flex flex-wrap items-center gap-2 text-[12px] font-bold text-gray-500">
-                <div className="text-[#FFB800] flex items-center gap-1">
-                  {venue.rating} <Star className="w-3.5 h-3.5 fill-[#FFB800]" />
+              <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-gray-500">
+                <div className="bg-yellow-50 text-yellow-700 px-2.5 py-1 rounded-md flex items-center gap-1 font-semibold">
+                  {venue.rating} <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
                 </div>
-                <span className="text-gray-400">({venue.reviews} Reviews)</span>
-                <span className="text-gray-300">•</span>
-                <span>{venue.location}</span>
+                <span>{venue.reviews} Reviews</span>
+                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                <span className="flex items-center text-gray-600">
+                  <MapPin className="w-4 h-4 mr-1.5 text-gray-400" /> {venue.location}
+                </span>
               </div>
             </div>
 
             {/* Big Hero Image */}
-            <div className="relative h-[350px] md:h-[450px] w-full rounded-2xl overflow-hidden mb-10 shadow-sm">
+            <div className="relative h-[300px] md:h-[450px] w-full rounded-2xl overflow-hidden mb-12 shadow-sm border border-gray-100">
               <img 
                 src={venue.image} 
                 alt={venue.title} 
@@ -192,35 +192,37 @@ export default function VenueDetailsPage() {
             </div>
 
             {/* Sports Available Section */}
-            <div className="mb-10">
-              <h3 className="text-[12px] font-extrabold text-gray-800 uppercase tracking-widest mb-4">Sports Available</h3>
+            <div className="mb-12">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Sports Available</h3>
               <div className="flex flex-wrap gap-3">
                 {venue.sports.map((sport, index) => (
-                  <button 
+                  <div 
                     key={sport}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-bold transition-colors !border-none !m-0 !cursor-pointer ${
-                      index === 0 // FIX: Jo pehla sport hoga wo hamesha green aayega
-                        ? '!bg-[#1abc60] !text-white' 
-                        : '!bg-[#f4f6f5] text-gray-700 hover:!bg-gray-200'
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-colors border ${
+                      index === 0 
+                        ? 'bg-[#1abc60] border-[#1abc60] text-white shadow-sm' 
+                        : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     {sport} 
-                    {index === 0 ? <Activity className="w-4 h-4 text-white" /> : <Circle className="w-4 h-4 text-gray-500" />}
-                  </button>
+                    {index === 0 ? <Activity className="w-4 h-4" /> : <Circle className="w-4 h-4 text-gray-400" />}
+                  </div>
                 ))}
               </div>
             </div>
 
             {/* Amenities Section */}
-            <div className="mb-10">
-              <h3 className="text-[12px] font-extrabold text-gray-800 uppercase tracking-widest mb-4">Amenities</h3>
-              <div className="bg-[#f4f6f5] p-6 rounded-2xl grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="mb-12">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Amenities</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {venue.amenities.map((amenity, idx) => {
                   const Icon = amenity.icon;
                   return (
-                    <div key={idx} className="bg-white py-5 px-3 rounded-xl shadow-sm flex flex-col items-center justify-center text-center gap-2.5">
-                      <Icon className="w-6 h-6 text-[#1abc60]" strokeWidth={2.5} />
-                      <span className="text-[10px] font-extrabold text-gray-800 uppercase tracking-wider">{amenity.name}</span>
+                    <div key={idx} className="bg-gray-50 border border-gray-100 p-5 rounded-2xl flex flex-col items-center justify-center text-center gap-3 hover:shadow-sm transition-shadow">
+                      <div className="bg-white p-2.5 rounded-full shadow-sm">
+                        <Icon className="w-5 h-5 text-[#1abc60]" strokeWidth={2.5} />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-800">{amenity.name}</span>
                     </div>
                   );
                 })}
@@ -228,31 +230,30 @@ export default function VenueDetailsPage() {
             </div>
 
             {/* About Venue Section */}
-            <div className="mb-10">
-              <h3 className="text-[12px] font-extrabold text-gray-800 uppercase tracking-widest mb-4">About Venue</h3>
-              <div className="bg-[#f4f6f5] p-6 md:p-8 rounded-2xl">
-                <p className="text-gray-500 text-[13px] leading-relaxed font-medium">
-                  {venue.about}
-                </p>
-              </div>
+            <div className="mb-12">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">About Venue</h3>
+              <p className="text-base text-gray-600 leading-relaxed">
+                {venue.about}
+              </p>
             </div>
           </div>
 
           {/* RIGHT COLUMN (Sidebar Widget) */}
-          <div className="w-full lg:w-[340px] flex-shrink-0 space-y-6 lg:sticky lg:top-24 self-start">
+          <div className="w-full lg:w-[360px] flex-shrink-0 space-y-6 lg:sticky lg:top-28 self-start">
             
             {/* Booking Widget Card */}
-            <div className="bg-[#f4f6f5] rounded-2xl p-6">
-              <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-[26px] font-extrabold text-gray-900">₹{venue.price}</span>
-                <span className="text-[12px] text-gray-500 font-bold">/ hr</span>
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+              <div className="flex items-baseline gap-1.5 mb-6">
+                <span className="text-3xl font-bold text-gray-900">₹{venue.price}</span>
+                <span className="text-sm text-gray-500 font-medium">/ hour</span>
               </div>
 
-              <div className="space-y-3 mb-6">
+              <div className="space-y-4 mb-6">
                 
-                <div className="relative bg-white rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-[#1abc60]">
-                  <div className="flex items-center text-[12px] font-bold text-[#111]">
-                    <Calendar className="w-4 h-4 mr-3 text-[#1abc60]" strokeWidth={2.5} /> 
+                {/* Date Picker */}
+                <div className="relative bg-white border border-gray-200 rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer focus-within:border-[#1abc60] focus-within:ring-1 focus-within:ring-[#1abc60] transition-all">
+                  <div className="flex items-center text-sm font-medium text-gray-800">
+                    <Calendar className="w-4 h-4 mr-3 text-gray-400" /> 
                     {formattedDate}
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
@@ -265,50 +266,59 @@ export default function VenueDetailsPage() {
                   />
                 </div>
 
+                {/* Time Picker */}
                 <div 
                   onClick={() => setIsTimeModalOpen(true)}
-                  className="relative bg-white rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer hover:ring-2 hover:ring-[#1abc60]/50 transition-all"
+                  className="relative bg-white border border-gray-200 rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer hover:border-[#1abc60] transition-all"
                 >
-                  <div className="flex items-center text-[12px] font-bold text-[#111]">
-                    <Clock className="w-4 h-4 mr-3 text-[#1abc60]" strokeWidth={2.5} /> 
+                  <div className="flex items-center text-sm font-medium text-gray-800">
+                    <Clock className="w-4 h-4 mr-3 text-gray-400" /> 
                     {selectedTime}
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </div>
 
+                {/* Court Picker */}
                 <div 
                   onClick={() => setIsCourtModalOpen(true)}
-                  className="relative bg-white rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer hover:ring-2 hover:ring-[#1abc60]/50 transition-all"
+                  className="relative bg-white border border-gray-200 rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer hover:border-[#1abc60] transition-all"
                 >
-                  <div className="flex items-center text-[12px] font-bold text-[#111]">
-                    <CheckCircle2 className="w-4 h-4 mr-3 text-[#1abc60]" strokeWidth={2.5} /> 
+                  <div className="flex items-center text-sm font-medium text-gray-800">
+                    <CheckCircle2 className="w-4 h-4 mr-3 text-gray-400" /> 
                     {selectedCourt}
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </div>
               </div>
 
-              <button className="w-full !bg-[#1abc60] hover:!bg-[#169c4e] !text-white text-[13px] font-extrabold uppercase tracking-widest py-4 !rounded-xl transition-all !border-none cursor-pointer !m-0">
-                BOOK NOW
+              <button className="w-full !bg-[#1abc60] hover:!bg-[#169c4e] !text-white !text-base !font-bold !py-3.5 !rounded-xl !transition-all !border-none !shadow-sm !m-0 !cursor-pointer">
+                Book Now
               </button>
             </div>
 
             {/* Operating Hours Card */}
-            <div className="bg-[#f4f6f5] rounded-2xl p-6 flex items-center gap-3">
-              <Clock className="w-5 h-5 text-[#1abc60]" strokeWidth={2.5} />
-              <span className="text-[13px] font-extrabold text-gray-900">Operating Hours</span>
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 flex items-center gap-4">
+              <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+                <Clock className="w-5 h-5 text-gray-600" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">Operating Hours</p>
+                <p className="text-sm text-gray-500 mt-0.5">06:00 AM - 11:00 PM</p>
+              </div>
             </div>
 
             {/* Location Map Card */}
-            <div className="bg-[#f4f6f5] rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin className="w-4 h-4 text-[#1abc60]" strokeWidth={2.5} />
-                <span className="text-[13px] font-extrabold text-gray-900">Location</span>
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+                  <MapPin className="w-5 h-5 text-gray-600" />
+                </div>
+                <span className="text-sm font-bold text-gray-900">Location</span>
               </div>
-              <p className="text-[11px] text-gray-500 font-bold mb-4 ml-6">
+              <p className="text-sm text-gray-600 mb-4 leading-relaxed pl-1">
                 {venue.address}
               </p>
-              <div className="relative h-[180px] w-full rounded-xl overflow-hidden bg-gray-200">
+              <div className="relative h-[160px] w-full rounded-xl overflow-hidden bg-gray-200 border border-gray-200">
                 <img 
                   src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&q=80" 
                   alt="Map View" 
@@ -328,19 +338,30 @@ export default function VenueDetailsPage() {
 
       {/* 1. TIME SLOT MODAL */}
       {isTimeModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-          <div className="bg-white rounded-[20px] shadow-2xl w-[90%] max-w-[340px] overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="px-5 py-4 flex justify-between items-center border-b border-gray-100">
-              <h2 className="text-[16px] font-extrabold text-gray-800">Available Time Slots</h2>
-              <button onClick={() => setIsTimeModalOpen(false)} className="!p-1 !bg-transparent !border-none !shadow-none text-gray-400 hover:text-gray-700 cursor-pointer !m-0">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          {/* Background Overlay - Clicking this closes the modal */}
+          <div 
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" 
+            onClick={() => setIsTimeModalOpen(false)}
+          />
+          
+          {/* Modal Content Box */}
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[85vh]">
+            
+            {/* Header */}
+            <div className="px-6 py-4 flex justify-between items-center border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Select Time</h2>
+              <button onClick={() => setIsTimeModalOpen(false)} className="!p-1.5 !bg-transparent !text-gray-400 hover:!text-gray-800 hover:!bg-gray-100 rounded-full transition-colors !border-none !shadow-none !m-0 !cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-5 overflow-y-auto custom-scrollbar">
+            
+            {/* Scrollable Body */}
+            <div className="p-6 overflow-y-auto">
               {Object.entries(TIME_SLOTS).map(([period, slots]) => (
                 <div key={period} className="mb-6 last:mb-0">
-                  <h3 className="text-[11px] font-extrabold text-gray-400 tracking-widest uppercase mb-3">{period}</h3>
-                  <div className="grid grid-cols-1 gap-2">
+                  <h3 className="text-xs font-bold text-gray-500 tracking-wider uppercase mb-3">{period}</h3>
+                  <div className="grid grid-cols-1 gap-2.5">
                     {slots.map((slot, idx) => {
                       const isSelected = selectedTime === slot.time;
                       const isDisabled = slot.status === "disabled";
@@ -349,17 +370,17 @@ export default function VenueDetailsPage() {
                           key={idx}
                           disabled={isDisabled}
                           onClick={() => { setSelectedTime(slot.time); setIsTimeModalOpen(false); }}
-                          className={`!w-full !py-3 !px-4 !rounded-xl !text-[12px] !font-bold !m-0 !transition-all text-left flex justify-between items-center
+                          className={`!w-full !py-3.5 !px-4 !rounded-xl !text-sm !transition-all !text-left flex justify-between items-center !m-0 !shadow-none !cursor-pointer !border
                             ${isDisabled 
-                              ? '!bg-[#f4f6f5] !text-gray-400 !border !border-transparent !cursor-not-allowed' 
+                              ? '!bg-gray-50 !text-gray-400 !border-gray-100 !cursor-not-allowed !font-medium' 
                               : isSelected
-                                ? '!bg-[#1abc60] !text-white !border !border-[#1abc60]'
-                                : '!bg-white !text-gray-700 !border !border-gray-200 hover:!border-[#1abc60] hover:!text-[#1abc60] !cursor-pointer'
+                                ? '!bg-white !text-[#1abc60] !border-[#1abc60] !font-bold' // FIX: Background transparent/white, text/border green
+                                : '!bg-white !text-gray-700 !border-gray-200 hover:!border-[#1abc60] hover:!text-[#1abc60] !font-medium'
                             }
                           `}
                         >
                           {slot.time}
-                          {isSelected && <CheckCircle2 className="w-4 h-4 text-white" />}
+                          {isSelected && <CheckCircle2 className="w-4 h-4 text-[#1abc60]" />}
                         </button>
                       );
                     })}
@@ -373,30 +394,37 @@ export default function VenueDetailsPage() {
 
       {/* 2. COURT SELECTION MODAL */}
       {isCourtModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-          <div className="bg-white rounded-[20px] shadow-2xl w-[90%] max-w-[300px] overflow-hidden flex flex-col">
-            <div className="px-5 py-4 flex justify-between items-center border-b border-gray-100">
-              <h2 className="text-[16px] font-extrabold text-gray-800">Select Court</h2>
-              <button onClick={() => setIsCourtModalOpen(false)} className="!p-1 !bg-transparent !border-none !shadow-none text-gray-400 hover:text-gray-700 cursor-pointer !m-0">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          {/* Background Overlay */}
+          <div 
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" 
+            onClick={() => setIsCourtModalOpen(false)}
+          />
+          
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+            <div className="px-6 py-4 flex justify-between items-center border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Select Court</h2>
+              <button onClick={() => setIsCourtModalOpen(false)} className="!p-1.5 !bg-transparent !text-gray-400 hover:!text-gray-800 hover:!bg-gray-100 rounded-full transition-colors !border-none !shadow-none !m-0 !cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 space-y-2">
+            
+            <div className="p-6 space-y-2.5">
               {COURTS.map((court) => {
                 const isSelected = selectedCourt === court;
                 return (
-                  <div 
+                  <button 
                     key={court}
                     onClick={() => { setSelectedCourt(court); setIsCourtModalOpen(false); }}
-                    className={`flex items-center justify-between p-4 rounded-xl cursor-pointer border transition-all ${
-                      isSelected ? 'border-[#1abc60] bg-[#e8f8ef]' : 'border-gray-100 bg-white hover:border-[#1abc60]'
+                    className={`!w-full !flex !items-center !justify-between !p-4 !rounded-xl !cursor-pointer !border !transition-all !m-0 !shadow-none
+                      ${isSelected 
+                        ? '!border-[#1abc60] !bg-white !text-[#1abc60] !font-bold' // FIX: Background white, text/border green
+                        : '!border-gray-200 !bg-white !text-gray-700 hover:!border-[#1abc60]'
                     }`}
                   >
-                    <span className={`text-[13px] font-extrabold ${isSelected ? 'text-[#1abc60]' : 'text-gray-700'}`}>
-                      {court}
-                    </span>
+                    <span className="text-sm">{court}</span>
                     {isSelected && <CheckCircle2 className="w-5 h-5 text-[#1abc60]" />}
-                  </div>
+                  </button>
                 );
               })}
             </div>

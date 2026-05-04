@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link'; 
-import { MapPin, Star, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X } from 'lucide-react';
 
 // --- Exact Mock Data based on Image ---
 const INITIAL_VENUES = [
@@ -20,6 +20,9 @@ export default function GroundPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [minRating, setMinRating] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(5000);
+  
+  // FIX: Mobile Filter Drawer State
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   // --- Filter Logic ---
   const filteredVenues = useMemo(() => {
@@ -49,12 +52,47 @@ export default function GroundPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-20 font-sans">
-      <div className="max-w-[1300px] mx-auto px-4 md:px-6 flex flex-col lg:flex-row gap-10 pt-10">
+    <div className="min-h-screen bg-[#fafafb] pb-20 font-sans relative">
+      
+      {/* ================= MOBILE FLOATING BUTTON (FAB) ================= */}
+      <button 
+        onClick={() => setIsMobileFilterOpen(true)}
+        className="lg:hidden fixed bottom-8 left-6 z-[40] !bg-[#1abc60] !text-white !p-4 !rounded-full shadow-[0_8px_30px_rgba(92,3,155,0.4)] !border-none flex items-center justify-center active:scale-95 transition-transform"
+      >
+        <Filter className="w-6 h-6" />
+      </button>
+
+      {/* ================= MOBILE BACKDROP OVERLAY ================= */}
+      {isMobileFilterOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-[50] lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsMobileFilterOpen(false)}
+        />
+      )}
+
+      {/* Main Container - Left edge se start hoga w-full ke sath */}
+      <div className="w-full flex flex-col lg:flex-row pt-[120px]">
         
-        {/* ================= SIDEBAR: FILTERS ================= */}
-        <aside className="w-full lg:w-[280px] flex-shrink-0 self-start lg:sticky lg:top-10">
-          <h2 className="text-[18px] font-bold text-gray-800 tracking-wide uppercase mb-8">Filters</h2>
+        {/* ================= SIDEBAR ================= */}
+        <aside 
+          className={`
+            fixed top-0 left-0 h-full w-[85%] max-w-[320px] bg-white z-[60] overflow-y-auto transition-transform duration-300 ease-in-out
+            lg:static lg:h-auto lg:w-[300px] xl:w-[320px] lg:z-10 lg:translate-x-0
+            py-8 px-6 md:pl-8 lg:pl-10
+            lg:rounded-r-[24px] lg:shadow-[4px_0_24px_rgba(0,0,0,0.02)] lg:border lg:border-gray-100 lg:border-l-0
+            ${isMobileFilterOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
+          `}
+        >
+          {/* Header with Mobile Close Button */}
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-[18px] font-bold text-gray-800 tracking-wide uppercase">Filters</h2>
+            <button 
+              onClick={() => setIsMobileFilterOpen(false)}
+              className="lg:hidden !bg-gray-100 hover:!bg-gray-200 !p-2 !rounded-full !border-none !text-gray-600 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
           {/* Location */}
           <div className="mb-8">
@@ -92,8 +130,8 @@ export default function GroundPage() {
                 />
               </div>
               <div className="flex justify-between items-center text-[12px] font-bold text-gray-800">
-                <span>₹500 <span className="text-[10px] text-gray-500 font-semibold">/HR</span></span>
-                <span>₹{maxPrice} <span className="text-[10px] text-gray-500 font-semibold">/HR</span></span>
+                <span>₹500 <span className="text-[10px] text-gray-500 font-semibold uppercase">/HR</span></span>
+                <span>₹{maxPrice} <span className="text-[10px] text-gray-500 font-semibold uppercase">/HR</span></span>
               </div>
             </div>
           </div>
@@ -102,17 +140,15 @@ export default function GroundPage() {
           <div className="mb-8">
             <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-4">Sport Category</h3>
             <div className="flex flex-col gap-3">
-              {/* FIX: Basketball add kiya gaya hai data se match karne ke liye */}
               {["Football", "Cricket", "Tennis", "Badminton", "Basketball"].map((sport) => (
                 <label key={sport} className="flex items-center gap-3 cursor-pointer group">
-                  {/* FIX: Hidden input add kiya jisse click par state update ho */}
                   <input 
                     type="checkbox"
                     className="hidden"
                     checked={selectedCategories.includes(sport)}
                     onChange={() => toggleCategory(sport)}
                   />
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedCategories.includes(sport) ? 'bg-[#1abc60] border-[#1abc60]' : 'bg-white border-gray-300'}`}>
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedCategories.includes(sport) ? 'bg-[#5C039B] border-[#5C039B]' : 'bg-white border-gray-300'}`}>
                     {selectedCategories.includes(sport) && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
                   </div>
                   <span className="text-[13px] font-medium text-gray-700">
@@ -151,17 +187,26 @@ export default function GroundPage() {
             >
               Clear All
             </button>
-            <button className="!bg-[#1abc60] hover:!bg-[#169c4e] !text-white text-[13px] font-bold uppercase px-6 py-2.5 rounded-xl transition-colors tracking-wide !border-none !shadow-sm cursor-pointer !m-0">
-              Apply Filters
+            <button 
+              onClick={() => setIsMobileFilterOpen(false)} // Mobile drawer close 
+              className="!bg-[#1abc60] hover:!bg-[#169c4e] !text-white text-[13px] font-bold uppercase px-6 py-2.5 rounded-xl transition-colors tracking-wide !border-none !shadow-sm cursor-pointer !m-0"
+            >
+              Apply
             </button>
           </div>
         </aside>
 
-        {/* ================= MAIN CONTENT: GRID ================= */}
-        <main className="flex-1">
-          <h1 className="text-[28px] font-bold text-gray-800 tracking-tight mb-8">
-            Available Grounds
-          </h1>
+        {/* ================= MAIN CONTENT ================= */}
+        {/* Main Content ki apni alag padding */}
+        <main className="flex-1 px-4 md:px-8 lg:px-10 lg:pl-10 w-full pt-6 lg:pt-0">
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h1 className="text-[28px] font-bold text-gray-800 tracking-tight">
+              Available Grounds
+            </h1>
+            <span className="bg-white border border-gray-200 text-gray-600 text-[13px] font-bold px-4 py-2 rounded-lg shadow-sm w-fit">
+              {filteredVenues.length} Grounds Found
+            </span>
+          </div>
 
           {filteredVenues.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -187,7 +232,7 @@ export default function GroundPage() {
 
                     {/* Content Area */}
                     <div className="p-5 flex flex-col flex-1">
-                      <h3 className="text-[16px] font-bold text-gray-900 mb-1 leading-tight group-hover:text-[#1abc60] transition-colors">{venue.title}</h3>
+                      <h3 className="text-[16px] font-bold text-gray-900 mb-1 leading-tight group-hover:text-[#5C039B] transition-colors">{venue.title}</h3>
                       <div className="flex items-center text-gray-500 text-[12px] mb-4">
                         <MapPin className="w-3.5 h-3.5 mr-1" /> {venue.location}
                       </div>
@@ -201,7 +246,7 @@ export default function GroundPage() {
                       <div className="mt-auto flex items-center justify-between">
                         <div className="flex items-baseline gap-0.5">
                           <span className="text-[20px] font-bold text-gray-900">₹{venue.price}</span>
-                          <span className="text-[11px] text-gray-500 font-semibold">/HR</span>
+                          <span className="text-[11px] text-gray-500 font-semibold uppercase">/HR</span>
                         </div>
                         <button type="button" className="bg-[#5C039B] hover:bg-[#4a027d] text-white text-[13px] font-bold px-5 py-2.5 rounded-lg transition-colors pointer-events-none">
                           Book Now
@@ -222,12 +267,10 @@ export default function GroundPage() {
           {/* Dynamic Pagination */}
           {filteredVenues.length > 0 && (
             <div className="mt-14 flex justify-center items-center gap-3">
-              {/* Prev Button */}
               <button className="!bg-transparent !border-none !p-1 !text-gray-600 hover:!text-gray-900 !shadow-none cursor-pointer flex items-center justify-center disabled:opacity-30">
                 <ChevronLeft className="w-4 h-4" strokeWidth={3} />
               </button>
               
-              {/* Dynamic Page Numbers */}
               {[...Array(Math.ceil(filteredVenues.length / 6))].map((_, index) => {
                 const page = index + 1;
                 const isActive = page === 1; 
@@ -246,7 +289,6 @@ export default function GroundPage() {
                 );
               })}
               
-              {/* Next Button */}
               <button className="!bg-transparent !border-none !p-1 !text-gray-600 hover:!text-gray-900 !shadow-none cursor-pointer flex items-center justify-center disabled:opacity-30">
                 <ChevronRight className="w-4 h-4" strokeWidth={3} />
               </button>

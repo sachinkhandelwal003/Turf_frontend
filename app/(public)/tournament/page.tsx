@@ -2,18 +2,19 @@
 
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
-import { MapPin, ChevronLeft, ChevronRight, Check, Calendar, Clock, Activity } from 'lucide-react';
+import Link from 'next/link';
+import { MapPin, ChevronLeft, ChevronRight, Check, Calendar, Clock, Activity, Filter, X } from 'lucide-react';
 
-// --- Exact Mock Data for Tournaments ---
+// --- Mock Data ---
 const TOURNAMENTS = [
   { 
     id: 1, 
-    title: "Summer Cricket Cup", 
+    title: "Summer Smash Cricket Cup", 
     location: "Indiranagar, Bangalore", 
     sport: "CRICKET", 
     prizePool: "5,00,000", 
-    entryFee: "2,500", 
-    date: "Aug 15 - 20",
+    entryFee: "2,499", 
+    date: "Aug 12 - 20",
     time: "09:00 AM",
     image: "/Elitebox.png" 
   },
@@ -25,7 +26,7 @@ const TOURNAMENTS = [
     prizePool: "1,00,000", 
     entryFee: "8,000", 
     date: "Aug 15 - 20",
-    time: "09:00 AM",
+    time: "10:00 AM",
     image: "/velocity.png" 
   },
   { 
@@ -41,7 +42,7 @@ const TOURNAMENTS = [
   },
   { 
     id: 4, 
-    title: "Elite Tennis Championship", 
+    title: "Elite Tennis Masters", 
     location: "Jayanagar, Bangalore", 
     sport: "TENNIS", 
     prizePool: "3,00,000", 
@@ -52,22 +53,22 @@ const TOURNAMENTS = [
   }
 ];
 
-// YAHAN DHYAN Dena - Ye line ekdum perfect honi chahiye
 export default function TournamentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [maxPrice, setMaxPrice] = useState<number>(5000);
+  const [maxPrice, setMaxPrice] = useState<number>(10000);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   const filteredTournaments = useMemo(() => {
-    return TOURNAMENTS.filter((tournament) => {
-      const matchesSearch = tournament.location.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            tournament.title.toLowerCase().includes(searchQuery.toLowerCase());
+    return TOURNAMENTS.filter((t) => {
+      const matchesSearch = t.location.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            t.title.toLowerCase().includes(searchQuery.toLowerCase());
       
-      const tSport = tournament.sport.charAt(0).toUpperCase() + tournament.sport.slice(1).toLowerCase();
-      const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(tSport) || (tSport === "Padel" && selectedCategories.includes("Badminton")); 
+      const tSport = t.sport.charAt(0).toUpperCase() + t.sport.slice(1).toLowerCase();
+      const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(tSport); 
       
-      const feeNum = parseInt(tournament.entryFee.replace(/,/g, ''));
-      const matchesPrice = feeNum <= (maxPrice * 2); 
+      const feeNum = parseInt(t.entryFee.replace(/,/g, ''));
+      const matchesPrice = feeNum <= maxPrice; 
       
       return matchesSearch && matchesCategory && matchesPrice;
     });
@@ -82,187 +83,148 @@ export default function TournamentsPage() {
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedCategories([]);
-    setMaxPrice(5000);
+    setMaxPrice(10000);
   };
 
   return (
-    <div className="min-h-screen bg-white pb-20 font-sans">
-      <div className="max-w-[1300px] mx-auto px-4 md:px-6 flex flex-col lg:flex-row gap-10 pt-10">
+    <div className="min-h-screen bg-[#fafafb] pb-20 font-sans relative">
+      
+      {/* MOBILE FAB */}
+      <button 
+        onClick={() => setIsMobileFilterOpen(true)}
+        className="lg:hidden fixed bottom-8 left-6 z-[40] !bg-[#1abc60] !text-white !p-4 !rounded-full shadow-lg !border-none flex items-center justify-center active:scale-95 transition-transform"
+      >
+        <Filter className="w-6 h-6" />
+      </button>
+
+      {isMobileFilterOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[50] lg:hidden backdrop-blur-sm" onClick={() => setIsMobileFilterOpen(false)} />
+      )}
+
+      <div className="w-full flex flex-col lg:flex-row pt-[120px]">
         
-        {/* ================= SIDEBAR ================= */}
-        <aside className="w-full lg:w-[280px] flex-shrink-0 self-start lg:sticky lg:top-10">
-          <h2 className="text-[18px] font-bold text-gray-800 tracking-wide uppercase mb-8">Filters</h2>
+        {/* SIDEBAR */}
+        <aside className={`
+          fixed top-0 left-0 h-full w-[85%] max-w-[320px] bg-white z-[60] overflow-y-auto transition-transform duration-300
+          lg:static lg:h-auto lg:w-[300px] xl:w-[320px] lg:z-10 lg:translate-x-0
+          py-8 px-6 md:pl-8 lg:pl-10
+          lg:rounded-r-[24px] lg:shadow-sm lg:border lg:border-gray-100 lg:border-l-0
+          ${isMobileFilterOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-[18px] font-bold text-gray-800 tracking-wide uppercase">Filters</h2>
+            <button onClick={() => setIsMobileFilterOpen(false)} className="lg:hidden !bg-gray-100 !p-2 !rounded-full !border-none"><X className="w-5 h-5"/></button>
+          </div>
 
           <div className="mb-8">
             <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-3">Location</h3>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1abc60]" />
               <input 
-                type="text" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search area or landmark..."
-                className="w-full bg-gray-50/50 border border-gray-200 text-[13px] rounded-lg pl-9 pr-3 py-2.5 outline-none focus:border-[#1abc60] transition-all"
+                type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search area..."
+                className="w-full bg-gray-50 border border-gray-200 text-[13px] rounded-lg pl-9 pr-3 py-3 outline-none focus:border-[#1abc60]"
               />
             </div>
           </div>
 
           <div className="mb-8">
-            <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-4">Price Per Hour</h3>
+            <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-4">Max Entry Fee (₹)</h3>
             <div className="px-1">
-              <div className="relative h-1.5 bg-gray-200 rounded-full mb-3">
-                <div className="absolute h-full bg-[#1abc60] rounded-full" style={{ left: '0%', right: `${100 - (maxPrice / 5000) * 100}%` }} />
-                <input 
-                  type="range" 
-                  min="500" 
-                  max="5000" 
-                  step="100"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(Number(e.target.value))}
-                  className="absolute w-full h-full opacity-0 cursor-pointer z-10"
-                />
-                <div 
-                  className="absolute top-1/2 -translate-y-1/2 h-4 w-4 bg-[#1abc60] rounded-full shadow-md pointer-events-none" 
-                  style={{ left: `calc(${(maxPrice / 5000) * 100}% - 8px)` }} 
-                />
+              <div className="relative h-1.5 bg-gray-200 rounded-full mb-4">
+                <div className="absolute h-full bg-[#1abc60] rounded-full" style={{ left: '0%', right: `${100 - (maxPrice / 10000) * 100}%` }} />
+                <input type="range" min="500" max="10000" step="500" value={maxPrice} onChange={(e) => setMaxPrice(Number(e.target.value))} className="absolute w-full h-full opacity-0 cursor-pointer z-10" />
+                <div className="absolute top-1/2 -translate-y-1/2 h-4 w-4 bg-[#1abc60] rounded-full shadow-md pointer-events-none" style={{ left: `calc(${(maxPrice / 10000) * 100}% - 8px)` }} />
               </div>
-              <div className="flex justify-between items-center text-[12px] font-bold text-gray-800">
-                <span>₹500 <span className="text-[10px] text-gray-500 font-semibold">/HR</span></span>
-                <span>₹{maxPrice} <span className="text-[10px] text-gray-500 font-semibold">/HR</span></span>
+              <div className="flex justify-between text-[12px] font-bold text-gray-800">
+                <span>₹500</span>
+                <span>₹{maxPrice}</span>
               </div>
             </div>
           </div>
 
           <div className="mb-8">
             <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-4">Sport Category</h3>
-            <div className="flex flex-col gap-3">
-              {["Football", "Cricket", "Tennis", "Badminton"].map((sport) => (
+            <div className="flex flex-col gap-3.5">
+              {["Cricket", "Football", "Padel", "Tennis"].map((sport) => (
                 <label key={sport} className="flex items-center gap-3 cursor-pointer group">
-                  <input 
-                    type="checkbox"
-                    className="hidden"
-                    checked={selectedCategories.includes(sport)}
-                    onChange={() => toggleCategory(sport)}
-                  />
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedCategories.includes(sport) ? 'bg-[#1abc60] border-[#1abc60]' : 'bg-white border-gray-300'}`}>
+                  <input type="checkbox" className="hidden" checked={selectedCategories.includes(sport)} onChange={() => toggleCategory(sport)} />
+                  <div className={`w-[18px] h-[18px] rounded-[4px] border flex items-center justify-center transition-all ${selectedCategories.includes(sport) ? 'bg-[#1abc60] border-[#1abc60]' : 'bg-white border-gray-300'}`}>
                     {selectedCategories.includes(sport) && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
                   </div>
-                  <span className="text-[13px] font-medium text-gray-700">
-                    {sport}
-                  </span>
+                  <span className="text-[13px] font-bold text-gray-700 group-hover:text-black">{sport}</span>
                 </label>
               ))}
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-2">
-            <button 
-              onClick={clearFilters}
-              className="text-[12px] font-extrabold !text-gray-600 uppercase tracking-wider hover:!text-gray-900 transition-colors !bg-transparent !border-none !p-0 !m-0 !shadow-none cursor-pointer"
-            >
-              Clear All
-            </button>
-            <button className="!bg-[#1abc60] hover:!bg-[#169c4e] !text-white text-[13px] font-bold uppercase px-6 py-2.5 rounded-xl transition-colors tracking-wide !border-none !shadow-sm cursor-pointer !m-0">
-              Apply Filters
-            </button>
+          <div className="flex items-center justify-between pt-6 border-t border-gray-100">
+            <button onClick={clearFilters} className="text-[12px] font-extrabold !text-gray-500 uppercase !bg-transparent !border-none cursor-pointer">Clear All</button>
+            <button onClick={() => setIsMobileFilterOpen(false)} className="!bg-[#1abc60] !text-white text-[12px] font-extrabold uppercase px-6 py-3 rounded-lg !border-none">Apply</button>
           </div>
         </aside>
 
-        {/* ================= MAIN CONTENT ================= */}
-        <main className="flex-1">
-          <h1 className="text-[32px] font-bold text-gray-800 tracking-tight mb-8">
-            Tournaments
-          </h1>
+        {/* MAIN CONTENT */}
+        <main className="flex-1 px-4 md:px-8 lg:px-10 lg:pl-10 w-full pt-6 lg:pt-0">
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h1 className="text-[32px] font-extrabold text-[#111111] tracking-tight">Upcoming Tournaments</h1>
+            <span className="bg-white border border-gray-200 text-gray-600 text-[13px] font-bold px-4 py-2 rounded-lg shadow-sm">
+              {filteredTournaments.length} Results Found
+            </span>
+          </div>
 
           {filteredTournaments.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {filteredTournaments.map((tournament) => (
-                <div key={tournament.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden flex flex-col group shadow-sm hover:shadow-md transition-shadow">
-                  
-                  <div className="relative h-[240px] w-full bg-gray-100 overflow-hidden">
-                    <Image 
-                      src={tournament.image} 
-                      alt={tournament.title} 
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                    />
-                    <div className="absolute top-4 left-4 z-10">
-                      <div className="bg-white text-[#1abc60] text-[11px] font-extrabold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm tracking-wider uppercase">
-                        <Activity className="w-3.5 h-3.5" /> {tournament.sport}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              {filteredTournaments.map((t) => (
+                <Link href={`/tournament/${t.id}`} key={t.id} className="block group !no-underline">
+                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-300">
+                    
+                    <div className="relative h-[240px] w-full overflow-hidden">
+                      <Image src={t.image} alt={t.title} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                      <div className="absolute top-4 left-4">
+                        <div className="bg-white/95 backdrop-blur-sm text-[#1abc60] text-[11px] font-extrabold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm uppercase">
+                          <Activity className="w-3.5 h-3.5" /> {t.sport}
+                        </div>
                       </div>
+                    </div>
+
+                    <div className="p-6 flex flex-col flex-1">
+                      <h3 className="text-[19px] font-extrabold text-[#2d2d2d] mb-2 leading-tight group-hover:text-[#1abc60] transition-colors">{t.title}</h3>
+                      <div className="flex items-center text-gray-500 text-[13px] mb-6 font-medium italic">
+                        <MapPin className="w-4 h-4 mr-1.5 text-[#1abc60]" /> {t.location}
+                      </div>
+                      
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <p className="text-[10px] text-gray-400 font-extrabold uppercase mb-1">Prize Pool</p>
+                          <p className="text-[22px] font-black text-[#1abc60]">₹{t.prizePool}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-gray-400 font-extrabold uppercase mb-1">Entry Fee</p>
+                          <p className="text-[22px] font-black text-[#333333]">₹{t.entryFee}</p>
+                        </div>
+                      </div>
+
+                      <div className="h-[1px] w-full bg-gray-100 mb-6" />
+
+                      <div className="flex items-center gap-6 mb-8">
+                        <div className="flex items-center text-gray-600 text-[13px] font-bold"><Calendar className="w-4 h-4 mr-1.5 text-[#1abc60]" /> {t.date}</div>
+                        <div className="flex items-center text-gray-600 text-[13px] font-bold"><Clock className="w-4 h-4 mr-1.5 text-[#1abc60]" /> {t.time}</div>
+                      </div>
+                      
+                      <button className="w-full !bg-[#1abc60] hover:!bg-[#169c4e] !text-white text-[14px] font-extrabold uppercase py-4 rounded-xl !border-none transition-all shadow-md active:scale-95">
+                        REGISTER NOW
+                      </button>
                     </div>
                   </div>
-
-                  <div className="p-6 flex flex-col flex-1">
-                    <h3 className="text-[20px] font-bold text-[#333333] mb-2 leading-tight">{tournament.title}</h3>
-                    <div className="flex items-center text-gray-500 text-[13px] mb-6 font-medium">
-                      <MapPin className="w-4 h-4 mr-1 text-gray-400" strokeWidth={2.5} /> {tournament.location}
-                    </div>
-                    
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider mb-1">Prize Pool</p>
-                        <p className="text-[22px] font-extrabold text-[#1abc60]">₹{tournament.prizePool}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider mb-1">Entry Fee</p>
-                        <p className="text-[22px] font-extrabold text-[#333333]">₹{tournament.entryFee}</p>
-                      </div>
-                    </div>
-
-                    <div className="h-[1px] w-full bg-gray-100 mb-5" />
-
-                    <div className="flex items-center gap-6 mb-6">
-                      <div className="flex items-center text-gray-600 text-[13px] font-medium">
-                        <Calendar className="w-4 h-4 mr-2 text-[#1abc60]" /> {tournament.date}
-                      </div>
-                      <div className="flex items-center text-gray-600 text-[13px] font-medium">
-                        <Clock className="w-4 h-4 mr-2 text-[#1abc60]" /> {tournament.time}
-                      </div>
-                    </div>
-                    
-                    <button className="w-full !bg-[#1abc60] hover:!bg-[#169c4e] !text-white text-[14px] font-bold uppercase tracking-wider py-3.5 !rounded-xl transition-all !border-none !shadow-sm cursor-pointer !m-0 mt-auto">
-                      REGISTER NOW
-                    </button>
-                  </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (
-            <div className="py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-              <h3 className="text-gray-900 font-bold text-xl mb-2">No tournaments found</h3>
-              <p className="text-gray-500 text-sm">Try adjusting your filters.</p>
-            </div>
-          )}
-
-          {filteredTournaments.length > 0 && (
-            <div className="mt-14 flex justify-center items-center gap-3">
-              <button className="!bg-transparent !border-none !p-1 !text-gray-600 hover:!text-gray-900 !shadow-none cursor-pointer flex items-center justify-center disabled:opacity-30">
-                <ChevronLeft className="w-4 h-4" strokeWidth={3} />
-              </button>
-              
-              {[...Array(Math.ceil(filteredTournaments.length / 4))].map((_, index) => {
-                const page = index + 1;
-                const isActive = page === 1; 
-                
-                return (
-                  <button 
-                    key={page}
-                    className={`w-8 h-8 flex items-center justify-center text-[14px] font-bold rounded-md !border-none !m-0 cursor-pointer transition-all ${
-                      isActive 
-                        ? '!text-white !bg-[#1abc60] !shadow-sm' 
-                        : '!text-gray-700 hover:!text-gray-900 !bg-transparent !shadow-none'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
-              
-              <button className="!bg-transparent !border-none !p-1 !text-gray-600 hover:!text-gray-900 !shadow-none cursor-pointer flex items-center justify-center disabled:opacity-30">
-                <ChevronRight className="w-4 h-4" strokeWidth={3} />
-              </button>
+            <div className="py-24 text-center bg-white rounded-2xl border border-dashed border-gray-200">
+              <h3 className="text-gray-900 font-extrabold text-2xl mb-2">No Tournaments Found</h3>
+              <p className="text-gray-500 mb-6">Try adjusting your category or price filters.</p>
+              <button onClick={clearFilters} className="!bg-[#1abc60] !text-white px-8 py-3 rounded-xl font-bold !border-none">Reset Filters</button>
             </div>
           )}
         </main>

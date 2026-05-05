@@ -12,10 +12,16 @@ interface Role {
   permissions: string[];
 }
 
+interface Permission {
+  _id: string;
+  name: string;
+  slug: string;
+}
+
 export default function AdminRolesPage() {
   const { isSuperadmin } = useAuth();
   const [roles, setRoles] = useState<Role[]>([]);
-  const [availablePermissions, setAvailablePermissions] = useState<string[]>([]);
+  const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [newRole, setNewRole] = useState({ name: '', permissions: [] as string[] });
@@ -121,39 +127,25 @@ export default function AdminRolesPage() {
             <h3 className="font-semibold text-gray-900">New System Role</h3>
             <button onClick={() => setIsAdding(false)} className="p-1.5 hover:bg-gray-100 rounded-md transition-colors"><X className="text-gray-400 w-4 h-4" /></button>
           </div>
-          
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Role Name</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Moderator"
-                value={newRole.name}
-                onChange={(e) => setNewRole({...newRole, name: e.target.value})}
-                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-sm"
-              />
-            </div>
-            
-            <div className="space-y-2.5">
-              <label className="text-sm font-medium text-gray-700">Assign Permissions</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {availablePermissions.map(p => (
-                  <label key={p} className="flex items-center gap-2.5 p-2.5 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-white hover:border-[#1abc60] transition-all group select-none">
-                    <input 
-                      type="checkbox" 
-                      checked={newRole.permissions.includes(p)} 
-                      onChange={() => togglePermission(p, 'new')}
-                      className="w-4 h-4 rounded border-gray-300 text-[#1abc60] focus:ring-[#1abc60]"
-                    />
-                    <span className="text-xs capitalize text-gray-700 group-hover:text-gray-900 font-medium leading-none mt-0.5">{p.replace(/_/g, ' ')}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            
-            <div className="pt-2">
-              <button onClick={handleCreateRole} className="w-full sm:w-auto px-6 py-2.5 bg-[#1abc60] text-white rounded-lg font-medium hover:bg-[#16a085] transition-all shadow-sm text-sm">Save New Role</button>
-            </div>
+          <input 
+            type="text" 
+            placeholder="Role Name (e.g. Moderator)"
+            value={newRole.name}
+            onChange={(e) => setNewRole({...newRole, name: e.target.value})}
+            className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60] transition-all"
+          />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {availablePermissions.map(p => (
+              <label key={p} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100 cursor-pointer hover:bg-white hover:border-[#1abc60] transition-all group">
+                <input 
+                  type="checkbox" 
+                  checked={newRole.permissions.includes(p)} 
+                  onChange={() => togglePermission(p, 'new')}
+                  className="accent-[#1abc60]"
+                />
+                <span className="text-xs capitalize group-hover:text-[#1abc60] font-medium">{p.replace(/_/g, ' ')}</span>
+              </label>
+            ))}
           </div>
         </div>
       )}
@@ -216,14 +208,14 @@ export default function AdminRolesPage() {
               <div className="flex flex-wrap gap-2">
                 {editingId === role._id ? (
                   availablePermissions.map(p => (
-                    <label key={p} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs cursor-pointer transition-all select-none ${editRole.permissions.includes(p) ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}>
+                    <label key={p} className={`flex items-center gap-2 p-1.5 rounded border text-[10px] cursor-pointer transition-all ${editRole.permissions.includes(p) ? 'bg-green-50 border-green-200 text-[#1abc60]' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
                       <input 
                         type="checkbox" 
                         checked={editRole.permissions.includes(p)} 
                         onChange={() => togglePermission(p, 'edit')}
-                        className="w-3.5 h-3.5 rounded border-gray-300 text-[#1abc60] focus:ring-[#1abc60]"
+                        className="accent-[#1abc60]"
                       />
-                      <span className="capitalize font-medium">{p.replace(/_/g, ' ')}</span>
+                      <span className="capitalize font-bold">{p.replace(/_/g, ' ')}</span>
                     </label>
                   ))
                 ) : (

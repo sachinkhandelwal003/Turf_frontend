@@ -29,6 +29,7 @@ export default function GroundPage() {
               id: t._id,
               title: t.name,
               location: `${t.location.landmark ? t.location.landmark + ', ' : ''}${t.location.city}`,
+              fullAddress: `${t.location.address || ''} ${t.location.landmark || ''} ${t.location.city || ''}`,
               rating: t.rating || 4.5,
               price: t.pricePerHour,
               category: t.sports?.[0] || 'Sports',
@@ -58,8 +59,9 @@ export default function GroundPage() {
   // --- Filter Logic ---
   const filteredVenues = useMemo(() => {
     return venues.filter((venue) => {
-      const matchesSearch = venue.location.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            venue.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = 
+        venue.fullAddress.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        venue.title.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(venue.category);
       const matchesRating = venue.rating >= minRating;
       const matchesPrice = venue.price <= maxPrice;

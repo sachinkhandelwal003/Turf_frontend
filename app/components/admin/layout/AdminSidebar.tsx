@@ -12,18 +12,31 @@ import {
   Shield,
   Database,
   X,
+  ChevronDown,
+  Square,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/app/services/api';
 
 const baseMenuItems = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/turfs', label: 'Venues', icon: FolderOpen },
-  { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/roles', label: 'Roles & Permissions', icon: Shield },
-  { href: '/admin/masters', label: 'Masters', icon: Database },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'view_dashboard' },
+  {
+    href: '/admin/venues',
+    label: 'Venues',
+    icon: FolderOpen,
+    permission: 'view_venues',
+    children: [
+      { href: '/admin/venues/list', label: 'List Venues', permission: 'view_venues' },
+      { href: '/admin/venues/add', label: 'Add Venue', permission: 'add_venue' },
+    ],
+  },
+  { href: '/admin/users', label: 'Users', icon: Users, permission: 'manage_users' },
+  { href: '/admin/user-access-matrix', label: 'Access Matrix', icon: Shield, permission: 'manage_permissions' },
+  { href: '/admin/roles', label: 'Roles', icon: Shield, permission: 'manage_roles' },
+  { href: '/admin/permissions', label: 'Permissions', icon: Shield, permission: 'manage_permissions' },
+  { href: '/admin/masters', label: 'Masters', icon: Database, permission: 'manage_masters' },
+  { href: '/admin/settings', label: 'Settings', icon: Settings, permission: 'manage_settings' },
 ];
 
 const superadminMenuItems: any[] = [];
@@ -36,6 +49,7 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: AdminSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [venueMenuOpen, setVenueMenuOpen] = useState(true);
   const { isSuperadmin, isAuthenticated, user } = useAuth();
   const [logo, setLogo] = useState<string>('/mainlogo.png');
 
@@ -56,7 +70,36 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
     fetchSettings();
   }, [isAuthenticated]);
 
-  const menuItems = isSuperadmin ? [...baseMenuItems, ...superadminMenuItems] : baseMenuItems;
+  const menuItems = (isSuperadmin ? [...baseMenuItems, ...superadminMenuItems] : baseMenuItems)
+     .filter(item => {
+       // If superadmin, show everything
+       if (isSuperadmin) return true;
+       
+       // Check if user has permission for this item
+       const userPermissions = user?.permissions || [];
+       if (item.permission && !userPermissions.includes(item.permission) && !userPermissions.includes('all')) {
+         return false;
+       }
+       
+       return true;
+     })
+     .map(item => {
+       // Filter children based on permissions if they exist
+       if (item.children) {
+         return {
+           ...item,
+           children: item.children.filter((child: any) => {
+             if (isSuperadmin) return true;
+             const userPermissions = user?.permissions || [];
+             if (child.permission && !userPermissions.includes(child.permission) && !userPermissions.includes('all')) {
+               return false;
+             }
+             return true;
+           })
+         };
+       }
+       return item;
+     });
 
   return (
     <>
@@ -102,8 +145,10 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const hasChildren = Array.isArray((item as any).children) && (item as any).children.length > 0;
             
             return (
+<<<<<<< HEAD
               <Link
                 key={item.href}
                 href={item.href}
@@ -122,13 +167,68 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                   <span className={`text-[15px] flex-1 ${isActive ? 'font-semibold' : 'font-medium'}`}>
                     {item.label}
                   </span>
+=======
+              <div key={item.href}>
+                {hasChildren ? (
+                  <button
+                    onClick={() => setVenueMenuOpen((prev) => !prev)}
+                    className={`
+                      relative flex w-full items-center rounded-xl transition-all duration-200 group border-[1.5px] !no-underline
+                      ${collapsed ? 'justify-center p-3' : 'px-4 py-3.5 gap-3.5'}
+                      ${isActive
+                        ? '!bg-[#1abc60] !text-white !border-black shadow-sm'
+                        : '!bg-transparent !text-[#1abc60] !border-transparent hover:!bg-gray-50'
+                      }
+                    `}
+                  >
+                    <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-slate-500'}`} strokeWidth={2.5} />
+                    {!collapsed && <span className="text-[15px] flex-1 text-left font-medium">{item.label}</span>}
+                    {!collapsed && (
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${venueMenuOpen ? 'rotate-180' : ''} ${isActive ? '!text-white' : '!text-slate-500'}`}
+                      />
+                    )}
+                  </button>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className={`
+                      relative flex items-center rounded-xl transition-all duration-200 group border-[1.5px] !no-underline
+                      ${collapsed ? 'justify-center p-3' : 'px-4 py-3.5 gap-3.5'}
+                      ${isActive
+                        ? '!bg-[#1abc60] !text-white !border-black shadow-sm'
+                        : '!bg-transparent !text-[#1abc60] !border-transparent hover:!bg-gray-50'
+                      }
+                    `}
+                  >
+                    <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-slate-500'}`} strokeWidth={2.5} />
+                    {!collapsed && <span className="text-[15px] flex-1 font-medium">{item.label}</span>}
+                    {!collapsed && isActive && (
+                      <div className="w-[5px] h-[5px] rounded-full !bg-white absolute right-4"></div>
+                    )}
+                  </Link>
+>>>>>>> a039d63 (permissions and users)
                 )}
-
-                {/* White Dot Indicator for Active Item */}
-                {!collapsed && isActive && (
-                  <div className="w-[5px] h-[5px] rounded-full !bg-white absolute right-4"></div>
+                {hasChildren && venueMenuOpen && !collapsed && (
+                  <div className="mt-1 ml-4 space-y-1 border-l border-gray-200 pl-4">
+                    {(item as any).children.map((child: any) => {
+                      const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm !no-underline ${
+                            childActive ? 'bg-[#e8f8ef] text-[#1abc60] font-semibold' : 'text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          <Square className={`h-3 w-3 ${childActive ? 'fill-[#1abc60] text-[#1abc60]' : 'text-gray-400'}`} />
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
-              </Link>
+              </div>
             );
           })}
         </nav>
@@ -188,8 +288,10 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                 {menuItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const hasChildren = Array.isArray((item as any).children) && (item as any).children.length > 0;
                   
                   return (
+<<<<<<< HEAD
                     <Link
                       key={item.href}
                       href={item.href}
@@ -208,8 +310,64 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                       {/* White Dot Indicator */}
                       {isActive && (
                         <div className="w-[5px] h-[5px] rounded-full !bg-white absolute right-4"></div>
+=======
+                    <div key={item.href}>
+                      {hasChildren ? (
+                        <button
+                          onClick={() => setVenueMenuOpen((prev) => !prev)}
+                          className={`
+                            relative flex w-full items-center px-4 py-3.5 gap-3.5 rounded-xl transition-all border-[1.5px] !no-underline
+                            ${isActive
+                              ? '!bg-[#1abc60] !text-white !border-black shadow-sm'
+                              : '!bg-transparent !text-[#1abc60] !border-transparent hover:!bg-gray-50'
+                            }
+                          `}
+                        >
+                          <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-slate-500'}`} strokeWidth={2.5} />
+                          <span className="text-[15px] flex-1 text-left font-medium">{item.label}</span>
+                          <ChevronDown className={`h-4 w-4 transition-transform ${venueMenuOpen ? 'rotate-180' : ''} ${isActive ? '!text-white' : '!text-slate-500'}`} />
+                        </button>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          onClick={() => setSidebarOpen?.(false)}
+                          className={`
+                            relative flex items-center px-4 py-3.5 gap-3.5 rounded-xl transition-all border-[1.5px] !no-underline
+                            ${isActive
+                              ? '!bg-[#1abc60] !text-white !border-black shadow-sm'
+                              : '!bg-transparent !text-[#1abc60] !border-transparent hover:!bg-gray-50'
+                            }
+                          `}
+                        >
+                          <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-slate-500'}`} strokeWidth={2.5} />
+                          <span className="text-[15px] flex-1 font-medium">{item.label}</span>
+                          {isActive && (
+                            <div className="w-[5px] h-[5px] rounded-full !bg-white absolute right-4"></div>
+                          )}
+                        </Link>
+>>>>>>> a039d63 (permissions and users)
                       )}
-                    </Link>
+                      {hasChildren && venueMenuOpen && (
+                        <div className="mt-1 ml-4 space-y-1 border-l border-gray-200 pl-4">
+                          {(item as any).children.map((child: any) => {
+                            const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
+                            return (
+                              <Link
+                                key={child.href}
+                                href={child.href}
+                                onClick={() => setSidebarOpen?.(false)}
+                                className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm !no-underline ${
+                                  childActive ? 'bg-[#e8f8ef] text-[#1abc60] font-semibold' : 'text-gray-600 hover:bg-gray-50'
+                                }`}
+                              >
+                                <Square className={`h-3 w-3 ${childActive ? 'fill-[#1abc60] text-[#1abc60]' : 'text-gray-400'}`} />
+                                {child.label}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </nav>

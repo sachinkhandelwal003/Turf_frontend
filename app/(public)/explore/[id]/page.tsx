@@ -17,6 +17,8 @@ interface Turf {
   location: {
     address: string;
     city: string;
+    landmark?: string;
+    mapUrl?: string;
   };
   pricePerHour: number;
   sports: string[];
@@ -62,6 +64,31 @@ export default function TurfDetailsPage() {
     }
   };
 
+  const toEmbedUrl = (url: string) => {
+    if (!url) return '';
+    
+    // If it's already an embed URL, return as is
+    if (url.includes('output=embed') || url.includes('/maps/embed')) return url;
+
+    // Handle standard Google Maps URLs with coordinates
+    const latLngMatch = url.match(/q=(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)/);
+    if (latLngMatch?.[1] && latLngMatch?.[3]) {
+      return `https://www.google.com/maps?q=${latLngMatch[1]},${latLngMatch[3]}&output=embed`;
+    }
+
+    // Handle place IDs or general search queries
+    if (url.includes('google.com/maps')) {
+      return `${url}${url.includes('?') ? '&' : '?'}output=embed`;
+    }
+
+    // Handle shortened maps.app.goo.gl or goo.gl/maps links
+    if (url.includes('goo.gl/maps') || url.includes('maps.app.goo.gl')) {
+      return url;
+    }
+
+    return url;
+  };
+
   const getAmenityIcon = (name: string) => {
     const n = name.toLowerCase();
     if (n.includes('park')) return <Car className="w-5 h-5" />;
@@ -91,7 +118,11 @@ export default function TurfDetailsPage() {
               </div>
               <div className="flex items-center gap-1.5 text-gray-500 font-medium">
                 <MapPin className="w-4 h-4 text-[#1abc60]" />
-                <span className="text-sm">{turf.location.address}, {turf.location.city}</span>
+                <span className="text-sm">
+                  {turf.location.address ? `${turf.location.address}, ` : ''}
+                  {turf.location.landmark ? `${turf.location.landmark}, ` : ''}
+                  {turf.location.city}
+                </span>
               </div>
             </div>
           </div>
@@ -195,20 +226,35 @@ export default function TurfDetailsPage() {
                 </div>
              </div>
 
-             {/* Location Mini Map Placeholder */}
+             {/* Location Mini Map */}
              <div className="bg-gray-50 p-8 rounded-[40px] border border-gray-100 space-y-6">
                 <div className="flex items-center gap-3">
                   <MapPin className="w-6 h-6 text-[#1abc60]" />
                   <h3 className="font-black text-gray-900 uppercase tracking-widest text-sm">Location</h3>
                 </div>
-                <div className="h-48 bg-gray-200 rounded-3xl overflow-hidden relative grayscale hover:grayscale-0 transition-all">
-                  <img src="https://api.mapbox.com/styles/v1/mapbox/light-v10/static/pin-s-l+1abc60(77.63,12.93)/77.63,12.93,13/400x300?access_token=YOUR_MAPBOX_TOKEN" alt="Map" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-8 h-8 bg-[#1abc60] rounded-full animate-ping opacity-20" />
-                    <div className="absolute w-4 h-4 bg-[#1abc60] rounded-full border-2 border-white shadow-xl" />
-                  </div>
+                <div className="h-48 bg-gray-200 rounded-3xl overflow-hidden relative transition-all border border-gray-100">
+                  {turf.location.mapUrl ? (
+                    <iframe
+                      title="Turf Location"
+                      src={toEmbedUrl(turf.location.mapUrl)}
+                      className="w-full h-full border-0"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <>
+                      <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&q=80" alt="Map Placeholder" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-8 h-8 bg-[#1abc60] rounded-full animate-ping opacity-20" />
+                        <div className="absolute w-4 h-4 bg-[#1abc60] rounded-full border-2 border-white shadow-xl" />
+                      </div>
+                    </>
+                  )}
                 </div>
-                <p className="text-xs text-gray-500 font-medium leading-relaxed">{turf.location.address}, {turf.location.city}</p>
+                <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                  {turf.location.address ? `${turf.location.address}, ` : ''}
+                  {turf.location.landmark ? `${turf.location.landmark}, ` : ''}
+                  {turf.location.city}
+                </p>
              </div>
           </div>
         </div>

@@ -70,6 +70,13 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
     fetchSettings();
   }, [isAuthenticated]);
 
+  const getImageUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:5001';
+    return `${baseUrl}${path}`;
+  };
+
   const menuItems = (isSuperadmin ? [...baseMenuItems, ...superadminMenuItems] : baseMenuItems)
      .filter(item => {
        // If superadmin, show everything
@@ -77,6 +84,9 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
        
        // Check if user has permission for this item
        const userPermissions = user?.permissions || [];
+       
+       // DEBUG: console.log(`Checking permission for ${item.label}:`, item.permission, userPermissions);
+
        if (item.permission && !userPermissions.includes(item.permission) && !userPermissions.includes('all')) {
          return false;
        }
@@ -220,8 +230,12 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
         {/* User Profile Footer */}
         <div className="p-4 shrink-0 border-t border-gray-200 mt-auto bg-white">
           <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} p-2 rounded-xl hover:bg-gray-50 transition-all cursor-pointer`}>
-            <div className="w-10 h-10 rounded-full !bg-[#111827] flex items-center justify-center !text-white font-bold text-lg flex-shrink-0">
-              {user?.name?.[0]?.toUpperCase() || 'S'}
+            <div className="w-10 h-10 rounded-full !bg-[#111827] flex items-center justify-center !text-white font-bold text-lg flex-shrink-0 overflow-hidden border border-gray-100">
+              {user?.profilePhoto ? (
+                <img src={getImageUrl(user.profilePhoto)} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                user?.name?.[0]?.toUpperCase() || 'S'
+              )}
             </div>
             {!collapsed && (
               <div className="flex flex-col min-w-0 flex-1">
@@ -338,8 +352,12 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
               {/* Mobile Footer */}
               <div className="p-4 shrink-0 border-t border-gray-200 mt-auto bg-white">
                 <div className="flex items-center gap-3 p-2 rounded-xl">
-                  <div className="w-10 h-10 rounded-full !bg-[#111827] flex items-center justify-center !text-white font-bold text-lg flex-shrink-0">
-                    {user?.name?.[0]?.toUpperCase() || 'S'}
+                  <div className="w-10 h-10 rounded-full !bg-[#111827] flex items-center justify-center !text-white font-bold text-lg flex-shrink-0 overflow-hidden border border-gray-100">
+                    {user?.profilePhoto ? (
+                      <img src={getImageUrl(user.profilePhoto)} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      user?.name?.[0]?.toUpperCase() || 'S'
+                    )}
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
                     <span className="text-[15px] font-semibold !text-gray-900 truncate">{user?.name || 'Super Admin'}</span>

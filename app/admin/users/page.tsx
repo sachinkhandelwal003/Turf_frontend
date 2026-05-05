@@ -542,6 +542,13 @@ function UserRow({ user, isSuperadmin, roles, availablePermissions, isUpdating, 
     }));
   };
 
+  const getImageUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:5001';
+    return `${baseUrl}${path}`;
+  };
+
   return (
     <>
       <tr className={`hover:bg-gray-50 transition-colors ${!user.isActive ? 'bg-gray-50/50' : ''}`}>
@@ -549,7 +556,7 @@ function UserRow({ user, isSuperadmin, roles, availablePermissions, isUpdating, 
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-100">
               {user.profilePhoto ? (
-                <img src={user.profilePhoto} alt={user.name} className="w-full h-full object-cover" />
+                <img src={getImageUrl(user.profilePhoto)} alt={user.name} className="w-full h-full object-cover" />
               ) : (
                 <div className={`w-full h-full flex items-center justify-center font-bold ${user.isActive ? 'bg-green-50 text-[#1abc60]' : 'bg-gray-100 text-gray-400'}`}>
                   {user.name.charAt(0)}
@@ -640,7 +647,7 @@ function UserRow({ user, isSuperadmin, roles, availablePermissions, isUpdating, 
                     {editData.photoFile ? (
                       <img src={URL.createObjectURL(editData.photoFile)} alt="Preview" className="w-full h-full object-cover" />
                     ) : editData.profilePhoto ? (
-                      <img src={editData.profilePhoto.startsWith('http') ? editData.profilePhoto : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${editData.profilePhoto}`} alt="Profile" className="w-full h-full object-cover" />
+                      <img src={getImageUrl(editData.profilePhoto)} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
                       <>
                         <Camera className="w-8 h-8 text-gray-300 group-hover:text-[#1abc60] transition-colors" />

@@ -32,6 +32,7 @@ interface RecentUser {
   name: string;
   email: string;
   role: string;
+  profilePhoto?: string;
   createdAt: string;
 }
 
@@ -40,6 +41,7 @@ interface RecentTurf {
   name: string;
   status: string;
   pricePerHour: number;
+  images?: string[];
   owner: {
     name: string;
   };
@@ -77,6 +79,13 @@ export default function AdminDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const getImageUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:5001';
+    return `${baseUrl}${path}`;
   };
 
   if (loading) {
@@ -181,8 +190,12 @@ export default function AdminDashboard() {
               recentTurfs.map((t) => (
                 <div key={t._id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                      <MapPin className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center overflow-hidden">
+                      {t.images && t.images.length > 0 ? (
+                        <img src={getImageUrl(t.images[0])} alt={t.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <MapPin className="w-5 h-5" />
+                      )}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">{t.name}</p>
@@ -223,8 +236,12 @@ export default function AdminDashboard() {
             {recentUsers.map((u) => (
               <div key={u._id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
-                    {u.name.charAt(0)}
+                  <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm overflow-hidden border border-blue-100">
+                    {u.profilePhoto ? (
+                      <img src={getImageUrl(u.profilePhoto)} alt={u.name} className="w-full h-full object-cover" />
+                    ) : (
+                      u.name.charAt(0)
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900">{u.name}</p>

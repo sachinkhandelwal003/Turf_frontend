@@ -10,6 +10,7 @@ interface User {
   phone?: string;
   role: 'user' | 'admin' | 'superadmin';
   permissions: string[];
+  profilePhoto?: string;
 }
 
 interface AuthContextType {
@@ -66,7 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: data.user.email,
         phone: data.user.phone,
         role: data.user.role,
-        permissions: data.user.permissions || []
+        permissions: data.user.permissions || [],
+        profilePhoto: data.user.profilePhoto
       };
 
       setUser(userData);

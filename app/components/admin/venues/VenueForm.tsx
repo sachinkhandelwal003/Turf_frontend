@@ -1,7 +1,8 @@
 'use client';
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
-import { Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload } from 'lucide-react';
+import { Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import api from '@/app/services/api';
 import Swal from 'sweetalert2';
@@ -65,6 +66,7 @@ const fallbackSurfaceOptions = ['Artificial Turf (A-Grade)', 'Hybrid Grass', 'Ha
 const fallbackAmenities = ['Floodlights', 'Changing Rooms', 'Shower', 'Parking', 'Water Station', 'Medical Kit'];
 
 export default function VenueForm({ mode, turfId }: VenueFormProps) {
+  const router = useRouter();
   const [form, setForm] = useState<FormShape>(defaultForm);
   const [loading, setLoading] = useState(mode === 'edit');
   const [saving, setSaving] = useState(false);
@@ -224,34 +226,44 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         const mapUrl = `https://maps.google.com/?q=${lat},${lon}`;
 
         try {
+          // Add User-Agent as per Nominatim usage policy
           const reverseRes = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
+            {
+              headers: {
+                'User-Agent': 'TurfApp/1.0',
+              },
+            },
           );
           const reverseData = await reverseRes.json();
+          
           const address = reverseData?.display_name || `Lat ${lat.toFixed(5)}, Lng ${lon.toFixed(5)}`;
           const city =
             reverseData?.address?.city ||
             reverseData?.address?.town ||
+            reverseData?.address?.suburb ||
+            reverseData?.address?.village ||
             reverseData?.address?.state_district ||
             '';
           const postcode = reverseData?.address?.postcode || '';
 
           setForm((prev) => ({
             ...prev,
-            address: prev.address || address,
-            city: prev.city || city,
-            postcode: prev.postcode || postcode,
+            address: address,
+            city: city,
+            postcode: postcode,
             mapUrl,
           }));
+          toast.success('Current location applied.');
         } catch (error) {
+          console.error('Reverse Geocoding Error:', error);
           setForm((prev) => ({
             ...prev,
-            address: prev.address || `Lat ${lat.toFixed(5)}, Lng ${lon.toFixed(5)}`,
-            city: prev.city || '',
+            address: `Lat ${lat.toFixed(5)}, Lng ${lon.toFixed(5)}`,
             mapUrl,
           }));
+          toast.success('Location coordinates applied (address fetch failed).');
         }
-        toast.success('Current location applied.');
       },
       (error) => {
         if (error.code === 1) {
@@ -379,6 +391,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         confirmButtonColor: '#1ab35b',
       });
       toast.success(mode === 'edit' ? 'Venue updated successfully.' : 'Venue submitted for review.');
+      router.push('/admin/venues/list');
     } catch (error: any) {
       await Swal.fire({
         title: 'Save Failed',
@@ -453,9 +466,19 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                   key={sport}
                   type="button"
                   onClick={() => toggleListValue('sports', sport)}
-                  className={`h-16 rounded-xl border text-sm font-semibold transition ${active ? 'border-[#1ab35b] bg-[#1ab35b] text-white' : 'border-[#e3e6e4] bg-[#f6f7f6] text-[#34383c]'}`}
+                  className={`h-16 rounded-xl border-2 text-sm font-bold transition flex items-center justify-center gap-2 relative ${
+                    active 
+                      ? 'border-[#1ab35b] bg-[#eefaf3] text-[#1ab35b] shadow-sm' 
+                      : 'border-[#e3e6e4] bg-[#f6f7f6] text-[#34383c] hover:border-gray-300'
+                  }`}
                 >
+                  {active && <CheckCircle2 className="h-4 w-4 fill-[#1ab35b] text-white" />}
                   {sport}
+                  {active && (
+                    <div className="absolute top-1 right-1">
+                      <div className="h-2 w-2 rounded-full bg-[#1ab35b]" />
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -620,19 +643,39 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         <div className="space-y-3 rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
           <div className="grid gap-3 md:grid-cols-3">
             <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={onHeroSelected} />
-            <button type="button" onClick={() => heroRef.current?.click()} className="col-span-2 flex h-56 flex-col items-center justify-center rounded-xl border border-dashed border-[#d7dcda] bg-[#f9faf9] text-[#6f777d]">
-              <Camera className="h-7 w-7 text-[#1ab35b]" />
-              <span className="mt-2 text-base font-semibold">{heroImage ? heroImage.name : 'Upload Hero Image'}</span>
-              <span className="text-xs">Minimum 1920x1080 recommended</span>
+            <button type="button" onClick={() => heroRef.current?.click()} className="col-span-2 flex h-56 flex-col items-center justify-center rounded-xl border border-dashed border-[#d7dcda] bg-[#f9faf9] text-[#6f777d] overflow-hidden">
+              {heroImage ? (
+                <img src={URL.createObjectURL(heroImage)} alt="Hero" className="w-full h-full object-cover" />
+              ) : (
+                <>
+                  <Camera className="h-7 w-7 text-[#1ab35b]" />
+                  <span className="mt-2 text-base font-semibold">Upload Hero Image</span>
+                  <span className="text-xs">Minimum 1920x1080 recommended</span>
+                </>
+              )}
             </button>
             <div className="grid gap-3">
               <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={onGallerySelected} />
-              <button type="button" onClick={() => galleryRef.current?.click()} className="flex h-[108px] items-center justify-center rounded-xl border border-dashed border-[#d7dcda] bg-[#f9faf9] text-[#5f666d]">
-                {galleryImages[0]?.name || <ImagePlus className="h-6 w-6" />}
+              <button type="button" onClick={() => galleryRef.current?.click()} className="flex h-[108px] flex-col items-center justify-center rounded-xl border border-dashed border-[#d7dcda] bg-[#f9faf9] text-[#5f666d] overflow-hidden">
+                {galleryImages.length > 0 ? (
+                  <div className="grid grid-cols-2 w-full h-full">
+                    {galleryImages.slice(0, 4).map((file, idx) => (
+                      <img key={idx} src={URL.createObjectURL(file)} alt="Gallery" className="w-full h-full object-cover" />
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <ImagePlus className="h-6 w-6" />
+                    <span className="text-[10px] mt-1 font-bold">Add Gallery</span>
+                  </>
+                )}
               </button>
-              <button type="button" onClick={() => galleryRef.current?.click()} className="flex h-[108px] items-center justify-center rounded-xl border border-dashed border-[#d7dcda] bg-[#f9faf9] text-[#5f666d]">
-                {galleryImages[1]?.name || <ImagePlus className="h-6 w-6" />}
-              </button>
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[10px] font-bold text-[#1ab35b]">{galleryImages.length} selected</span>
+                {galleryImages.length > 0 && (
+                  <button type="button" onClick={() => setGalleryImages([])} className="text-[10px] font-bold text-red-500 hover:underline">Clear</button>
+                )}
+              </div>
             </div>
           </div>
           {(existingImages.length > 0 || galleryImages.length > 0 || heroImage) && (

@@ -136,14 +136,14 @@ export default function AdminRolesPage() {
           />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {availablePermissions.map(p => (
-              <label key={p} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100 cursor-pointer hover:bg-white hover:border-[#1abc60] transition-all group">
+              <label key={p._id} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100 cursor-pointer hover:bg-white hover:border-[#1abc60] transition-all group">
                 <input 
                   type="checkbox" 
-                  checked={newRole.permissions.includes(p)} 
-                  onChange={() => togglePermission(p, 'new')}
+                  checked={newRole.permissions.includes(p.slug)} 
+                  onChange={() => togglePermission(p.slug, 'new')}
                   className="accent-[#1abc60]"
                 />
-                <span className="text-xs capitalize group-hover:text-[#1abc60] font-medium">{p.replace(/_/g, ' ')}</span>
+                <span className="text-xs capitalize group-hover:text-[#1abc60] font-medium">{p.name}</span>
               </label>
             ))}
           </div>
@@ -202,20 +202,19 @@ export default function AdminRolesPage() {
               )}
             </div>
             
-            {/* Card Body (Permissions) */}
             <div className="p-5 flex-1 bg-white">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Assigned Permissions</p>
               <div className="flex flex-wrap gap-2">
                 {editingId === role._id ? (
                   availablePermissions.map(p => (
-                    <label key={p} className={`flex items-center gap-2 p-1.5 rounded border text-[10px] cursor-pointer transition-all ${editRole.permissions.includes(p) ? 'bg-green-50 border-green-200 text-[#1abc60]' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                    <label key={p._id} className={`flex items-center gap-2 p-1.5 rounded border text-[10px] cursor-pointer transition-all ${editRole.permissions.includes(p.slug) ? 'bg-green-50 border-green-200 text-[#1abc60]' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
                       <input 
                         type="checkbox" 
-                        checked={editRole.permissions.includes(p)} 
-                        onChange={() => togglePermission(p, 'edit')}
+                        checked={editRole.permissions.includes(p.slug)} 
+                        onChange={() => togglePermission(p.slug, 'edit')}
                         className="accent-[#1abc60]"
                       />
-                      <span className="capitalize font-bold">{p.replace(/_/g, ' ')}</span>
+                      <span className="capitalize font-bold">{p.name}</span>
                     </label>
                   ))
                 ) : (

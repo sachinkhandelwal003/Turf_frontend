@@ -47,7 +47,9 @@ export default function VenueDetailsPage() {
             rating: t.rating || 4.5,
             reviews: t.reviewsCount || "150",
             location: t.location.city,
-            address: `${t.location.landmark ? t.location.landmark + ', ' : ''}${t.location.city}`,
+            address: `${t.location.address ? t.location.address + ', ' : ''}${t.location.landmark ? t.location.landmark + ', ' : ''}${t.location.city}`,
+            mapUrl: t.location.mapUrl || '',
+            coordinates: t.location.coordinates,
             price: t.pricePerHour,
             image: t.images && t.images.length > 0 
               ? (t.images[0].startsWith('http') 
@@ -111,6 +113,37 @@ export default function VenueDetailsPage() {
   const formattedDate = new Date(selectedDate).toLocaleDateString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric'
   });
+
+  const toEmbedUrl = (url: string) => {
+    if (!url) return '';
+    
+    // If it's already an embed URL, return as is
+    if (url.includes('output=embed') || url.includes('/maps/embed')) return url;
+
+    // Handle standard Google Maps URLs with coordinates
+    const latLngMatch = url.match(/q=(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)/);
+    if (latLngMatch?.[1] && latLngMatch?.[3]) {
+      return `https://www.google.com/maps?q=${latLngMatch[1]},${latLngMatch[3]}&output=embed`;
+    }
+
+    // Handle place IDs or general search queries
+    if (url.includes('google.com/maps')) {
+      return `${url}${url.includes('?') ? '&' : '?'}output=embed`;
+    }
+
+    // Handle shortened maps.app.goo.gl or goo.gl/maps links
+    // NOTE: These links cannot be easily converted to embed URLs on the client side 
+    // because they require a redirect to get the full URL.
+    // For now, we return the URL as is if it's already a google link, 
+    // but users should ideally provide the embed link or a standard maps link.
+    if (url.includes('goo.gl/maps') || url.includes('maps.app.goo.gl')) {
+      return url; // Still won't work in iframe but better than nothing
+    }
+
+    return url;
+  };
+
+  const embedUrl = toEmbedUrl(venue.mapUrl);
 
   return (
     <div className="min-h-screen bg-white pb-20 pt-[100px] font-sans">
@@ -299,14 +332,26 @@ export default function VenueDetailsPage() {
                 {venue.address}
               </p>
               <div className="relative h-[160px] w-full rounded-xl overflow-hidden bg-gray-200 border border-gray-200">
-                <img 
-                  src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&q=80" 
-                  alt="Map View" 
-                  className="w-full h-full object-cover opacity-90"
-                />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <MapPin className="w-8 h-8 text-red-500 drop-shadow-md fill-white" strokeWidth={2} />
-                </div>
+                {embedUrl ? (
+                  <iframe
+                    title="Venue Location"
+                    src={embedUrl}
+                    className="w-full h-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                ) : (
+                  <>
+                    <img 
+                      src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&q=80" 
+                      alt="Map View Placeholder" 
+                      className="w-full h-full object-cover opacity-90"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <MapPin className="w-8 h-8 text-red-500 drop-shadow-md fill-white" strokeWidth={2} />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

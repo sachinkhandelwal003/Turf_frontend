@@ -12,10 +12,16 @@ interface Role {
   permissions: string[];
 }
 
+interface Permission {
+  _id: string;
+  name: string;
+  slug: string;
+}
+
 export default function AdminRolesPage() {
   const { isSuperadmin } = useAuth();
   const [roles, setRoles] = useState<Role[]>([]);
-  const [availablePermissions, setAvailablePermissions] = useState<string[]>([]);
+  const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [newRole, setNewRole] = useState({ name: '', permissions: [] as string[] });
@@ -130,14 +136,14 @@ export default function AdminRolesPage() {
           />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {availablePermissions.map(p => (
-              <label key={p} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100 cursor-pointer hover:bg-white hover:border-[#1abc60] transition-all group">
+              <label key={p._id} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100 cursor-pointer hover:bg-white hover:border-[#1abc60] transition-all group">
                 <input 
                   type="checkbox" 
-                  checked={newRole.permissions.includes(p)} 
-                  onChange={() => togglePermission(p, 'new')}
+                  checked={newRole.permissions.includes(p.slug)} 
+                  onChange={() => togglePermission(p.slug, 'new')}
                   className="accent-[#1abc60]"
                 />
-                <span className="text-xs capitalize group-hover:text-[#1abc60] font-medium">{p.replace(/_/g, ' ')}</span>
+                <span className="text-xs capitalize group-hover:text-[#1abc60] font-medium">{p.name}</span>
               </label>
             ))}
           </div>
@@ -186,14 +192,14 @@ export default function AdminRolesPage() {
               <div className="flex flex-wrap gap-1.5">
                 {editingId === role._id ? (
                   availablePermissions.map(p => (
-                    <label key={p} className={`flex items-center gap-2 p-1.5 rounded border text-[10px] cursor-pointer transition-all ${editRole.permissions.includes(p) ? 'bg-green-50 border-green-200 text-[#1abc60]' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                    <label key={p._id} className={`flex items-center gap-2 p-1.5 rounded border text-[10px] cursor-pointer transition-all ${editRole.permissions.includes(p.slug) ? 'bg-green-50 border-green-200 text-[#1abc60]' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
                       <input 
                         type="checkbox" 
-                        checked={editRole.permissions.includes(p)} 
-                        onChange={() => togglePermission(p, 'edit')}
+                        checked={editRole.permissions.includes(p.slug)} 
+                        onChange={() => togglePermission(p.slug, 'edit')}
                         className="accent-[#1abc60]"
                       />
-                      <span className="capitalize font-bold">{p.replace(/_/g, ' ')}</span>
+                      <span className="capitalize font-bold">{p.name}</span>
                     </label>
                   ))
                 ) : (

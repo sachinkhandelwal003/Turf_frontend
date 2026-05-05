@@ -38,6 +38,7 @@ const TOURNAMENTS_DATA = [
       secondDesc: "Silver Shield"
     },
     venueDetails: "Kinetic Sports Arena, Sector 7",
+    mapUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3888.48148825838!2d77.61864117507593!3d12.93459521555568!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae144e3391d3e1%3A0xc547348983995f5!2sKoramangala%205th%20Block%2C%20Koramangala%2C%20Bengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1714896000000!5m2!1sen!2sin",
     registrationCloseDate: "Aug 10"
   }
 ];
@@ -57,6 +58,24 @@ export default function TournamentDetailsPage() {
   }
   
   const tournament = TOURNAMENTS_DATA.find(t => t.id === id) || TOURNAMENTS_DATA[0];
+
+  const toEmbedUrl = (url: string) => {
+    if (!url) return '';
+    if (url.includes('output=embed') || url.includes('/maps/embed')) return url;
+
+    const latLngMatch = url.match(/q=(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)/);
+    if (latLngMatch?.[1] && latLngMatch?.[3]) {
+      return `https://www.google.com/maps?q=${latLngMatch[1]},${latLngMatch[3]}&output=embed`;
+    }
+
+    if (url.includes('google.com/maps')) {
+      return `${url}${url.includes('?') ? '&' : '?'}output=embed`;
+    }
+
+    return url;
+  };
+
+  const embedUrl = toEmbedUrl(tournament.mapUrl);
 
   const [teamName, setTeamName] = useState("");
   const [captainName, setCaptainName] = useState("");
@@ -371,14 +390,25 @@ export default function TournamentDetailsPage() {
 
             <h3 className="text-[10px] font-bold text-[#1e293b] uppercase tracking-wider mb-2">Tournament Address</h3>
             <div className="relative h-[120px] w-full rounded-[8px] overflow-hidden bg-gray-200 border border-gray-200 mb-2.5 group cursor-pointer">
-              <img 
-                src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&q=80" 
-                alt="Map View" 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <MapPin className="w-5 h-5 text-red-500 fill-white drop-shadow-md" strokeWidth={1.5} />
-              </div>
+              {embedUrl ? (
+                <iframe
+                  title="Tournament Location"
+                  src={embedUrl}
+                  className="w-full h-full border-0"
+                  loading="lazy"
+                />
+              ) : (
+                <>
+                  <img 
+                    src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&q=80" 
+                    alt="Map View Placeholder" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <MapPin className="w-5 h-5 text-red-500 fill-white drop-shadow-md" strokeWidth={1.5} />
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex items-center justify-between group cursor-pointer">
               <p className="text-[11px] text-gray-600 font-medium group-hover:text-[#1abc60] transition-colors">{tournament.venueDetails}</p>

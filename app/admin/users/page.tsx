@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/app/context/AuthContext';
-import { Search, Shield, User as UserIcon, Loader2, Check, AlertCircle, Save, X, Plus, Trash2, Mail, Phone, Lock, UserPlus, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Shield, User as UserIcon, Loader2, Check, AlertCircle, Save, X, Plus, Trash2, Mail, Phone, Lock, UserPlus, Edit2, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
@@ -15,6 +16,17 @@ interface User {
   role: 'user' | 'admin' | 'superadmin';
   permissions: string[];
   isActive: boolean;
+  profilePhoto?: string;
+  createdBy?: {
+    _id: string;
+    name: string;
+  };
+}
+
+interface Permission {
+  _id: string;
+  name: string;
+  slug: string;
 }
 
 interface Role {
@@ -27,20 +39,24 @@ export default function AdminUsersPage() {
   const { user: currentUser, isSuperadmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   
   // New User Form State
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
+  const [newUser, setNewUser] = useState({ 
+    name: '', 
+    email: '', 
+    phone: '', 
+    password: '', 
     confirmPassword: '',
-    role: 'user'
+    role: 'user',
+    profilePhoto: ''
   });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   // Pagination State
@@ -53,13 +69,15 @@ export default function AdminUsersPage() {
 
   const fetchData = async () => {
     try {
-      const [usersRes, rolesRes] = await Promise.all([
+      const [usersRes, rolesRes, permsRes] = await Promise.all([
         api.get('/auth/users'),
-        api.get('/auth/roles')
+        api.get('/auth/roles'),
+        api.get('/auth/permissions')
       ]);
 
       if (usersRes.data.success) setUsers(usersRes.data.users);
       if (rolesRes.data.success) setRoles(rolesRes.data.roles);
+      if (permsRes.data.success) setAvailablePermissions(permsRes.data.permissions);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load user management data');
@@ -78,19 +96,37 @@ export default function AdminUsersPage() {
       const selectedRoleData = roles.find(r => r.name === newUser.role);
       const permissions = selectedRoleData ? selectedRoleData.permissions : [];
       
-      const res = await api.post('/auth/users', {
-        name: newUser.name,
-        email: newUser.email,
-        phone: newUser.phone,
-        password: newUser.password,
-        role: newUser.role,
-        permissions
+      const formData = new FormData();
+      formData.append('name', newUser.name);
+      formData.append('email', newUser.email);
+      formData.append('phone', newUser.phone);
+      formData.append('password', newUser.password);
+      formData.append('role', newUser.role);
+      formData.append('permissions', JSON.stringify(permissions));
+      
+      if (photoFile) {
+        formData.append('profilePhoto', photoFile);
+      } else if (newUser.profilePhoto) {
+        formData.append('profilePhoto', newUser.profilePhoto);
+      }
+
+      const res = await api.post('/auth/users', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       if (res.data.success) {
         setUsers([...users, res.data.user]);
         setShowAddModal(false);
-        setNewUser({ name: '', email: '', phone: '', password: '', confirmPassword: '', role: 'user' });
+        setNewUser({ 
+          name: '', 
+          email: '', 
+          phone: '', 
+          password: '', 
+          confirmPassword: '', 
+          role: 'user',
+          profilePhoto: ''
+        });
+        setPhotoFile(null);
         toast.success('User created successfully');
       }
     } catch (error: any) {
@@ -116,26 +152,38 @@ export default function AdminUsersPage() {
   const handleUpdateUser = async (userId: string, updateData: any) => {
     setUpdatingId(userId);
     try {
-      // Create a copy of the data to modify
-      const dataToSend = { ...updateData };
+      const formData = new FormData();
       
-      // If password is empty, remove it so we don't send it to the backend
-      if (!dataToSend.password) {
-        delete dataToSend.password;
-        delete dataToSend.confirmPassword;
+      // If password is empty, remove it
+      if (!updateData.password) {
+        delete updateData.password;
+        delete updateData.confirmPassword;
       }
 
       // If role changed, update permissions accordingly
-      if (dataToSend.role) {
-        const selectedRole = roles.find(r => r.name === dataToSend.role);
-        dataToSend.permissions = selectedRole ? selectedRole.permissions : [];
+      if (updateData.role) {
+        const selectedRole = roles.find(r => r.name === updateData.role);
+        updateData.permissions = selectedRole ? selectedRole.permissions : [];
       }
 
-      const response = await api.put(`/auth/users/${userId}/rbac`, dataToSend);
+      // Append all fields to FormData
+      Object.keys(updateData).forEach(key => {
+        if (key === 'permissions') {
+          formData.append(key, JSON.stringify(updateData[key]));
+        } else if (key === 'photoFile' && updateData[key]) {
+          formData.append('profilePhoto', updateData[key]);
+        } else if (key !== 'photoFile') {
+          formData.append(key, updateData[key]);
+        }
+      });
+
+      const res = await api.put(`/auth/users/${userId}/rbac`, formData, {
+         headers: { 'Content-Type': 'multipart/form-data' }
+       });
       
-      if (response.data.success) {
-        setUsers(users.map(u => u._id === userId ? response.data.user : u));
-        toast.success(`User updated successfully`);
+      if (res.data.success) {
+        setUsers(users.map(u => u._id === userId ? res.data.user : u));
+        toast.success('User updated successfully');
       }
     } catch (error: any) {
       toast.error(error.response?.data?.msg || 'Failed to update user');
@@ -168,22 +216,20 @@ export default function AdminUsersPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-500">View and manage system users, roles, and account status</p>
+          <p className="text-gray-500">View and manage users, roles, and account permissions</p>
         </div>
-        {isSuperadmin && (
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="bg-[#1abc60] text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-black hover:bg-[#16a085] transition-all shadow-lg shadow-green-100 active:scale-95"
-          >
-            <UserPlus className="w-4 h-4" /> <span>Add User</span>
-          </button>
-        )}
+        <button 
+          onClick={() => setShowAddModal(true)}
+          className="bg-[#1abc60] text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-black hover:bg-[#16a085] transition-all shadow-lg shadow-green-100 active:scale-95"
+        >
+          <UserPlus className="w-4 h-4" /> <span>Add User</span>
+        </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-            <div className="pl-3 pr-1 text-gray-400">
+          <div className="flex items-center bg-gray-50 border border-gray-100 rounded-xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group max-w-md">
+            <div className="pl-3 text-gray-400 group-focus-within:text-[#1abc60]">
               <Search className="w-5 h-5" />
             </div>
             <input
@@ -191,7 +237,7 @@ export default function AdminUsersPage() {
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0"
+              className="flex-1 px-3 py-2.5 bg-transparent border-none outline-none transition-all text-sm font-bold text-gray-700 placeholder:text-gray-300"
             />
           </div>
         </div>
@@ -203,8 +249,9 @@ export default function AdminUsersPage() {
                 <th className="px-6 py-4">User</th>
                 <th className="px-6 py-4">Role</th>
                 <th className="px-6 py-4">Contact</th>
+                <th className="px-6 py-4">Created By</th>
                 <th className="px-6 py-4">Status</th>
-                {isSuperadmin && <th className="px-6 py-4">Actions</th>}
+                <th className="px-6 py-4">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -214,6 +261,7 @@ export default function AdminUsersPage() {
                   user={u} 
                   isSuperadmin={isSuperadmin} 
                   roles={roles}
+                  availablePermissions={availablePermissions}
                   isUpdating={updatingId === u._id}
                   onUpdate={handleUpdateUser}
                   onDelete={handleDeleteUser}
@@ -268,33 +316,96 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Add User Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="text-lg font-bold text-gray-900">Create New User</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-6 h-6" /></button>
+      {showAddModal && createPortal(
+        <div className="fixed inset-0 bg-[#1e293b]/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
+          <motion.div 
+            initial={{ opacity: 0, y: 20, scale: 0.95 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            className="bg-white rounded-[40px] w-full max-w-2xl h-[90vh] shadow-2xl overflow-hidden border border-white/20 flex flex-col"
+          >
+            <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+              <div>
+                <h3 className="text-3xl font-black text-[#1e293b]">Create New User</h3>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mt-2">Add a new member to your team</p>
+              </div>
+              <button 
+                onClick={() => setShowAddModal(false)} 
+                className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all text-gray-400 hover:text-gray-600 active:scale-95"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            <form onSubmit={handleCreateUser} className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase">Full Name</label>
-                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                  <div className="pl-3 pr-1 text-gray-400">
-                    <UserIcon className="w-4 h-4" />
+            
+            <form onSubmit={handleCreateUser} className="p-10 space-y-8 overflow-y-auto flex-1 custom-scrollbar">
+              <div className="flex flex-col items-center justify-center pb-4">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative group cursor-pointer"
+                >
+                  <div className="w-32 h-32 rounded-[32px] bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-[#1abc60] group-hover:bg-green-50/30">
+                    {photoFile ? (
+                      <img src={URL.createObjectURL(photoFile)} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <Camera className="w-8 h-8 text-gray-300 group-hover:text-[#1abc60] transition-colors" />
+                        <span className="text-[10px] font-black text-gray-400 mt-2 uppercase tracking-widest group-hover:text-[#1abc60]">Upload Photo</span>
+                      </>
+                    )}
                   </div>
-                  <input 
-                    required 
-                    value={newUser.name} 
-                    onChange={e => setNewUser({...newUser, name: e.target.value})} 
-                    className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0" 
-                    placeholder="John Doe" 
-                  />
+                  <div className="absolute -bottom-2 -right-2 p-2 bg-[#1abc60] text-white rounded-xl shadow-lg shadow-green-100 group-hover:scale-110 transition-transform">
+                    <Plus className="w-4 h-4" />
+                  </div>
+                </div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setPhotoFile(file);
+                  }}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
+                  <div className="flex items-center bg-gray-50 border border-gray-100 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                    <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
+                      <UserIcon className="w-4 h-4" />
+                    </div>
+                    <input 
+                      required 
+                      value={newUser.name} 
+                      onChange={e => setNewUser({...newUser, name: e.target.value})} 
+                      className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700 placeholder:text-gray-300" 
+                      placeholder="John Doe" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Phone Number</label>
+                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                    <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <input 
+                      required 
+                      value={newUser.phone} 
+                      onChange={e => setNewUser({...newUser, phone: e.target.value})} 
+                      className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700 placeholder:text-gray-300" 
+                      placeholder="9876543210" 
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase">Email Address</label>
-                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                  <div className="pl-3 pr-1 text-gray-400">
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                  <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
                     <Mail className="w-4 h-4" />
                   </div>
                   <input 
@@ -302,31 +413,17 @@ export default function AdminUsersPage() {
                     type="email" 
                     value={newUser.email} 
                     onChange={e => setNewUser({...newUser, email: e.target.value})} 
-                    className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0" 
+                    className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700 placeholder:text-gray-300" 
                     placeholder="john@example.com" 
                   />
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase">Phone Number</label>
-                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                  <div className="pl-3 pr-1 text-gray-400">
-                    <Phone className="w-4 h-4" />
-                  </div>
-                  <input 
-                    required 
-                    value={newUser.phone} 
-                    onChange={e => setNewUser({...newUser, phone: e.target.value})} 
-                    className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0" 
-                    placeholder="9876543210" 
-                  />
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase">Initial Password</label>
-                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                    <div className="pl-3 pr-1 text-gray-400">
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Password</label>
+                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                    <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
                       <Lock className="w-4 h-4" />
                     </div>
                     <input 
@@ -334,15 +431,16 @@ export default function AdminUsersPage() {
                       type="password" 
                       value={newUser.password} 
                       onChange={e => setNewUser({...newUser, password: e.target.value})} 
-                      className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0" 
+                      className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700 placeholder:text-gray-300" 
                       placeholder="••••••••" 
                     />
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase">Confirm Password</label>
-                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                    <div className="pl-3 pr-1 text-gray-400">
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirm Password</label>
+                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                    <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
                       <Lock className="w-4 h-4" />
                     </div>
                     <input 
@@ -350,42 +448,54 @@ export default function AdminUsersPage() {
                       type="password" 
                       value={newUser.confirmPassword} 
                       onChange={e => setNewUser({...newUser, confirmPassword: e.target.value})} 
-                      className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0" 
+                      className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700 placeholder:text-gray-300" 
                       placeholder="••••••••" 
                     />
                   </div>
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase">Assign Role</label>
-                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                  <div className="pl-3 pr-1 text-gray-400">
-                    <Shield className="w-4 h-4" />
+
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Assign Role</label>
+                  <div className="flex items-center bg-gray-50 border border-gray-100 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                    <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <select 
+                      value={newUser.role} 
+                      onChange={e => setNewUser({...newUser, role: e.target.value})} 
+                      className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700 appearance-none cursor-pointer"
+                    >
+                      {roles.map(r => <option key={r._id} value={r.name}>{r.name}</option>)}
+                    </select>
                   </div>
-                  <select 
-                    value={newUser.role} 
-                    onChange={e => setNewUser({...newUser, role: e.target.value})} 
-                    className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0 appearance-none"
-                  >
-                    {roles.map(r => <option key={r._id} value={r.name}>{r.name}</option>)}
-                  </select>
                 </div>
               </div>
-              <button disabled={isCreating} type="submit" className="w-full bg-[#1abc60] text-white py-3 rounded-xl font-black shadow-lg shadow-green-100 flex items-center justify-center gap-2 hover:bg-[#16a085] transition-all text-sm">
-                {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> Create User Account</>}
-              </button>
+
+              <div className="pt-4">
+                <button 
+                  disabled={isCreating} 
+                  type="submit" 
+                  className="w-full bg-[#1abc60] text-white py-4 rounded-2xl font-black shadow-xl shadow-green-100 flex items-center justify-center gap-3 hover:bg-[#16a085] transition-all text-sm uppercase tracking-widest active:scale-[0.98] disabled:opacity-50"
+                >
+                  {isCreating ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Check className="w-5 h-5" /> Create Account</>}
+                </button>
+              </div>
             </form>
           </motion.div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
 }
 
-function UserRow({ user, isSuperadmin, roles, isUpdating, onUpdate, onDelete, isCurrentUser }: { 
+function UserRow({ user, isSuperadmin, roles, availablePermissions, isUpdating, onUpdate, onDelete, isCurrentUser }: { 
   user: User, 
   isSuperadmin: boolean, 
   roles: Role[],
+  availablePermissions: Permission[],
   isUpdating: boolean,
   onUpdate: (id: string, data: any) => void,
   onDelete: (id: string) => void,
@@ -397,7 +507,10 @@ function UserRow({ user, isSuperadmin, roles, isUpdating, onUpdate, onDelete, is
     email: user.email,
     phone: user.phone,
     role: user.role,
+    permissions: user.permissions || [],
     isActive: user.isActive,
+    profilePhoto: user.profilePhoto || '',
+    photoFile: null as File | null,
     password: '',
     confirmPassword: ''
   });
@@ -407,52 +520,74 @@ function UserRow({ user, isSuperadmin, roles, isUpdating, onUpdate, onDelete, is
     email: editData.email,
     phone: editData.phone,
     role: editData.role,
-    isActive: editData.isActive
+    permissions: editData.permissions,
+    isActive: editData.isActive,
+    profilePhoto: editData.profilePhoto
   }) !== JSON.stringify({
     name: user.name,
     email: user.email,
     phone: user.phone,
     role: user.role,
-    isActive: user.isActive
+    permissions: user.permissions || [],
+    isActive: user.isActive,
+    profilePhoto: user.profilePhoto || ''
   }) || (editData.password !== '');
 
+  const togglePermission = (slug: string) => {
+    setEditData(prev => ({
+      ...prev,
+      permissions: prev.permissions.includes(slug)
+        ? prev.permissions.filter(p => p !== slug)
+        : [...prev.permissions, slug]
+    }));
+  };
+
   return (
-    <tr className={`hover:bg-gray-50 transition-colors ${!user.isActive ? 'bg-gray-50/50' : ''}`}>
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 ${user.isActive ? 'bg-green-50 text-[#1abc60]' : 'bg-gray-100 text-gray-400'} rounded-full flex items-center justify-center font-bold border border-gray-100`}>
-            {user.name.charAt(0)}
-          </div>
-          <div>
-            <div className={`font-bold ${user.isActive ? 'text-gray-900' : 'text-gray-400'}`}>
-              {user.name} {isCurrentUser && <span className="text-xs text-[#1abc60] font-normal">(You)</span>}
+    <>
+      <tr className={`hover:bg-gray-50 transition-colors ${!user.isActive ? 'bg-gray-50/50' : ''}`}>
+        <td className="px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-100">
+              {user.profilePhoto ? (
+                <img src={user.profilePhoto} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className={`w-full h-full flex items-center justify-center font-bold ${user.isActive ? 'bg-green-50 text-[#1abc60]' : 'bg-gray-100 text-gray-400'}`}>
+                  {user.name.charAt(0)}
+                </div>
+              )}
             </div>
-            <div className="text-xs text-gray-500">{user.email}</div>
+            <div className="flex flex-col">
+              <div className={`text-sm font-black ${user.isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+                {user.name} {isCurrentUser && <span className="text-xs text-[#1abc60] font-normal">(You)</span>}
+              </div>
+              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{user.email}</div>
+            </div>
           </div>
-        </div>
-      </td>
-      <td className="px-6 py-4">
-        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-          user.role === 'superadmin' ? 'bg-purple-100 text-purple-600' :
-          user.role === 'admin' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
-        }`}>
-          {user.role}
-        </span>
-      </td>
-      <td className="px-6 py-4">
-        <div className="text-xs text-gray-600 font-medium">{user.phone || 'N/A'}</div>
-      </td>
-      <td className="px-6 py-4">
-        <span className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-full border uppercase ${
-          user.isActive 
-            ? 'text-green-600 bg-green-50 border-green-100' 
-            : 'text-red-600 bg-red-50 border-red-100'
-        }`}>
-          {user.isActive ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-          {user.isActive ? 'Active' : 'Inactive'}
-        </span>
-      </td>
-      {isSuperadmin && (
+        </td>
+        <td className="px-6 py-4">
+          <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+            user.role === 'superadmin' ? 'bg-purple-100 text-purple-600' :
+            user.role === 'admin' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+          }`}>
+            {user.role}
+          </span>
+        </td>
+        <td className="px-6 py-4">
+          <div className="text-xs text-gray-600 font-medium">{user.phone || 'N/A'}</div>
+        </td>
+        <td className="px-6 py-4">
+          <div className="text-xs text-gray-600 font-medium">{user.createdBy?.name || 'System'}</div>
+        </td>
+        <td className="px-6 py-4">
+          <span className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-full border uppercase ${
+            user.isActive 
+              ? 'text-green-600 bg-green-50 border-green-100' 
+              : 'text-red-600 bg-red-50 border-red-100'
+          }`}>
+            {user.isActive ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+            {user.isActive ? 'Active' : 'Inactive'}
+          </span>
+        </td>
         <td className="px-6 py-4">
           {!isCurrentUser && (
             <div className="flex gap-2">
@@ -461,132 +596,223 @@ function UserRow({ user, isSuperadmin, roles, isUpdating, onUpdate, onDelete, is
             </div>
           )}
         </td>
-      )}
+      </tr>
 
       {/* Edit User Modal */}
-      {isEditing && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm text-left">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="text-lg font-bold text-gray-900">Edit User Details</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-6 h-6" /></button>
+      {isEditing && createPortal(
+        <div className="fixed inset-0 bg-[#1e293b]/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md text-left">
+          <motion.div 
+            initial={{ opacity: 0, y: 20, scale: 0.95 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            className="bg-white rounded-[40px] w-full max-w-2xl h-[90vh] shadow-2xl overflow-hidden border border-white/20 flex flex-col"
+          >
+            <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+              <div>
+                <h3 className="text-3xl font-black text-[#1e293b]">Edit User Details</h3>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mt-2">Update profile and permissions</p>
+              </div>
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all text-gray-400 hover:text-gray-600 active:scale-95"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            <div className="p-6 space-y-4 text-left">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase">Full Name</label>
-                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                  <div className="pl-3 pr-1 text-gray-400">
-                    <UserIcon className="w-4 h-4" />
+            
+            <div className="p-10 space-y-8 overflow-y-auto flex-1 custom-scrollbar text-left">
+              <div className="flex flex-col items-center justify-center pb-4">
+                <div 
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = (e: any) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setEditData(prev => ({ ...prev, photoFile: file, profilePhoto: file.name }));
+                      }
+                    };
+                    input.click();
+                  }}
+                  className="relative group cursor-pointer"
+                >
+                  <div className="w-32 h-32 rounded-[32px] bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-[#1abc60] group-hover:bg-green-50/30">
+                    {editData.photoFile ? (
+                      <img src={URL.createObjectURL(editData.photoFile)} alt="Preview" className="w-full h-full object-cover" />
+                    ) : editData.profilePhoto ? (
+                      <img src={editData.profilePhoto.startsWith('http') ? editData.profilePhoto : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${editData.profilePhoto}`} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <Camera className="w-8 h-8 text-gray-300 group-hover:text-[#1abc60] transition-colors" />
+                        <span className="text-[10px] font-black text-gray-400 mt-2 uppercase tracking-widest group-hover:text-[#1abc60]">Change Photo</span>
+                      </>
+                    )}
                   </div>
-                  <input 
-                    value={editData.name} 
-                    onChange={e => setEditData({...editData, name: e.target.value})} 
-                    className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0" 
-                  />
+                  <div className="absolute -bottom-2 -right-2 p-2 bg-[#1abc60] text-white rounded-xl shadow-lg shadow-green-100 group-hover:scale-110 transition-transform">
+                    <Plus className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase">Email Address</label>
-                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                  <div className="pl-3 pr-1 text-gray-400">
+
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
+                  <div className="flex items-center bg-gray-50 border border-gray-100 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                    <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
+                      <UserIcon className="w-4 h-4" />
+                    </div>
+                    <input 
+                      value={editData.name} 
+                      onChange={e => setEditData({...editData, name: e.target.value})} 
+                      className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Phone Number</label>
+                  <div className="flex items-center bg-gray-50 border border-gray-100 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                    <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <input 
+                      value={editData.phone} 
+                      onChange={e => setEditData({...editData, phone: e.target.value})} 
+                      className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                  <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
                     <Mail className="w-4 h-4" />
                   </div>
                   <input 
                     value={editData.email} 
                     onChange={e => setEditData({...editData, email: e.target.value})} 
-                    className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0" 
+                    className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700" 
                   />
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase">Phone Number</label>
-                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                  <div className="pl-3 pr-1 text-gray-400">
-                    <Phone className="w-4 h-4" />
-                  </div>
-                  <input 
-                    value={editData.phone} 
-                    onChange={e => setEditData({...editData, phone: e.target.value})} 
-                    className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0" 
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase">Role</label>
-                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                    <div className="pl-3 pr-1 text-gray-400">
+
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Assign Role</label>
+                  <div className="flex items-center bg-gray-50 border border-gray-100 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                    <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
                       <Shield className="w-4 h-4" />
                     </div>
                     <select 
                       value={editData.role} 
                       onChange={e => setEditData({...editData, role: e.target.value as any})} 
-                      className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0 appearance-none"
+                      className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700 appearance-none cursor-pointer"
                     >
                       {roles.map(r => <option key={r._id} value={r.name}>{r.name}</option>)}
                     </select>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase">Account Status</label>
-                  <button onClick={() => setEditData({...editData, isActive: !editData.isActive})} className={`w-full py-2 h-[42px] rounded-lg font-bold border transition-all ${editData.isActive ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
-                    {editData.isActive ? 'Active' : 'Inactive'}
-                  </button>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Account Status</span>
+                  <span className={`text-xs font-bold mt-0.5 ${editData.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                    Currently {editData.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setEditData({...editData, isActive: !editData.isActive})} 
+                  className={`px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                    editData.isActive 
+                      ? 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100' 
+                      : 'bg-green-50 text-green-600 border border-green-100 hover:bg-green-100'
+                  }`}
+                >
+                  {editData.isActive ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Specific Permissions</label>
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-4 bg-gray-50 rounded-2xl border border-gray-100 custom-scrollbar">
+                  {availablePermissions.map(p => (
+                    <label key={p._id} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${
+                      editData.permissions.includes(p.slug) 
+                        ? 'bg-white border-[#1abc60] text-[#1abc60] shadow-sm' 
+                        : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
+                    }`}>
+                      <input 
+                        type="checkbox" 
+                        checked={editData.permissions.includes(p.slug)} 
+                        onChange={() => togglePermission(p.slug)}
+                        className="accent-[#1abc60] w-4 h-4"
+                      />
+                      <span className="text-[10px] font-black uppercase tracking-tight">{p.name}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
-              <div className="space-y-4 pt-2 border-t border-gray-100">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Change Password (Leave blank to keep current)</p>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase">New Password</label>
-                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                    <div className="pl-3 pr-1 text-gray-400">
-                      <Lock className="w-4 h-4" />
+              <div className="space-y-4 pt-4 border-t border-gray-100">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Security Updates</p>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">New Password</label>
+                    <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                      <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <input 
+                        type="password" 
+                        value={editData.password} 
+                        onChange={e => setEditData({...editData, password: e.target.value})} 
+                        className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700 placeholder:text-gray-300" 
+                        placeholder="••••••••" 
+                      />
                     </div>
-                    <input 
-                      type="password" 
-                      value={editData.password} 
-                      onChange={e => setEditData({...editData, password: e.target.value})} 
-                      className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0" 
-                      placeholder="••••••••" 
-                    />
                   </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase">Confirm New Password</label>
-                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#1abc60] transition-all">
-                    <div className="pl-3 pr-1 text-gray-400">
-                      <Lock className="w-4 h-4" />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirm Password</label>
+                    <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group">
+                      <div className="pl-4 text-gray-400 group-focus-within:text-[#1abc60]">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <input 
+                        type="password" 
+                        value={editData.confirmPassword} 
+                        onChange={e => setEditData({...editData, confirmPassword: e.target.value})} 
+                        className="flex-1 px-4 py-3.5 bg-transparent border-none outline-none text-sm font-bold text-gray-700 placeholder:text-gray-300" 
+                        placeholder="••••••••" 
+                      />
                     </div>
-                    <input 
-                      type="password" 
-                      value={editData.confirmPassword} 
-                      onChange={e => setEditData({...editData, confirmPassword: e.target.value})} 
-                      className="flex-1 px-3 py-2 bg-transparent border-none outline-none transition-all text-sm font-medium focus:ring-0" 
-                      placeholder="••••••••" 
-                    />
                   </div>
                 </div>
               </div>
 
-              <button 
-                onClick={() => {
-                  if (editData.password && editData.password !== editData.confirmPassword) {
-                    return toast.error('Passwords do not match');
-                  }
-                  onUpdate(user._id, editData);
-                  setIsModalOpen(false);
-                  setEditData(prev => ({ ...prev, password: '', confirmPassword: '' }));
-                }} 
-                disabled={!hasChanged || isUpdating} 
-                className="w-full bg-[#1abc60] text-white py-3 rounded-xl font-black shadow-lg shadow-green-100 flex items-center justify-center gap-2 hover:bg-[#16a085] transition-all text-sm"
-              >
-                {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> Save Changes</>}
-              </button>
+              <div className="pt-4">
+                <button 
+                  onClick={() => {
+                    if (editData.password && editData.password !== editData.confirmPassword) {
+                      return toast.error('Passwords do not match');
+                    }
+                    onUpdate(user._id, editData);
+                    setIsModalOpen(false);
+                    setEditData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+                  }} 
+                  disabled={!hasChanged || isUpdating} 
+                  className="w-full bg-[#1abc60] text-white py-4 rounded-2xl font-black shadow-xl shadow-green-100 flex items-center justify-center gap-3 hover:bg-[#16a085] transition-all text-sm uppercase tracking-widest active:scale-[0.98] disabled:opacity-50"
+                >
+                  {isUpdating ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5" /> Update Account</>}
+                </button>
+              </div>
             </div>
           </motion.div>
-        </div>
+        </div>,
+        document.body
       )}
-    </tr>
+    </>
   );
 }

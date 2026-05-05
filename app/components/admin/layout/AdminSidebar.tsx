@@ -9,8 +9,6 @@ import {
   Users,
   FolderOpen,
   Settings,
-  ChevronLeft,
-  ChevronRight,
   Shield,
   Database,
   X,
@@ -67,14 +65,19 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
       {/* ========================================== */}
       <aside 
         className={`
-          hidden lg:flex flex-col bg-white border-r border-gray-200 transition-all duration-300 ease-in-out
+          hidden lg:flex flex-col bg-white border-r-2 border-black transition-all duration-300 ease-in-out
           ${collapsed ? 'w-[88px]' : 'w-72'} 
           h-screen sticky top-0 flex-shrink-0 relative z-30
         `}
       >
         {/* Logo Header */}
-        <div className="h-24 flex items-center justify-center px-4 shrink-0 relative border-b border-gray-100">
-          <div className={`relative flex items-center justify-center transition-all duration-300 ${collapsed ? 'w-10 h-10' : 'w-36 h-12'}`}>
+        <div className="h-24 flex items-center justify-center px-4 shrink-0 relative border-b-2 border-black bg-white">
+          {/* FIX: Added !bg-transparent !border-none !shadow-none to override global CSS */}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className={`!bg-transparent !border-none !shadow-none !p-0 relative flex items-center justify-center transition-all duration-300 cursor-pointer focus:outline-none group ${collapsed ? 'w-12 h-12' : 'w-36 h-12 hover:scale-105'}`}
+            title={collapsed ? "Expand Menu" : "Collapse Menu"}
+          >
             {!collapsed ? (
               <Image 
                 src={logo} 
@@ -86,18 +89,11 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                 unoptimized
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-xl">
-                <span className="!text-[#1abc60] font-black text-2xl">G</span>
+              // Collapsed state 'G' icon
+              <div className="w-full h-full flex items-center justify-center bg-white rounded-xl border-2 border-transparent group-hover:border-[#1abc60]/30 shadow-sm transition-all">
+                <span className="text-[#1abc60] font-black text-3xl">G</span>
               </div>
             )}
-          </div>
-          
-          {/* Toggle Button (FIXED: Bada kiya, Black BG diya) */}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="absolute -right-1 top-1/2 -translate-y-1/2 w-8 h-8 !bg-[#1abc60] hover:!bg-[#1abc60]/80 rounded-full flex items-center justify-center !text-white transition-all z-50 !shadow-md !border-2 !border-white !p-0 cursor-pointer"
-          >
-            {collapsed ? <ChevronRight className="w-5 h-5 ml-0.5" strokeWidth={2.5} /> : <ChevronLeft className="w-5 h-5 pr-0.5" strokeWidth={2.5} />}
           </button>
         </div>
 
@@ -120,10 +116,10 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                   }
                 `}
               >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-slate-500'}`} strokeWidth={2.5} />
+                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-[#1abc60]'}`} strokeWidth={2.5} />
                 
                 {!collapsed && (
-                  <span className={`text-[15px] flex-1 ${isActive ? 'font-medium' : 'font-medium'}`}>
+                  <span className={`text-[15px] flex-1 ${isActive ? 'font-semibold' : 'font-medium'}`}>
                     {item.label}
                   </span>
                 )}
@@ -138,7 +134,7 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
         </nav>
         
         {/* User Profile Footer */}
-        <div className="p-4 shrink-0 border-t border-gray-100 mb-2 mt-auto">
+        <div className="p-4 shrink-0 border-t-2 border-black mt-auto bg-white">
           <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} p-2 rounded-xl hover:bg-gray-50 transition-all cursor-pointer`}>
             <div className="w-10 h-10 rounded-full !bg-[#111827] flex items-center justify-center !text-white font-bold text-lg flex-shrink-0">
               {user?.name?.[0]?.toUpperCase() || 'S'}
@@ -175,7 +171,7 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
               className="lg:hidden fixed top-0 left-0 bottom-0 z-[70] w-72 bg-white shadow-2xl flex flex-col"
             >
               {/* Mobile Header */}
-              <div className="h-24 border-b border-gray-100 flex justify-between items-center px-6 shrink-0">
+              <div className="h-24 border-b-2 border-black flex justify-between items-center px-6 shrink-0 bg-white">
                 <div className="relative h-10 w-32">
                   <Image src={logo} alt="Logo" fill className="object-contain" unoptimized />
                 </div>
@@ -188,7 +184,7 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
               </div>
 
               {/* Mobile Navigation */}
-              <nav className="flex-1 py-6 px-4 space-y-2 overflow-y-auto">
+              <nav className="flex-1 py-6 px-4 space-y-2 overflow-y-auto bg-white">
                 {menuItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -206,8 +202,8 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                         }
                       `}
                     >
-                      <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-slate-500'}`} strokeWidth={2.5} />
-                      <span className="text-[15px] flex-1 font-medium">{item.label}</span>
+                      <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-[#1abc60]'}`} strokeWidth={2.5} />
+                      <span className="text-[15px] flex-1 font-semibold">{item.label}</span>
                       
                       {/* White Dot Indicator */}
                       {isActive && (
@@ -219,7 +215,7 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
               </nav>
 
               {/* Mobile Footer */}
-              <div className="p-4 shrink-0 border-t border-gray-100 mb-2">
+              <div className="p-4 shrink-0 border-t-2 border-black mt-auto bg-white">
                 <div className="flex items-center gap-3 p-2 rounded-xl">
                   <div className="w-10 h-10 rounded-full !bg-[#111827] flex items-center justify-center !text-white font-bold text-lg flex-shrink-0">
                     {user?.name?.[0]?.toUpperCase() || 'S'}

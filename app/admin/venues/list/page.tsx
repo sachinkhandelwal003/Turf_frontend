@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Pencil, Plus } from 'lucide-react';
+import { Loader2, Pencil, Plus, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/app/services/api';
+import { useAuth } from '@/app/context/AuthContext';
 
 interface VenueItem {
   _id: string;
   name: string;
   pricePerHour: number;
   isActive: boolean;
+  status: 'pending' | 'approved' | 'rejected';
   sports: string[];
   location?: {
     city?: string;
@@ -18,23 +20,39 @@ interface VenueItem {
 }
 
 export default function VenueListPage() {
+  const { user } = useAuth();
   const [venues, setVenues] = useState<VenueItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const fetchVenues = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/turfs/my/all');
+      setVenues(res.data?.turfs || []);
+    } catch (error) {
+      toast.error('Failed to load venues');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchVenues = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get('/turfs/my/all');
-        setVenues(res.data?.turfs || []);
-      } catch (error) {
-        toast.error('Failed to load venues');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchVenues();
   }, []);
+
+  const handleStatusUpdate = async (id: string, newStatus: string) => {
+    setActionLoading(id);
+    try {
+      await api.patch(`/turfs/${id}/status`, { status: newStatus });
+      toast.success(`Venue ${newStatus} successfully`);
+      fetchVenues();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || `Failed to update status`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -78,15 +96,40 @@ export default function VenueListPage() {
                     <td className="px-4 py-3 text-sm text-gray-700">{venue.sports?.join(', ') || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">₹{venue.pricePerHour || 0} / hour</td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${venue.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                        {venue.isActive ? 'Active' : 'Pending Review'}
+                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                        (venue.status || 'pending') === 'approved' ? 'bg-emerald-50 text-emerald-700' : 
+                        (venue.status || 'pending') === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                      }`}>
+                        {(venue.status || 'pending').charAt(0).toUpperCase() + (venue.status || 'pending').slice(1)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <Link href={`/admin/venues/edit?id=${venue._id}`} className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700">
-                        <Pencil className="h-4 w-4" />
-                        Edit
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <Link href={`/admin/venues/edit?id=${venue._id}`} className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700">
+                          <Pencil className="h-4 w-4" />
+                          Edit
+                        </Link>
+                        {user?.role === 'superadmin' && (venue.status || 'pending') === 'pending' && (
+                          <div className="flex items-center gap-2 ml-2 border-l pl-3">
+                            <button
+                              onClick={() => handleStatusUpdate(venue._id, 'approved')}
+                              disabled={actionLoading === venue._id}
+                              className="inline-flex items-center justify-center p-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-md transition-all shadow-sm"
+                              title="Approve Venue"
+                            >
+                              {actionLoading === venue._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                            </button>
+                            <button
+                              onClick={() => handleStatusUpdate(venue._id, 'rejected')}
+                              disabled={actionLoading === venue._id}
+                              className="inline-flex items-center justify-center p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-md transition-all shadow-sm"
+                              title="Reject Venue"
+                            >
+                              {actionLoading === venue._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -100,17 +143,42 @@ export default function VenueListPage() {
                       <p className="text-sm font-semibold text-gray-900">{venue.name}</p>
                       <p className="text-xs text-gray-600">{venue.location?.city || '-'}</p>
                     </div>
-                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${venue.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                      {venue.isActive ? 'Active' : 'Pending'}
+                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
+                      (venue.status || 'pending') === 'approved' ? 'bg-emerald-50 text-emerald-700' : 
+                      (venue.status || 'pending') === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                    }`}>
+                      {(venue.status || 'pending').charAt(0).toUpperCase() + (venue.status || 'pending').slice(1)}
                     </span>
                   </div>
                   <p className="mt-2 text-xs text-gray-600">{venue.sports?.join(', ') || '-'}</p>
                   <div className="mt-3 flex items-center justify-between">
                     <p className="text-sm font-semibold text-gray-700">₹{venue.pricePerHour || 0} / hour</p>
-                    <Link href={`/admin/venues/edit?id=${venue._id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      {user?.role === 'superadmin' && (venue.status || 'pending') === 'pending' && (
+                        <div className="flex items-center gap-2 mr-2 pr-2 border-r">
+                          <button
+                            onClick={() => handleStatusUpdate(venue._id, 'approved')}
+                            disabled={actionLoading === venue._id}
+                            className="inline-flex items-center justify-center p-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-md transition-all shadow-sm"
+                            title="Approve Venue"
+                          >
+                            {actionLoading === venue._id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => handleStatusUpdate(venue._id, 'rejected')}
+                            disabled={actionLoading === venue._id}
+                            className="inline-flex items-center justify-center p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-md transition-all shadow-sm"
+                            title="Reject Venue"
+                          >
+                            {actionLoading === venue._id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                      )}
+                      <Link href={`/admin/venues/edit?id=${venue._id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -153,26 +153,6 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
             const hasChildren = Array.isArray((item as any).children) && (item as any).children.length > 0;
             
             return (
-<<<<<<< HEAD
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`
-                  relative flex items-center rounded-xl transition-all duration-200 group border-[1.5px] !no-underline
-                  ${collapsed ? 'justify-center p-3' : 'px-4 py-3.5 gap-3.5'}
-                  ${isActive
-                    ? '!bg-[#1abc60] !text-white !border-black shadow-sm' 
-                    : '!bg-transparent !text-[#1abc60] !border-transparent hover:!bg-gray-50'
-                  }
-                `}
-              >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-[#1abc60]'}`} strokeWidth={2.5} />
-                
-                {!collapsed && (
-                  <span className={`text-[15px] flex-1 ${isActive ? 'font-semibold' : 'font-medium'}`}>
-                    {item.label}
-                  </span>
-=======
               <div key={item.href}>
                 {hasChildren ? (
                   <button
@@ -186,11 +166,11 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                       }
                     `}
                   >
-                    <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-slate-500'}`} strokeWidth={2.5} />
+                    <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-[#1abc60]'}`} strokeWidth={2.5} />
                     {!collapsed && <span className="text-[15px] flex-1 text-left font-medium">{item.label}</span>}
                     {!collapsed && (
                       <ChevronDown
-                        className={`h-4 w-4 transition-transform ${venueMenuOpen ? 'rotate-180' : ''} ${isActive ? '!text-white' : '!text-slate-500'}`}
+                        className={`h-4 w-4 transition-transform ${venueMenuOpen ? 'rotate-180' : ''} ${isActive ? '!text-white' : '!text-[#1abc60]'}`}
                       />
                     )}
                   </button>
@@ -206,13 +186,12 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                       }
                     `}
                   >
-                    <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-slate-500'}`} strokeWidth={2.5} />
+                    <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-[#1abc60]'}`} strokeWidth={2.5} />
                     {!collapsed && <span className="text-[15px] flex-1 font-medium">{item.label}</span>}
                     {!collapsed && isActive && (
                       <div className="w-[5px] h-[5px] rounded-full !bg-white absolute right-4"></div>
                     )}
                   </Link>
->>>>>>> a039d63 (permissions and users)
                 )}
                 {hasChildren && venueMenuOpen && !collapsed && (
                   <div className="mt-1 ml-4 space-y-1 border-l border-gray-200 pl-4">
@@ -296,26 +275,6 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                   const hasChildren = Array.isArray((item as any).children) && (item as any).children.length > 0;
                   
                   return (
-<<<<<<< HEAD
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setSidebarOpen?.(false)}
-                      className={`
-                        relative flex items-center px-4 py-3.5 gap-3.5 rounded-xl transition-all border-[1.5px] !no-underline
-                        ${isActive
-                          ? '!bg-[#1abc60] !text-white !border-black shadow-sm'
-                          : '!bg-transparent !text-[#1abc60] !border-transparent hover:!bg-gray-50'
-                        }
-                      `}
-                    >
-                      <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-[#1abc60]'}`} strokeWidth={2.5} />
-                      <span className="text-[15px] flex-1 font-semibold">{item.label}</span>
-                      
-                      {/* White Dot Indicator */}
-                      {isActive && (
-                        <div className="w-[5px] h-[5px] rounded-full !bg-white absolute right-4"></div>
-=======
                     <div key={item.href}>
                       {hasChildren ? (
                         <button
@@ -328,9 +287,9 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                             }
                           `}
                         >
-                          <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-slate-500'}`} strokeWidth={2.5} />
+                          <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-[#1abc60]'}`} strokeWidth={2.5} />
                           <span className="text-[15px] flex-1 text-left font-medium">{item.label}</span>
-                          <ChevronDown className={`h-4 w-4 transition-transform ${venueMenuOpen ? 'rotate-180' : ''} ${isActive ? '!text-white' : '!text-slate-500'}`} />
+                          <ChevronDown className={`h-4 w-4 transition-transform ${venueMenuOpen ? 'rotate-180' : ''} ${isActive ? '!text-white' : '!text-[#1abc60]'}`} />
                         </button>
                       ) : (
                         <Link
@@ -344,13 +303,12 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                             }
                           `}
                         >
-                          <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-slate-500'}`} strokeWidth={2.5} />
+                          <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '!text-white' : '!text-[#1abc60]'}`} strokeWidth={2.5} />
                           <span className="text-[15px] flex-1 font-medium">{item.label}</span>
                           {isActive && (
                             <div className="w-[5px] h-[5px] rounded-full !bg-white absolute right-4"></div>
                           )}
                         </Link>
->>>>>>> a039d63 (permissions and users)
                       )}
                       {hasChildren && venueMenuOpen && (
                         <div className="mt-1 ml-4 space-y-1 border-l border-gray-200 pl-4">

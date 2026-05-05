@@ -33,15 +33,16 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
           
           {/* Left: Page Title & Mobile Toggle */}
           <div className="flex items-center min-w-0 gap-4">
+            {/* FIX: Removed global button style with important flags */}
             <button
               onClick={onMenuClick}
-              className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
+              className="lg:hidden p-2 !bg-transparent !border-none !shadow-none !text-slate-500 hover:!bg-slate-100 rounded-xl transition-all"
             >
               <Menu className="w-6 h-6" />
             </button>
 
             <div className="min-w-0">
-              <div className="flex items-center gap-3">
+              {/* <div className="flex items-center gap-3">
                 <h1 className="text-xl font-black text-slate-900 tracking-tight truncate">{currentPage}</h1>
                 {isSuperadmin && (
                   <span className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-100">
@@ -49,15 +50,15 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
                     Superadmin
                   </span>
                 )}
-              </div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+              </div> */}
+              {/* <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                 {user?.role} Portal
-              </p>
+              </p> */}
             </div>
           </div>
 
           {/* Center: Search (Hidden on mobile) */}
-          <div className="hidden md:flex flex-1 max-w-md">
+          {/* <div className="hidden md:flex flex-1 max-w-md">
             <div className="w-full flex items-center bg-slate-50 border border-slate-100 rounded-2xl group focus-within:bg-white focus-within:ring-4 focus-within:ring-[#1abc60]/10 focus-within:border-[#1abc60] transition-all">
               <div className="pl-4 pr-1 text-slate-400 group-focus-within:text-[#1abc60] transition-colors">
                 <Search className="w-4 h-4" />
@@ -65,31 +66,32 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
               <input 
                 type="text" 
                 placeholder="Search across platform..." 
-                className="flex-1 px-3 py-2.5 bg-transparent border-none text-sm outline-none font-medium placeholder:text-slate-400 focus:ring-0"
+                className="flex-1 px-3 py-2.5 !bg-transparent !border-none !shadow-none text-sm outline-none font-medium placeholder:text-slate-400 focus:ring-0"
               />
             </div>
-          </div>
+          </div> */}
 
           {/* Right: Actions & Profile */}
           <div className="flex items-center gap-3 shrink-0">
-            {/* Notifications */}
-            <button className="relative p-2.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all group">
+            {/* Notifications FIX */}
+            <button className="relative p-2.5 !bg-transparent !border-none !shadow-none !text-slate-400 hover:!text-slate-900 hover:!bg-slate-50 rounded-xl transition-all group">
               <Bell className="w-5 h-5 group-hover:rotate-12 transition-transform" />
               <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#1abc60] rounded-full border-2 border-white animate-pulse"></span>
             </button>
 
-            {/* Settings */}
-            <button className="hidden sm:flex p-2.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all">
+            {/* Settings FIX
+            <button className="hidden sm:flex p-2.5 !bg-transparent !border-none !shadow-none !text-slate-400 hover:!text-slate-900 hover:!bg-slate-50 rounded-xl transition-all">
               <Settings className="w-5 h-5" />
-            </button>
+            </button> */}
 
-            <div className="h-8 w-px bg-slate-100 mx-2 hidden sm:block"></div>
+            {/* <div className="h-8 w-px bg-slate-100 mx-2 hidden sm:block"></div> */}
 
             {/* User Profile */}
             <div className="relative">
+              {/* Profile Button FIX */}
               <button
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="flex items-center gap-3 p-1.5 hover:bg-slate-50 rounded-2xl transition-all group"
+                className="flex items-center gap-3 p-1.5 !bg-transparent !border-none !shadow-none hover:!bg-slate-50 rounded-2xl transition-all group"
               >
                 <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-slate-200 group-hover:scale-105 transition-transform">
                   {user?.name?.[0]?.toUpperCase() || 'A'}
@@ -127,9 +129,10 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
                       </div>
                       
                       <div className="p-2">
+                        {/* Logout Button FIX */}
                         <button
                           onClick={logout}
-                          className="w-full px-4 py-3 text-left text-red-500 hover:bg-red-50 rounded-2xl flex items-center gap-3 text-xs font-black transition-all group"
+                          className="w-full px-4 py-3 text-left !bg-transparent !border-none !shadow-none !text-red-500 hover:!bg-red-50 rounded-2xl flex items-center gap-3 text-xs font-black transition-all group"
                         >
                           <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition-colors">
                             <LogOut className="w-4 h-4" />

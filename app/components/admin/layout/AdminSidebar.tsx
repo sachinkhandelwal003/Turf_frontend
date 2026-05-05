@@ -72,7 +72,6 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
       >
         {/* Logo Header */}
         <div className="h-24 flex items-center justify-center px-4 shrink-0 relative border-b-2 border-black bg-white">
-          {/* FIX: Added !bg-transparent !border-none !shadow-none to override global CSS */}
           <button
             onClick={() => setCollapsed(!collapsed)}
             className={`!bg-transparent !border-none !shadow-none !p-0 relative flex items-center justify-center transition-all duration-300 cursor-pointer focus:outline-none group ${collapsed ? 'w-12 h-12' : 'w-36 h-12 hover:scale-105'}`}
@@ -89,10 +88,16 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                 unoptimized
               />
             ) : (
-              // Collapsed state 'G' icon
-              <div className="w-full h-full flex items-center justify-center bg-white rounded-xl border-2 border-transparent group-hover:border-[#1abc60]/30 shadow-sm transition-all">
-                <span className="text-[#1abc60] font-black text-3xl">G</span>
-              </div>
+              // Collapsed state mein favicon
+              <Image 
+                src="/favicon.ico" 
+                alt="Favicon" 
+                fill 
+                sizes="32px"
+                className="object-contain" 
+                priority
+                unoptimized
+              />
             )}
           </button>
         </div>

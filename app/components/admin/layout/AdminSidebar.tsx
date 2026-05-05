@@ -108,13 +108,13 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
       {/* ========================================== */}
       <aside 
         className={`
-          hidden lg:flex flex-col bg-white border-r-1 border-gray-300 transition-all duration-300 ease-in-out
+          hidden lg:flex flex-col bg-white border-r border-gray-200 transition-all duration-300 ease-in-out
           ${collapsed ? 'w-[88px]' : 'w-72'} 
           h-screen sticky top-0 flex-shrink-0 relative z-30
         `}
       >
         {/* Logo Header */}
-        <div className="h-24 flex items-center justify-center px-4 shrink-0 relative border-b-1 border-gray-300 bg-white">
+        <div className="h-24 flex items-center justify-center px-4 shrink-0 relative border-b border-gray-200 bg-white">
           <button
             onClick={() => setCollapsed(!collapsed)}
             className={`!bg-transparent !border-none !shadow-none !p-0 relative flex items-center justify-center transition-all duration-300 cursor-pointer focus:outline-none group ${collapsed ? 'w-12 h-12' : 'w-36 h-12 hover:scale-105'}`}
@@ -218,7 +218,7 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
         </nav>
         
         {/* User Profile Footer */}
-        <div className="p-4 shrink-0 border-t-1 border-gray-300 mt-auto bg-white">
+        <div className="p-4 shrink-0 border-t border-gray-200 mt-auto bg-white">
           <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} p-2 rounded-xl hover:bg-gray-50 transition-all cursor-pointer`}>
             <div className="w-10 h-10 rounded-full !bg-[#111827] flex items-center justify-center !text-white font-bold text-lg flex-shrink-0">
               {user?.name?.[0]?.toUpperCase() || 'S'}
@@ -255,7 +255,7 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
               className="lg:hidden fixed top-0 left-0 bottom-0 z-[70] w-72 bg-white shadow-2xl flex flex-col"
             >
               {/* Mobile Header */}
-              <div className="h-24 border-b-1 border-grey flex justify-between items-center px-6 shrink-0 bg-white">
+              <div className="h-24 border-b border-gray-200 flex justify-between items-center px-6 shrink-0 bg-white">
                 <div className="relative h-10 w-32">
                   <Image src={logo} alt="Logo" fill className="object-contain" unoptimized />
                 </div>
@@ -336,7 +336,7 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
               </nav>
 
               {/* Mobile Footer */}
-              <div className="p-4 shrink-0 border-t-1 border-grey mt-auto bg-white">
+              <div className="p-4 shrink-0 border-t border-gray-200 mt-auto bg-white">
                 <div className="flex items-center gap-3 p-2 rounded-xl">
                   <div className="w-10 h-10 rounded-full !bg-[#111827] flex items-center justify-center !text-white font-bold text-lg flex-shrink-0">
                     {user?.name?.[0]?.toUpperCase() || 'S'}

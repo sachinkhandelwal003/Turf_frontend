@@ -16,7 +16,7 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
   const pathname = usePathname();
 
   return (
-    <header className="bg-white border-b border-gray-300 sticky top-0 z-40 h-24 shrink-0">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-40 h-24 shrink-0">
       <div className="h-full px-6 lg:px-8">
         <div className="flex justify-between items-center h-full">
           

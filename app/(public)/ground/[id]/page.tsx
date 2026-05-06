@@ -7,21 +7,32 @@ import { useState, useEffect } from 'react';
 import { 
   MapPin, Star, ChevronDown, Calendar, Clock, ChevronLeft,
   Activity, CheckCircle2, Droplets, Car, Utensils, ShieldPlus, 
-  Circle, X, Loader2, Shield
+  Circle, X, Loader2 
 } from 'lucide-react';
 import api from '@/app/services/api';
-import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+
+// === TIME SLOTS MOCK DATA ===
+const TIME_SLOTS = {
+  MORNING: [
+    { time: "06:00 AM - 07:00 AM", status: "disabled" },
+    { time: "07:00 AM - 08:00 AM", status: "available" },
+    { time: "08:00 AM - 09:00 AM", status: "available" }
+  ],
+  EVENING: [
+    { time: "06:00 PM - 07:00 PM", status: "available" },
+    { time: "07:00 PM - 08:00 PM", status: "available" },
+    { time: "08:00 PM - 09:00 PM", status: "disabled" }
+  ]
+};
+
+const COURTS = ["Court 1", "Court 2", "Court 3", "VIP Court"];
 
 export default function VenueDetailsPage() {
   const params = useParams();
-  const router = useRouter();
   const id = Array.isArray(params?.id) ? params.id[0] : (params?.id || ""); 
   
   const [venue, setVenue] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [timeSlots, setTimeSlots] = useState<{ label: string; slots: { value: string; label: string }[] }[]>([]);
-  const [bookedSlots, setBookedSlots] = useState<{ slot: string; court: string }[]>([]);
 
   useEffect(() => {
     const fetchVenue = async () => {
@@ -40,9 +51,6 @@ export default function VenueDetailsPage() {
             mapUrl: t.location.mapUrl || '',
             coordinates: t.location.coordinates,
             price: t.pricePerHour,
-            surfaceType: t.surfaceType,
-            operatingHours: t.operatingHours,
-            courts: t.courts || [],
             image: t.images && t.images.length > 0 
               ? (t.images[0].startsWith('http') 
                   ? t.images[0] 
@@ -80,133 +88,10 @@ export default function VenueDetailsPage() {
   const todayDateStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(todayDateStr);
   const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
-  const [selectedTime, setSelectedTime] = useState<{ value: string; label: string } | null>(null);
+  const [selectedTime, setSelectedTime] = useState("06:00 PM - 07:00 PM");
   const [isCourtModalOpen, setIsCourtModalOpen] = useState(false);
-  const [selectedCourt, setSelectedCourt] = useState("");
+  const [selectedCourt, setSelectedCourt] = useState("Court 1");
   const [activeImage, setActiveImage] = useState(0);
-  const [bookingLoading, setBookingLoading] = useState(false);
-
-  const generateTimeSlots = (openingTime: string, closingTime: string) => {
-    const slots = [];
-    // Handle cases like "06:00 AM" or "06:00"
-    const parseTime = (t: string) => {
-      if (t.includes('AM') || t.includes('PM')) {
-        let [time, modifier] = t.split(' ');
-        let [hours, minutes] = time.split(':');
-        let h = parseInt(hours);
-        if (h === 12) h = 0;
-        if (modifier === 'PM') h += 12;
-        return h;
-      }
-      return parseInt(t.split(':')[0]);
-    };
-
-    let current = parseTime(openingTime);
-    const end = parseTime(closingTime);
-
-    for (let i = current; i < end; i++) {
-      const startH = i % 24;
-      const endH = (i + 1) % 24;
-      
-      const formatH = (h: number) => {
-        return `${h.toString().padStart(2, '0')}:00`;
-      };
-
-      const displayH = (h: number) => {
-        const period = h >= 12 ? 'PM' : 'AM';
-        const dH = h % 12 || 12;
-        return `${dH.toString().padStart(2, '0')}:00 ${period}`;
-      };
-
-      slots.push({
-        value: `${formatH(startH)} - ${formatH(endH)}`,
-        label: `${displayH(startH)} - ${displayH(endH)}`
-      });
-    }
-
-    const morning = slots.filter(s => {
-      const h = parseInt(s.value.split(':')[0]);
-      return h >= 6 && h < 12;
-    });
-    
-    const afternoon = slots.filter(s => {
-      const h = parseInt(s.value.split(':')[0]);
-      return h >= 12 && h < 17;
-    });
-
-    const evening = slots.filter(s => {
-      const h = parseInt(s.value.split(':')[0]);
-      return h >= 17 && h <= 23;
-    });
-
-    return [
-      { label: "Morning", slots: morning },
-      { label: "Afternoon", slots: afternoon },
-      { label: "Evening", slots: evening },
-    ].filter(group => group.slots.length > 0);
-  };
-
-  useEffect(() => {
-    if (venue?.operatingHours) {
-      const dateObj = new Date(selectedDate);
-      const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-      const hours = venue.operatingHours.find((h: any) => h.day === dayName);
-      if (hours && hours.isOpen) {
-        setTimeSlots(generateTimeSlots(hours.open, hours.close));
-      } else {
-        setTimeSlots([]);
-      }
-    }
-  }, [venue, selectedDate]);
-
-  useEffect(() => {
-    if (id && selectedDate) {
-      fetchBookedSlots();
-    }
-  }, [id, selectedDate]);
-
-  const fetchBookedSlots = async () => {
-    try {
-      const res = await api.get(`/bookings/turf/${id}?date=${selectedDate}`);
-      if (res.data.success) {
-        const booked = res.data.bookings
-          .filter((b: any) => b.status === 'confirmed' || b.status === 'pending')
-          .map((b: any) => b.courts.map((c: string) => ({ slot: `${b.startTime} - ${b.endTime}`, court: c })))
-          .flat();
-        setBookedSlots(booked);
-      }
-    } catch (error) {
-      console.error("Error fetching booked slots:", error);
-    }
-  };
-
-  const handleBooking = async () => {
-    if (!selectedTime || !selectedCourt || !venue) {
-      toast.error("Please select both time and court");
-      return;
-    }
-
-    setBookingLoading(true);
-    try {
-      const res = await api.post("/bookings", {
-        turfId: venue.id,
-        sport: venue.sports[0], // Default to first sport
-        date: selectedDate,
-        slot: selectedTime.value,
-        price: venue.price,
-        courts: [selectedCourt],
-      });
-
-      if (res.data.success) {
-        toast.success("Redirecting to checkout...");
-        router.push(`/checkout/${res.data.booking._id}`);
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to create booking");
-    } finally {
-      setBookingLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -319,32 +204,6 @@ export default function VenueDetailsPage() {
               )}
             </div>
 
-            {/* Features Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
-              <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center text-center">
-                <Shield className="w-5 h-5 text-[#1abc60] mb-2" />
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Surface</span>
-                <span className="text-xs font-black text-gray-900 mt-1 truncate w-full">{venue.surfaceType || 'Hybrid Grass'}</span>
-              </div>
-              <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center text-center">
-                <Clock className="w-5 h-5 text-[#1abc60] mb-2" />
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Open From</span>
-                <span className="text-xs font-black text-gray-900 mt-1">
-                  {venue.operatingHours?.find((h: any) => h.isOpen)?.open || '06:00'} - {venue.operatingHours?.find((h: any) => h.isOpen)?.close || '23:00'}
-                </span>
-              </div>
-              <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center text-center">
-                <MapPin className="w-5 h-5 text-[#1abc60] mb-2" />
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</span>
-                <span className="text-xs font-black text-gray-900 mt-1 truncate w-full">{venue.location}</span>
-              </div>
-              <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center text-center">
-                <Activity className="w-5 h-5 text-[#1abc60] mb-2" />
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Courts</span>
-                <span className="text-xs font-black text-gray-900 mt-1">{venue.courts?.length || 1} Available</span>
-              </div>
-            </div>
-
             {/* Sports Available Section */}
             <div className="mb-12">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Sports Available</h3>
@@ -427,36 +286,26 @@ export default function VenueDetailsPage() {
                 >
                   <div className="flex items-center text-sm font-medium text-gray-800">
                     <Clock className="w-4 h-4 mr-3 text-gray-400" /> 
-                    {selectedTime?.label || "Select Time"}
+                    {selectedTime}
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </div>
 
                 {/* Court Picker */}
                 <div 
-                  onClick={() => {
-                    if (!selectedTime) {
-                      toast.error("Please select a time slot first");
-                      return;
-                    }
-                    setIsCourtModalOpen(true);
-                  }}
-                  className={`relative bg-white border border-gray-200 rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer hover:border-[#1abc60] transition-all ${!selectedTime ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
+                  onClick={() => setIsCourtModalOpen(true)}
+                  className="relative bg-white border border-gray-200 rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer hover:border-[#1abc60] transition-all"
                 >
                   <div className="flex items-center text-sm font-medium text-gray-800">
                     <CheckCircle2 className="w-4 h-4 mr-3 text-gray-400" /> 
-                    {selectedCourt || "Select Court"}
+                    {selectedCourt}
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </div>
               </div>
 
-              <button 
-                onClick={handleBooking}
-                disabled={!selectedTime || !selectedCourt || bookingLoading}
-                className="w-full !bg-[#1abc60] hover:!bg-[#169c4e] !text-white !text-base !font-bold !py-3.5 !rounded-xl !transition-all !border-none !shadow-sm !m-0 !cursor-pointer disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
-              >
-                {bookingLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Book Now"}
+              <button className="w-full !bg-[#1abc60] hover:!bg-[#169c4e] !text-white !text-base !font-bold !py-3.5 !rounded-xl !transition-all !border-none !shadow-sm !m-0 !cursor-pointer">
+                Book Now
               </button>
             </div>
 
@@ -467,9 +316,7 @@ export default function VenueDetailsPage() {
               </div>
               <div>
                 <p className="text-sm font-bold text-gray-900">Operating Hours</p>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  {venue.operatingHours?.find((h: any) => h.isOpen)?.open || '06:00 AM'} - {venue.operatingHours?.find((h: any) => h.isOpen)?.close || '11:00 PM'}
-                </p>
+                <p className="text-sm text-gray-500 mt-0.5">06:00 AM - 11:00 PM</p>
               </div>
             </div>
 
@@ -536,34 +383,28 @@ export default function VenueDetailsPage() {
             
             {/* Scrollable Body */}
             <div className="p-6 overflow-y-auto">
-              {timeSlots.map((group) => (
-                <div key={group.label} className="mb-6 last:mb-0">
-                  <h3 className="text-xs font-bold text-gray-500 tracking-wider uppercase mb-3">{group.label}</h3>
+              {Object.entries(TIME_SLOTS).map(([period, slots]) => (
+                <div key={period} className="mb-6 last:mb-0">
+                  <h3 className="text-xs font-bold text-gray-500 tracking-wider uppercase mb-3">{period}</h3>
                   <div className="grid grid-cols-1 gap-2.5">
-                    {group.slots.map((slot, idx) => {
-                        const isSelected = selectedTime?.value === slot.value;
-                        const totalCourts = venue.courts?.length || 4;
-                        const bookedForThisSlot = bookedSlots.filter(b => b.slot === slot.value).length;
-                        const isFullyBooked = bookedForThisSlot >= totalCourts;
-
+                    {slots.map((slot, idx) => {
+                      const isSelected = selectedTime === slot.time;
+                      const isDisabled = slot.status === "disabled";
                       return (
                         <button
                           key={idx}
-                          disabled={isFullyBooked}
-                          onClick={() => { setSelectedTime(slot); setIsTimeModalOpen(false); setSelectedCourt(""); }}
+                          disabled={isDisabled}
+                          onClick={() => { setSelectedTime(slot.time); setIsTimeModalOpen(false); }}
                           className={`!w-full !py-3.5 !px-4 !rounded-xl !text-sm !transition-all !text-left flex justify-between items-center !m-0 !shadow-none !cursor-pointer !border
-                            ${isFullyBooked 
+                            ${isDisabled 
                               ? '!bg-gray-50 !text-gray-400 !border-gray-100 !cursor-not-allowed !font-medium' 
                               : isSelected
-                                ? '!bg-white !text-[#1abc60] !border-[#1abc60] !font-bold'
+                                ? '!bg-white !text-[#1abc60] !border-[#1abc60] !font-bold' // FIX: Background transparent/white, text/border green
                                 : '!bg-white !text-gray-700 !border-gray-200 hover:!border-[#1abc60] hover:!text-[#1abc60] !font-medium'
                             }
                           `}
                         >
-                          <div className="flex flex-col">
-                            <span>{slot.label}</span>
-                            {isFullyBooked && <span className="text-[10px] text-red-400 uppercase font-black tracking-widest mt-0.5">Fully Booked</span>}
-                          </div>
+                          {slot.time}
                           {isSelected && <CheckCircle2 className="w-4 h-4 text-[#1abc60]" />}
                         </button>
                       );
@@ -594,28 +435,19 @@ export default function VenueDetailsPage() {
             </div>
             
             <div className="p-6 space-y-2.5">
-              {(venue.courts?.length > 0 ? venue.courts : [{ name: 'Court 1' }, { name: 'Court 2' }, { name: 'Court 3' }, { name: 'VIP Court' }]).map((court: any) => {
-                const courtName = typeof court === 'string' ? court : court.name;
-                const isSelected = selectedCourt === courtName;
-                const isBooked = bookedSlots.some(b => b.slot === (selectedTime as any)?.value && b.court === courtName);
-
+              {COURTS.map((court) => {
+                const isSelected = selectedCourt === court;
                 return (
                   <button 
-                    key={courtName}
-                    disabled={isBooked}
-                    onClick={() => { setSelectedCourt(courtName); setIsCourtModalOpen(false); }}
+                    key={court}
+                    onClick={() => { setSelectedCourt(court); setIsCourtModalOpen(false); }}
                     className={`!w-full !flex !items-center !justify-between !p-4 !rounded-xl !cursor-pointer !border !transition-all !m-0 !shadow-none
-                      ${isBooked
-                        ? '!bg-gray-50 !text-gray-300 !border-gray-100 !cursor-not-allowed grayscale'
-                        : isSelected 
-                          ? '!border-[#1abc60] !bg-white !text-[#1abc60] !font-bold'
-                          : '!border-gray-200 !bg-white !text-gray-700 hover:!border-[#1abc60]'
+                      ${isSelected 
+                        ? '!border-[#1abc60] !bg-white !text-[#1abc60] !font-bold' // FIX: Background white, text/border green
+                        : '!border-gray-200 !bg-white !text-gray-700 hover:!border-[#1abc60]'
                     }`}
                   >
-                    <div className="text-left">
-                      <span className="text-sm block">{courtName}</span>
-                      {isBooked && <span className="text-[10px] uppercase font-black text-red-400">Reserved</span>}
-                    </div>
+                    <span className="text-sm">{court}</span>
                     {isSelected && <CheckCircle2 className="w-5 h-5 text-[#1abc60]" />}
                   </button>
                 );

@@ -23,12 +23,6 @@ import api from '@/app/services/api';
 const baseMenuItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'view_dashboard' },
   {
-    href: '/admin/bookings',
-    label: 'Bookings',
-    icon: Database,
-    permission: 'view_bookings',
-  },
-  {
     href: '/admin/venues',
     label: 'Venues',
     icon: FolderOpen,

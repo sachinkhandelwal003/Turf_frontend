@@ -99,6 +99,28 @@ export default function TurfDetailsPage() {
     return <CheckCircle2 className="w-5 h-5" />;
   };
 
+  const handleBooking = async () => {
+    if (!selectedSlot || !turf) return;
+
+    try {
+      const res = await api.post("/bookings", {
+        turfId: turf._id,
+        sport: selectedSport,
+        date: selectedDate,
+        slot: selectedSlot,
+        price: turf.pricePerHour,
+      });
+
+      if (res.data.success) {
+        toast.success("Booking created successfully!");
+        setShowBookingModal(false);
+        router.push("/profile"); // Assuming profile page shows user bookings
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to create booking");
+    }
+  };
+
   if (loading) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="animate-spin text-[#1abc60]" /></div>;
   if (!turf) return null;
 
@@ -332,7 +354,7 @@ export default function TurfDetailsPage() {
                   <span className="text-2xl font-black text-gray-900">₹{turf.pricePerHour}</span>
                 </div>
                 <button 
-                  onClick={() => { toast.success("Slot Selected! Proceeding to checkout..."); setShowBookingModal(false); }}
+                  onClick={handleBooking}
                   disabled={!selectedSlot}
                   className="flex-[2] bg-[#1abc60] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-green-100 hover:bg-[#16a085] transition-all disabled:opacity-50 disabled:grayscale"
                 >

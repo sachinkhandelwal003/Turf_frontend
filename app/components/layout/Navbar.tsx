@@ -18,17 +18,17 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  // === AUTHENTICATION STATES ===
+  // === UI STATES ===
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 2. Lock body scroll when mobile menu is open
+  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (isOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'unset';
   }, [isOpen]);
 
-  // 3. Click outside to close Profile Dropdown
+  // Click outside to close Profile Dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -89,7 +89,9 @@ export default function Navbar() {
                     className="w-10 h-10 rounded-full border-2 border-transparent hover:border-[#1abc60] overflow-hidden cursor-pointer transition-all shadow-sm focus:outline-none !bg-transparent !p-0"
                   >
                     <img
-                      src={user?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`} 
+                      src={user?.profilePhoto 
+                        ? (user.profilePhoto.startsWith('http') ? user.profilePhoto : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${user.profilePhoto}`)
+                        : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Felix'}`} 
                       alt="Profile"
                       className="w-full h-full object-cover bg-gray-100"
                     />
@@ -107,8 +109,8 @@ export default function Navbar() {
                       >
                         {/* Header: Exact image jaisa design */}
                         <div className="px-5 py-4 border-b border-gray-50 mb-2">
-                          <p className="text-[15px] font-bold !text-[#2d3748] truncate tracking-tight">{user?.name}</p>
-                          <p className="text-[13px] font-medium !text-gray-500 truncate">{user?.email}</p>
+                          <p className="text-[15px] font-bold !text-[#2d3748] truncate tracking-tight">{user?.name || 'User'}</p>
+                          <p className="text-[13px] font-medium !text-gray-500 truncate">{user?.email || 'email@example.com'}</p>
                         </div>
                         
                         <Link
@@ -128,6 +130,7 @@ export default function Navbar() {
                           onClick={() => {
                             logout();
                             setIsDropdownOpen(false);
+                            window.location.href = '/'; 
                           }}
                           className="flex items-center gap-3 px-5 py-3 text-[14px] font-bold !text-red-500 hover:bg-red-50 transition-colors cursor-pointer m-0"
                         >
@@ -232,18 +235,26 @@ export default function Navbar() {
                       <Link 
                         href="/profile" 
                         onClick={() => setIsOpen(false)}
-                        className="w-full flex items-center justify-center gap-2 py-3.5 !text-gray-700 font-bold border border-gray-200 rounded-[10px] hover:border-[#1abc60] hover:!text-[#1abc60] transition-colors !no-underline"
+                        className="flex items-center gap-3 text-[18px] font-bold !text-[#1abc60] !no-underline"
                       >
-                        <User className="w-5 h-5" /> My Profile
+                        <div className="w-8 h-8 rounded-full overflow-hidden border border-[#1abc60]/20">
+                          <img
+                            src={user?.profilePhoto 
+                              ? (user.profilePhoto.startsWith('http') ? user.profilePhoto : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${user.profilePhoto}`)
+                              : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Felix'}`} 
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        My Profile
                       </Link>
-                      
-                      {/* MOBILE SIGN OUT FIX: Button ko Div banaya */}
                       <div 
                         onClick={() => {
                           logout();
                           setIsOpen(false);
+                          window.location.href = '/';
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-3.5 bg-red-50 !text-red-500 font-bold rounded-[10px] hover:bg-red-100 transition-colors cursor-pointer"
+                        className="flex items-center gap-3 text-[18px] font-bold !text-red-500 cursor-pointer"
                       >
                         <LogOut className="w-5 h-5" /> Sign Out
                       </div>
@@ -254,14 +265,14 @@ export default function Navbar() {
                       <Link 
                         href="/login" 
                         onClick={() => setIsOpen(false)}
-                        className="w-full text-center py-3.5 !text-gray-700 font-bold border border-gray-200 rounded-[10px] hover:border-[#1abc60] hover:!text-[#1abc60] transition-colors !no-underline block"
+                        className="w-full text-center py-3.5 border-2 border-[#1abc60] text-[#1abc60] rounded-xl font-bold !no-underline"
                       >
                         Login
                       </Link>
                       <Link 
                         href="/Signup" 
                         onClick={() => setIsOpen(false)}
-                        className="w-full text-center py-3.5 !bg-[#1abc60] !text-white font-bold rounded-[10px] hover:!bg-[#169c4e] transition-colors !no-underline block"
+                        className="w-full text-center py-3.5 bg-[#1abc60] text-white rounded-xl font-bold !no-underline"
                       >
                         Sign Up
                       </Link>

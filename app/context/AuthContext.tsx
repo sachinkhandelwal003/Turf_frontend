@@ -11,6 +11,8 @@ interface User {
   role: 'user' | 'admin' | 'superadmin';
   permissions: string[];
   profilePhoto?: string;
+  coverPhoto?: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -21,6 +23,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isSuperadmin: boolean;
   hasPermission: (permission: string) => boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +33,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  const refreshUser = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+      const response = await fetch(`${API_URL}/auth/profile`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' 
+        }
+      });
+
+      const data = await response.json();
+      if (data.success && data.user) {
+        const userData: User = {
+          id: data.user.id || data.user._id,
+          name: data.user.name,
+          email: data.user.email,
+          phone: data.user.phone,
+          role: data.user.role,
+          permissions: data.user.permissions || [],
+          profilePhoto: data.user.profilePhoto,
+          coverPhoto: data.user.coverPhoto,
+          createdAt: data.user.createdAt
+        };
+        setUser(userData);
+        localStorage.setItem('adminUser', JSON.stringify(userData));
+      }
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+    }
+  };
+
   useEffect(() => {
     // Check if user is logged in
     const storedUser = localStorage.getItem('adminUser');
@@ -37,6 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (storedUser && token) {
       try {
         setUser(JSON.parse(storedUser));
+        // Always refresh from server to get latest photos/data
+        refreshUser();
       } catch (error) {
         localStorage.removeItem('adminUser');
         localStorage.removeItem('token');
@@ -68,7 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         phone: data.user.phone,
         role: data.user.role,
         permissions: data.user.permissions || [],
-        profilePhoto: data.user.profilePhoto
+        profilePhoto: data.user.profilePhoto,
+        coverPhoto: data.user.coverPhoto,
+        createdAt: data.user.createdAt
       };
 
       setUser(userData);
@@ -97,16 +138,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user.permissions.includes(permission);
   };
 
+  const value: AuthContextType = {
+    user,
+    isLoading,
+    login,
+    logout,
+    isAuthenticated: !!user,
+    isSuperadmin: user?.role === 'superadmin',
+    hasPermission,
+    refreshUser
+  };
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      isLoading,
-      login,
-      logout,
-      isAuthenticated: !!user,
-      isSuperadmin: user?.role === 'superadmin',
-      hasPermission
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

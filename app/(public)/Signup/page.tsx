@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Eye, EyeOff, ChevronDown, CheckCircle } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, ChevronDown, CheckCircle, Loader2 } from 'lucide-react';
 import { apiRequest } from '@/app/api'; 
+import { useAuth } from '@/app/context/AuthContext';
+import { useEffect } from 'react';
 
 // Example: import gameOnLogo from '../../public/image_b83177.png';
 
@@ -13,12 +15,19 @@ const AppleIcon = () => ( <svg viewBox="0 0 24 24" width="16" height="16" xmlns=
 
 export default function SignUp() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   
   const [showPass, setShowPass] = useState(false);
   const [showConfPass, setShowConfPass] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push('/profile');
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -27,6 +36,14 @@ export default function SignUp() {
     password: "",
     confirmPassword: ""
   });
+
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
+      </div>
+    );
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { Suspense } from 'react';
 
@@ -14,7 +14,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect');
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,6 +24,20 @@ function LoginForm() {
   // Custom Toast States
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push('/profile');
+    }
+  }, [isAuthenticated, authLoading, router]);
+
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
+      </div>
+    );
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

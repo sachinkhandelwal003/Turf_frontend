@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Square,
   Trophy,
+  Calendar,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +23,7 @@ import api from '@/app/services/api';
 
 const baseMenuItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'view_dashboard' },
+  { href: '/admin/bookings', label: 'Bookings', icon: Calendar, permission: 'view_bookings' },
   {
     href: '/admin/venues',
     label: 'Venues',

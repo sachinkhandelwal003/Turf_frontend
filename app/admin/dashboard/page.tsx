@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { 
   Users, Shield, ShieldCheck, UserCheck, Activity, 
   ArrowUpRight, Loader2, AlertCircle, RefreshCw, Key,
-  MapPin, CheckCircle, Clock, XCircle
+  MapPin, CheckCircle, Clock, XCircle, Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/app/services/api';
@@ -23,6 +23,12 @@ interface DashboardStats {
     pending: number;
     approved: number;
     rejected: number;
+  };
+  bookings: {
+    total: number;
+    confirmed: number;
+    pending: number;
+    cancelled: number;
   };
   roles: number;
 }
@@ -134,10 +140,11 @@ export default function AdminDashboard() {
       </div>
 
       {/* --- TOP KPIs --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         {[
           { title: 'Total Users', value: stats.users.total, sub: 'Registered Accounts', icon: Users, color: 'blue', link: '/admin/users' },
           { title: 'Total Venues', value: stats.turfs.total, sub: 'All listed turfs', icon: MapPin, color: 'emerald', link: '/admin/venues/list' },
+          { title: 'Total Bookings', value: stats.bookings.total, sub: 'Bookings placed', icon: Calendar, color: 'purple', link: '/admin/bookings' },
           { title: 'Pending Approval', value: stats.turfs.pending, sub: 'Waiting for review', icon: Clock, color: 'amber', link: '/admin/venues/list' },
           { title: 'System Roles', value: stats.roles, sub: 'Defined RBAC Roles', icon: Shield, color: 'indigo', link: '/admin/roles' },
         ].map((stat, i) => (

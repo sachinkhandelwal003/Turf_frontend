@@ -27,6 +27,15 @@ interface Turf {
   description: string;
   rating: number;
   reviewsCount: number;
+  courts: {
+    name: string;
+    courtType: string;
+  }[];
+  availableSlots: {
+    startTime: string;
+    endTime: string;
+    type: string;
+  }[];
 }
 
 export default function TurfDetailsPage() {
@@ -37,13 +46,29 @@ export default function TurfDetailsPage() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedSport, setSelectedSport] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
+  const [selectedCourts, setSelectedCourts] = useState<string[]>([]);
 
-  const timeSlots = [
+  const defaultTimeSlots = [
     { label: "Morning", slots: ["06:00 - 07:00", "07:00 - 08:00", "08:00 - 09:00", "09:00 - 10:00"] },
     { label: "Afternoon", slots: ["12:00 - 13:00", "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00"] },
     { label: "Evening", slots: ["18:00 - 19:00", "19:00 - 20:00", "20:00 - 21:00", "21:00 - 22:00"] },
   ];
+
+  const getTimeSlots = () => {
+    if (turf?.availableSlots && turf.availableSlots.length > 0) {
+      const groups: Record<string, string[]> = {};
+      turf.availableSlots.forEach((slot: any) => {
+        const type = slot.type || "Other";
+        if (!groups[type]) groups[type] = [];
+        groups[type].push(`${slot.startTime} - ${slot.endTime}`);
+      });
+      return Object.entries(groups).map(([label, slots]) => ({ label, slots }));
+    }
+    return defaultTimeSlots;
+  };
+
+  const timeSlots = getTimeSlots();
 
   useEffect(() => {
     if (id) fetchTurfDetails();
@@ -100,21 +125,29 @@ export default function TurfDetailsPage() {
   };
 
   const handleBooking = async () => {
-    if (!selectedSlot || !turf) return;
+    if (selectedSlots.length === 0 || selectedCourts.length === 0 || !turf) {
+      if (selectedCourts.length === 0) toast.error("Please select at least one court");
+      if (selectedSlots.length === 0) toast.error("Please select at least one time slot");
+      return;
+    }
 
     try {
+      // Send the first slot to create the initial booking
+      // Note: We'll update the backend to handle multiple slots later, 
+      // but for now, we'll send them as a comma-separated string or an array if the backend supports it.
       const res = await api.post("/bookings", {
         turfId: turf._id,
         sport: selectedSport,
         date: selectedDate,
-        slot: selectedSlot,
-        price: turf.pricePerHour,
+        slots: selectedSlots, // Changed from slot: selectedSlot
+        courts: selectedCourts, // Added courts
+        price: turf.pricePerHour * selectedSlots.length * selectedCourts.length, // Total price
       });
 
       if (res.data.success) {
         toast.success("Booking created successfully!");
         setShowBookingModal(false);
-        router.push("/profile"); // Assuming profile page shows user bookings
+        router.push("/profile");
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to create booking");
@@ -201,6 +234,26 @@ export default function TurfDetailsPage() {
                 ))}
               </div>
             </section>
+
+            {/* Courts Available */}
+            {turf.courts && turf.courts.length > 0 && (
+              <section className="space-y-6">
+                <h2 className="text-xl font-black text-gray-900 uppercase tracking-wider">Courts Available</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {turf.courts.map((court, idx) => (
+                    <div key={idx} className="bg-white border border-gray-100 p-5 rounded-3xl flex items-center gap-4 shadow-sm hover:border-[#1abc60] transition-all group">
+                      <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-green-50 group-hover:text-[#1abc60] transition-all">
+                        <Activity className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-gray-900 uppercase tracking-tight">{court.name}</h4>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{court.courtType}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* Amenities */}
             <section className="space-y-6">
@@ -324,10 +377,45 @@ export default function TurfDetailsPage() {
                   <input 
                     type="date" 
                     value={selectedDate} 
-                    onChange={(e) => setSelectedDate(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      setSelectedSlots([]); // Clear slots when date changes
+                    }}
+                    min={new Date().toISOString().split('T')[0]}
                     className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-black text-gray-900 outline-none focus:ring-2 focus:ring-[#1abc60]" 
                   />
                 </div>
+
+                {/* Court Selection */}
+                {turf.courts && turf.courts.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-[#1abc60]" />
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Select Courts</label>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {turf.courts.map((court) => (
+                        <button 
+                          key={court.name}
+                          onClick={() => {
+                            if (selectedCourts.includes(court.name)) {
+                              setSelectedCourts(selectedCourts.filter(c => c !== court.name));
+                            } else {
+                              setSelectedCourts([...selectedCourts, court.name]);
+                            }
+                          }}
+                          className={`p-3 rounded-xl border-2 font-bold text-sm transition-all text-left flex items-center justify-between ${selectedCourts.includes(court.name) ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-md shadow-green-50' : 'border-gray-50 text-gray-400 hover:border-gray-200 bg-white'}`}
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-sm font-black uppercase tracking-tight">{court.name}</span>
+                            <span className="text-[10px] font-bold opacity-60">{court.courtType}</span>
+                          </div>
+                          {selectedCourts.includes(court.name) && <CheckCircle2 className="w-4 h-4" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Slots Grid */}
                 {timeSlots.map((group) => (
@@ -337,8 +425,14 @@ export default function TurfDetailsPage() {
                       {group.slots.map(slot => (
                         <button 
                           key={slot}
-                          onClick={() => setSelectedSlot(slot)}
-                          className={`p-3 rounded-xl border-2 font-bold text-sm transition-all ${selectedSlot === slot ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-md shadow-green-50' : 'border-gray-50 text-gray-400 hover:border-gray-200'}`}
+                          onClick={() => {
+                            if (selectedSlots.includes(slot)) {
+                              setSelectedSlots(selectedSlots.filter(s => s !== slot));
+                            } else {
+                              setSelectedSlots([...selectedSlots, slot]);
+                            }
+                          }}
+                          className={`p-3 rounded-xl border-2 font-bold text-sm transition-all ${selectedSlots.includes(slot) ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-md shadow-green-50' : 'border-gray-50 text-gray-400 hover:border-gray-200'}`}
                         >
                           {slot}
                         </button>
@@ -351,14 +445,14 @@ export default function TurfDetailsPage() {
               <div className="p-8 border-t border-gray-50 bg-gray-50/50 flex gap-4">
                 <div className="flex-1">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Estimated Total</span>
-                  <span className="text-2xl font-black text-gray-900">₹{turf.pricePerHour}</span>
+                  <span className="text-2xl font-black text-gray-900">₹{turf.pricePerHour * (selectedSlots.length || 1) * (selectedCourts.length || 1)}</span>
                 </div>
                 <button 
                   onClick={handleBooking}
-                  disabled={!selectedSlot}
+                  disabled={selectedSlots.length === 0 || selectedCourts.length === 0}
                   className="flex-[2] bg-[#1abc60] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-green-100 hover:bg-[#16a085] transition-all disabled:opacity-50 disabled:grayscale"
                 >
-                  Confirm Slot
+                  Confirm {selectedSlots.length} {selectedSlots.length === 1 ? 'Slot' : 'Slots'}
                 </button>
               </div>
             </motion.div>

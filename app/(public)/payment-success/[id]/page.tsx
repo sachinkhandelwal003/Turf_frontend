@@ -31,6 +31,9 @@ interface Booking {
   totalAmount: number;
   paidAmount: number;
   paymentMethod: string;
+  isMultiple?: boolean;
+  slots?: string[];
+  bookingCount?: number;
 }
 
 export default function PaymentSuccessPage() {
@@ -147,8 +150,19 @@ export default function PaymentSuccessPage() {
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-0.5">Time</p>
-                  <p className="text-sm font-black text-gray-900">{booking.startTime} - {booking.endTime}</p>
+                  <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-0.5">Time Slot{booking.isMultiple ? 's' : ''}</p>
+                  <div className="space-y-0.5">
+                    {booking.isMultiple && booking.slots ? (
+                      booking.slots.map((slot, i) => (
+                        <p key={i} className="text-sm font-black text-gray-900">{slot}</p>
+                      ))
+                    ) : (
+                      <p className="text-sm font-black text-gray-900">{booking.startTime} - {booking.endTime}</p>
+                    )}
+                    {booking.isMultiple && booking.bookingCount && (
+                      <p className="text-[10px] font-bold text-[#1abc60] uppercase tracking-widest">Total: {booking.bookingCount} Hours</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -159,7 +173,7 @@ export default function PaymentSuccessPage() {
                 </div>
                 <div>
                   <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-0.5">{booking.sport}</p>
-                  <p className="text-sm font-black text-gray-900 uppercase">{booking.courts[0]}</p>
+                  <p className="text-sm font-black text-gray-900 uppercase">{booking.courts.join(', ')}</p>
                 </div>
               </div>
 

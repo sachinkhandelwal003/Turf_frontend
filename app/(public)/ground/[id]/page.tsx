@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { 
   MapPin, Star, ChevronDown, Calendar, Clock, ChevronLeft,
@@ -10,25 +10,14 @@ import {
   Circle, X, Loader2 
 } from 'lucide-react';
 import api from '@/app/services/api';
+import { toast } from 'sonner';
 
-// === TIME SLOTS MOCK DATA ===
-const TIME_SLOTS = {
-  MORNING: [
-    { time: "06:00 AM - 07:00 AM", status: "disabled" },
-    { time: "07:00 AM - 08:00 AM", status: "available" },
-    { time: "08:00 AM - 09:00 AM", status: "available" }
-  ],
-  EVENING: [
-    { time: "06:00 PM - 07:00 PM", status: "available" },
-    { time: "07:00 PM - 08:00 PM", status: "available" },
-    { time: "08:00 PM - 09:00 PM", status: "disabled" }
-  ]
-};
-
-const COURTS = ["Court 1", "Court 2", "Court 3", "VIP Court"];
+// === NO STATIC DATA ===
+// Dynamic data is fetched from API
 
 export default function VenueDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const id = Array.isArray(params?.id) ? params.id[0] : (params?.id || ""); 
   
   const [venue, setVenue] = useState<any>(null);
@@ -71,7 +60,9 @@ export default function VenueDetailsPage() {
                       Activity
               };
             }) || [],
-            about: t.description || t.about || "Premium sports facility featuring high-quality turf and excellent amenities. Perfect for competitive matches and friendly games."
+            about: t.description || t.about || "Premium sports facility featuring high-quality turf and excellent amenities. Perfect for competitive matches and friendly games.",
+            courts: t.courts || [],
+            availableSlots: t.availableSlots || []
           };
           setVenue(mappedVenue);
         }
@@ -88,10 +79,133 @@ export default function VenueDetailsPage() {
   const todayDateStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(todayDateStr);
   const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
-  const [selectedTime, setSelectedTime] = useState("06:00 PM - 07:00 PM");
+  const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
   const [isCourtModalOpen, setIsCourtModalOpen] = useState(false);
-  const [selectedCourt, setSelectedCourt] = useState("Court 1");
+  const [selectedCourts, setSelectedCourts] = useState<string[]>([]);
   const [activeImage, setActiveImage] = useState(0);
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookedSlots, setBookedSlots] = useState<any[]>([]);
+  const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      if (!id || !selectedDate) return;
+      setIsAvailabilityLoading(true);
+      try {
+        const res = await api.get(`/bookings/check-availability?turfId=${id}&date=${selectedDate}`);
+        if (res.data.success) {
+          setBookedSlots(res.data.bookedSlots || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch availability:", error);
+      } finally {
+        setIsAvailabilityLoading(false);
+      }
+    };
+    fetchAvailability();
+  }, [id, selectedDate]);
+
+  const getTimeSlots = () => {
+    if (!venue) return { "MORNING": [], "AFTERNOON": [], "EVENING": [] };
+
+    const checkIsBooked = (timeVal: string) => {
+      const [start, end] = timeVal.split(" - ");
+      // A slot is fully booked only if ALL available courts for that turf are booked for this time
+      const bookingsForSlot = bookedSlots.filter(b => b.startTime === start);
+      
+      // If any selected court is in the booked list, we should probably mark it as "partially booked"
+      // or "unavailable" if all courts are taken.
+      // For simplicity in UI, we'll return the list of booked courts.
+      const bookedCourts = bookingsForSlot.flatMap(b => b.courts);
+      return bookedCourts;
+    };
+
+    if (venue?.availableSlots && venue.availableSlots.length > 0) {
+      const groups: Record<string, any[]> = {};
+      venue.availableSlots.forEach((slot: any) => {
+        const type = (slot.type || "Other").toUpperCase();
+        if (!groups[type]) groups[type] = [];
+        const timeVal = `${slot.startTime} - ${slot.endTime}`;
+        const bookedCourts = checkIsBooked(slot.startTime + " - " + slot.endTime);
+        
+        groups[type].push({
+          time: timeVal,
+          status: bookedCourts.length >= (venue?.courts?.length || 1) ? "disabled" : "available",
+          value: timeVal,
+          bookedCourts
+        });
+      });
+      return groups;
+    }
+
+    const groups: Record<string, any[]> = {
+      "MORNING": [],
+      "AFTERNOON": [],
+      "EVENING": []
+    };
+
+    for (let h = 6; h < 23; h++) {
+      const start = `${h.toString().padStart(2, '0')}:00`;
+      const end = `${(h + 1).toString().padStart(2, '0')}:00`;
+      const timeVal = `${start} - ${end}`;
+      const label = `${h % 12 || 12}:00 ${h < 12 ? 'AM' : 'PM'} - ${(h + 1) % 12 || 12}:00 ${h + 1 < 12 || h + 1 === 24 ? 'AM' : 'PM'}`;
+      let type = h < 12 ? "MORNING" : h >= 17 ? "EVENING" : "AFTERNOON";
+      
+      const bookedCourts = checkIsBooked(timeVal);
+
+      groups[type].push({
+        time: label,
+        status: bookedCourts.length >= (venue?.courts?.length || 1) ? "disabled" : "available",
+        value: timeVal,
+        bookedCourts
+      });
+    }
+    return groups;
+  };
+
+  const currentSlots = getTimeSlots();
+
+  const getCourts = () => {
+    if (venue?.courts && venue.courts.length > 0) {
+      return venue.courts.map((c: any) => typeof c === 'string' ? c : (c.name || 'Court'));
+    }
+    return ["Court 1"]; // Default to at least one court if none specified
+  };
+
+  const currentCourts = getCourts();
+
+  const handleBooking = async () => {
+    if (!id || selectedTimes.length === 0 || selectedCourts.length === 0) {
+      if (selectedCourts.length === 0) toast.error("Please select at least one court");
+      if (selectedTimes.length === 0) toast.error("Please select at least one time slot");
+      return;
+    }
+
+    setIsBooking(true);
+    try {
+      const res = await api.post("/bookings", {
+        turfId: id,
+        sport: venue?.sports?.[0] || "Sport",
+        date: selectedDate,
+        slots: selectedTimes,
+        courts: selectedCourts,
+        price: (venue?.price || 0) * selectedTimes.length * selectedCourts.length,
+      });
+
+      if (res.data.success) {
+        toast.success("Booking initiated!");
+        // Navigate to checkout with all booking IDs joined by comma
+        const bookingIds = res.data.bookings?.map((b: any) => b._id) || [res.data.booking?._id];
+        if (bookingIds.length > 0) {
+          router.push(`/checkout/${bookingIds.join(',')}`);
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to create booking");
+    } finally {
+      setIsBooking(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -143,7 +257,7 @@ export default function VenueDetailsPage() {
     return url;
   };
 
-  const embedUrl = toEmbedUrl(venue.mapUrl);
+  const embedUrl = venue ? toEmbedUrl(venue.mapUrl) : '';
 
   return (
     <div className="min-h-screen bg-white pb-20 pt-[100px] font-sans">
@@ -286,7 +400,9 @@ export default function VenueDetailsPage() {
                 >
                   <div className="flex items-center text-sm font-medium text-gray-800">
                     <Clock className="w-4 h-4 mr-3 text-gray-400" /> 
-                    {selectedTime}
+                    {selectedTimes.length > 0 
+                      ? `${selectedTimes.length} Slot${selectedTimes.length > 1 ? 's' : ''} Selected` 
+                      : 'Select Time Slots'}
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </div>
@@ -298,14 +414,20 @@ export default function VenueDetailsPage() {
                 >
                   <div className="flex items-center text-sm font-medium text-gray-800">
                     <CheckCircle2 className="w-4 h-4 mr-3 text-gray-400" /> 
-                    {selectedCourt}
+                    {selectedCourts.length > 0 
+                      ? `${selectedCourts.length} Court${selectedCourts.length > 1 ? 's' : ''} Selected` 
+                      : 'Select Courts'}
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </div>
               </div>
 
-              <button className="w-full !bg-[#1abc60] hover:!bg-[#169c4e] !text-white !text-base !font-bold !py-3.5 !rounded-xl !transition-all !border-none !shadow-sm !m-0 !cursor-pointer">
-                Book Now
+              <button 
+                disabled={isBooking}
+                onClick={handleBooking}
+                className="w-full !bg-[#1abc60] hover:!bg-[#169c4e] disabled:opacity-50 !text-white !text-base !font-bold !py-3.5 !rounded-xl !transition-all !border-none !shadow-sm !m-0 !cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isBooking ? <Loader2 className="w-5 h-5 animate-spin" /> : "Book Now"}
               </button>
             </div>
 
@@ -383,35 +505,50 @@ export default function VenueDetailsPage() {
             
             {/* Scrollable Body */}
             <div className="p-6 overflow-y-auto">
-              {Object.entries(TIME_SLOTS).map(([period, slots]) => (
+              {Object.entries(currentSlots).map(([period, slots]) => (
                 <div key={period} className="mb-6 last:mb-0">
                   <h3 className="text-xs font-bold text-gray-500 tracking-wider uppercase mb-3">{period}</h3>
                   <div className="grid grid-cols-1 gap-2.5">
                     {slots.map((slot, idx) => {
-                      const isSelected = selectedTime === slot.time;
+                      const isSelected = selectedTimes.includes(slot.time);
                       const isDisabled = slot.status === "disabled";
                       return (
                         <button
                           key={idx}
                           disabled={isDisabled}
-                          onClick={() => { setSelectedTime(slot.time); setIsTimeModalOpen(false); }}
+                          onClick={() => { 
+                            const val = slot.value || slot.time;
+                            if (selectedTimes.includes(val)) {
+                              setSelectedTimes(selectedTimes.filter(t => t !== val));
+                            } else {
+                              setSelectedTimes([...selectedTimes, val]);
+                            }
+                          }}
                           className={`!w-full !py-3.5 !px-4 !rounded-xl !text-sm !transition-all !text-left flex justify-between items-center !m-0 !shadow-none !cursor-pointer !border
                             ${isDisabled 
                               ? '!bg-gray-50 !text-gray-400 !border-gray-100 !cursor-not-allowed !font-medium' 
-                              : isSelected
-                                ? '!bg-white !text-[#1abc60] !border-[#1abc60] !font-bold' // FIX: Background transparent/white, text/border green
+                              : selectedTimes.includes(slot.value || slot.time)
+                                ? '!bg-white !text-[#1abc60] !border-[#1abc60] !font-bold'
                                 : '!bg-white !text-gray-700 !border-gray-200 hover:!border-[#1abc60] hover:!text-[#1abc60] !font-medium'
                             }
                           `}
                         >
                           {slot.time}
-                          {isSelected && <CheckCircle2 className="w-4 h-4 text-[#1abc60]" />}
+                          {selectedTimes.includes(slot.value || slot.time) && <CheckCircle2 className="w-4 h-4 text-[#1abc60]" />}
                         </button>
                       );
                     })}
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="p-6 border-t border-gray-100">
+               <button 
+                 onClick={() => setIsTimeModalOpen(false)}
+                 className="w-full bg-[#1abc60] text-white py-3.5 rounded-xl font-bold transition-all hover:bg-[#169c4e]"
+               >
+                 Confirm {selectedTimes.length} Slot{selectedTimes.length !== 1 ? 's' : ''}
+               </button>
             </div>
           </div>
         </div>
@@ -435,23 +572,49 @@ export default function VenueDetailsPage() {
             </div>
             
             <div className="p-6 space-y-2.5">
-              {COURTS.map((court) => {
-                const isSelected = selectedCourt === court;
+              {currentCourts.map((court: string) => {
+                const isSelected = selectedCourts.includes(court);
+                // A court is disabled if it's already booked for ANY of the selected time slots
+                const isAlreadyBooked = selectedTimes.some(timeVal => {
+                  const [start] = timeVal.split(" - ");
+                  return bookedSlots.some(b => b.startTime === start && b.courts.includes(court));
+                });
+
                 return (
                   <button 
                     key={court}
-                    onClick={() => { setSelectedCourt(court); setIsCourtModalOpen(false); }}
+                    disabled={isAlreadyBooked}
+                    onClick={() => { 
+                      if (isSelected) {
+                        setSelectedCourts(selectedCourts.filter(c => c !== court));
+                      } else {
+                        setSelectedCourts([...selectedCourts, court]);
+                      }
+                    }}
                     className={`!w-full !flex !items-center !justify-between !p-4 !rounded-xl !cursor-pointer !border !transition-all !m-0 !shadow-none
-                      ${isSelected 
-                        ? '!border-[#1abc60] !bg-white !text-[#1abc60] !font-bold' // FIX: Background white, text/border green
-                        : '!border-gray-200 !bg-white !text-gray-700 hover:!border-[#1abc60]'
+                      ${isAlreadyBooked
+                        ? '!bg-gray-50 !text-gray-400 !border-gray-100 !cursor-not-allowed'
+                        : isSelected 
+                          ? '!border-[#1abc60] !bg-white !text-[#1abc60] !font-bold'
+                          : '!border-gray-200 !bg-white !text-gray-700 hover:!border-[#1abc60]'
                     }`}
                   >
-                    <span className="text-sm">{court}</span>
+                    <div className="flex flex-col text-left">
+                      <span className="text-sm">{court}</span>
+                      {isAlreadyBooked && <span className="text-[10px] text-red-400 font-bold uppercase">Already Booked for Selected Time</span>}
+                    </div>
                     {isSelected && <CheckCircle2 className="w-5 h-5 text-[#1abc60]" />}
                   </button>
                 );
               })}
+            </div>
+            <div className="p-6 border-t border-gray-100">
+               <button 
+                 onClick={() => setIsCourtModalOpen(false)}
+                 className="w-full bg-[#1abc60] text-white py-3.5 rounded-xl font-bold transition-all hover:bg-[#169c4e]"
+               >
+                 Confirm {selectedCourts.length} Court{selectedCourts.length !== 1 ? 's' : ''}
+               </button>
             </div>
           </div>
         </div>

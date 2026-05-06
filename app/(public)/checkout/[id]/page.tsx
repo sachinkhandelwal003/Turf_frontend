@@ -29,6 +29,9 @@ interface Booking {
   price: number;
   totalAmount: number;
   convenienceFee: number;
+  isMultiple?: boolean;
+  slots?: string[];
+  bookingCount?: number;
 }
 
 export default function CheckoutPage() {
@@ -105,6 +108,13 @@ export default function CheckoutPage() {
   const payableToday = strategy === 'full' ? booking.totalAmount : (booking.totalAmount * 0.25);
   const balanceDue = booking.totalAmount - payableToday;
   const perPlayer = payableToday / numPlayers;
+
+  const getDurationLabel = () => {
+    if (booking.isMultiple && booking.bookingCount) {
+      return `${booking.bookingCount} hr${booking.bookingCount > 1 ? 's' : ''}`;
+    }
+    return calculateDuration(booking.startTime, booking.endTime);
+  };
 
   return (
     <div className="min-h-screen bg-white pt-24 pb-20 font-sans text-gray-900 overflow-x-hidden">
@@ -342,8 +352,10 @@ export default function CheckoutPage() {
                       <Settings className="w-5 h-5 md:w-6 md:h-6" />
                     </div>
                     <div>
-                      <p className="text-[9px] md:text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Sport</p>
-                      <h4 className="text-sm md:text-[15px] font-black text-gray-900">{booking.sport} ({booking.courts[0]})</h4>
+                      <p className="text-[9px] md:text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Sport & Court</p>
+                      <h4 className="text-sm md:text-[15px] font-black text-gray-900">
+                        {booking.sport} ({booking.courts.join(', ')})
+                      </h4>
                     </div>
                   </div>
 
@@ -358,14 +370,31 @@ export default function CheckoutPage() {
                   </div>
 
                   <div className="flex items-start gap-5">
-                    <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-white flex items-center justify-center text-[#1abc60] shrink-0 shadow-sm border border-gray-50">
+                    <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-white flex items-center justify-center text-[#1abc60] shrink-0 shadow-sm border border-gray-100">
                       <Clock className="w-5 h-5 md:w-6 md:h-6" />
                     </div>
                     <div>
-                      <p className="text-[9px] md:text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Time Slot</p>
-                      <h4 className="text-sm md:text-[15px] font-black text-gray-900 uppercase">
-                        {booking.startTime} - {booking.endTime} ({calculateDuration(booking.startTime, booking.endTime)})
-                      </h4>
+                      <p className="text-[9px] md:text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">
+                        Time Slot{booking.isMultiple ? 's' : ''}
+                      </p>
+                      <div className="space-y-1">
+                        {booking.isMultiple && booking.slots ? (
+                          booking.slots.map((slot, i) => (
+                            <h4 key={i} className="text-sm md:text-[15px] font-black text-gray-900 uppercase">
+                              {slot}
+                            </h4>
+                          ))
+                        ) : (
+                          <h4 className="text-sm md:text-[15px] font-black text-gray-900 uppercase">
+                            {booking.startTime} - {booking.endTime} ({getDurationLabel()})
+                          </h4>
+                        )}
+                        {booking.isMultiple && (
+                          <p className="text-[10px] font-bold text-[#1abc60] uppercase tracking-widest mt-1">
+                            Total Duration: {getDurationLabel()}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -373,7 +402,11 @@ export default function CheckoutPage() {
                 {/* Bill Details */}
                 <div className="space-y-4 pt-10 border-t border-gray-200/50">
                   <div className="flex justify-between text-[11px] md:text-[13px] font-bold text-gray-400 tracking-tight">
-                    <span>Venue Charges</span>
+                    <span>
+                      Venue Charges 
+                      {booking.isMultiple && ` (${booking.bookingCount} slots × ${booking.courts.length} courts)`}
+                      {!booking.isMultiple && booking.courts.length > 1 && ` (${booking.courts.length} courts)`}
+                    </span>
                     <span className="text-gray-900">₹{booking.price.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-[11px] md:text-[13px] font-bold text-gray-400 tracking-tight">

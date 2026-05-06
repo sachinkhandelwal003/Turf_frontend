@@ -1,78 +1,94 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, ChevronLeft, ChevronRight, Check, Calendar, Clock, Activity, Filter, X } from 'lucide-react';
+import { MapPin, Check, Calendar, Clock, Activity, Filter, X, Loader2 } from 'lucide-react';
+import api from '@/app/services/api';
+import { toast } from 'sonner';
 
-// --- Mock Data ---
-const TOURNAMENTS = [
-  { 
-    id: 1, 
-    title: "Summer Smash Cricket Cup", 
-    location: "Indiranagar, Bangalore", 
-    sport: "CRICKET", 
-    prizePool: "5,00,000", 
-    entryFee: "2,499", 
-    date: "Aug 12 - 20",
-    time: "09:00 AM",
-    image: "/Elitebox.png" 
-  },
-  { 
-    id: 2, 
-    title: "Padel Pro League", 
-    location: "Koramangala, Bangalore", 
-    sport: "PADEL", 
-    prizePool: "1,00,000", 
-    entryFee: "8,000", 
-    date: "Aug 15 - 20",
-    time: "10:00 AM",
-    image: "/velocity.png" 
-  },
-  { 
-    id: 3, 
-    title: "Weekend Football Fiesta", 
-    location: "Whitefield, Bangalore", 
-    sport: "FOOTBALL", 
-    prizePool: "2,50,000", 
-    entryFee: "5,000", 
-    date: "Sep 01 - 05",
-    time: "04:00 PM",
-    image: "/hub.png" 
-  },
-  { 
-    id: 4, 
-    title: "Elite Tennis Masters", 
-    location: "Jayanagar, Bangalore", 
-    sport: "TENNIS", 
-    prizePool: "3,00,000", 
-    entryFee: "6,500", 
-    date: "Sep 10 - 12",
-    time: "08:00 AM",
-    image: "/grand.png" 
-  }
-];
+interface Tournament {
+  _id: string;
+  title: string;
+  description: string;
+  sport: string;
+  location: {
+    address: string;
+    city: string;
+    venue: string;
+  };
+  prizePool: string;
+  entryFee: number;
+  startDate: string;
+  endDate: string;
+  registrationDeadline: string;
+  maxTeams: number;
+  registeredTeams: any[];
+  status: string;
+  image?: string;
+}
 
 export default function TournamentsPage() {
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState<number>(10000);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
+  useEffect(() => {
+    const fetchTournaments = async () => {
+      try {
+        const res = await api.get('/tournaments');
+        if (res.data.success) {
+          setTournaments(res.data.tournaments);
+        }
+      } catch (error) {
+        toast.error('Failed to load tournaments');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTournaments();
+  }, []);
+
+  const getImageUrl = (path: string) => {
+    if (!path || path === 'undefined' || path === 'null' || path === '') return '/Tournamentfootball.jpg';
+    if (path.startsWith('http')) return path;
+    
+    // Replace backslashes with forward slashes for cross-platform compatibility
+    const normalizedPath = path.replace(/\\/g, '/');
+    
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.rkinteriorstudio.in/api';
+    const baseUrl = apiUrl.replace(/\/api$/, '').replace(/\/$/, '');
+    const cleanPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+    return `${baseUrl}${cleanPath}`;
+  };
+
+  const formatPrice = (price: string | number) => {
+    if (price === undefined || price === null || price === '') return '0';
+    if (typeof price === 'string') {
+      const cleaned = price.replace(/[^0-9]/g, '');
+      if (!cleaned) return price;
+      return Number(cleaned).toLocaleString('en-IN');
+    }
+    return Number(price).toLocaleString('en-IN');
+  };
+
   const filteredTournaments = useMemo(() => {
-    return TOURNAMENTS.filter((t) => {
-      const matchesSearch = t.location.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    return tournaments.filter((t) => {
+      const locationStr = `${t.location.venue} ${t.location.address} ${t.location.city}`;
+      const matchesSearch = locationStr.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             t.title.toLowerCase().includes(searchQuery.toLowerCase());
       
       const tSport = t.sport.charAt(0).toUpperCase() + t.sport.slice(1).toLowerCase();
       const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(tSport); 
       
-      const feeNum = parseInt(t.entryFee.replace(/,/g, ''));
-      const matchesPrice = feeNum <= maxPrice; 
+      const matchesPrice = t.entryFee <= maxPrice; 
       
       return matchesSearch && matchesCategory && matchesPrice;
     });
-  }, [searchQuery, selectedCategories, maxPrice]);
+  }, [tournaments, searchQuery, selectedCategories, maxPrice]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev => 
@@ -85,6 +101,26 @@ export default function TournamentsPage() {
     setSelectedCategories([]);
     setMaxPrice(10000);
   };
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'upcoming': return 'bg-[#1abc60]';
+      case 'ongoing': return 'bg-blue-500';
+      case 'postponed': return 'bg-orange-500';
+      case 'cancelled': return 'bg-red-500';
+      case 'finished':
+      case 'completed': return 'bg-gray-500';
+      default: return 'bg-[#1abc60]';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafb] pt-[120px]">
+        <Loader2 className="w-12 h-12 animate-spin text-[#1abc60]" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafb] pb-20 font-sans relative">
@@ -176,14 +212,21 @@ export default function TournamentsPage() {
           {filteredTournaments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
               {filteredTournaments.map((t) => (
-                <Link href={`/tournament/${t.id}`} key={t.id} className="block group !no-underline">
+                <Link href={`/tournament/${t._id}`} key={t._id} className="block group !no-underline">
                   <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-300">
                     
                     <div className="relative h-[240px] w-full overflow-hidden">
-                      <Image src={t.image} alt={t.title} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
-                      <div className="absolute top-4 left-4">
+                      <img 
+                        src={getImageUrl(t.image || "")} 
+                        alt={t.title} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                      />
+                      <div className="absolute top-4 left-4 flex flex-col gap-2">
                         <div className="bg-white/95 backdrop-blur-sm text-[#1abc60] text-[11px] font-extrabold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm uppercase">
                           <Activity className="w-3.5 h-3.5" /> {t.sport}
+                        </div>
+                        <div className={`${getStatusColor(t.status)} text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm inline-block w-fit`}>
+                          {t.status}
                         </div>
                       </div>
                     </div>
@@ -191,29 +234,57 @@ export default function TournamentsPage() {
                     <div className="p-6 flex flex-col flex-1">
                       <h3 className="text-[19px] font-extrabold text-[#2d2d2d] mb-2 leading-tight group-hover:text-[#1abc60] transition-colors">{t.title}</h3>
                       <div className="flex items-center text-gray-500 text-[13px] mb-6 font-medium italic">
-                        <MapPin className="w-4 h-4 mr-1.5 text-[#1abc60]" /> {t.location}
+                        <MapPin className="w-4 h-4 mr-1.5 text-[#1abc60]" /> {t.location.venue}, {t.location.city}
                       </div>
                       
                       <div className="flex items-center justify-between mb-6">
                         <div>
-                          <p className="text-[10px] text-gray-400 font-extrabold uppercase mb-1">Prize Pool</p>
-                          <p className="text-[22px] font-black text-[#1abc60]">₹{t.prizePool}</p>
-                        </div>
-                        <div className="text-right">
                           <p className="text-[10px] text-gray-400 font-extrabold uppercase mb-1">Entry Fee</p>
-                          <p className="text-[22px] font-black text-[#333333]">₹{t.entryFee}</p>
+                          <p className="text-[22px] font-black text-[#333333]">₹{formatPrice(t.entryFee)}</p>
                         </div>
                       </div>
 
                       <div className="h-[1px] w-full bg-gray-100 mb-6" />
 
                       <div className="flex items-center gap-6 mb-8">
-                        <div className="flex items-center text-gray-600 text-[13px] font-bold"><Calendar className="w-4 h-4 mr-1.5 text-[#1abc60]" /> {t.date}</div>
-                        <div className="flex items-center text-gray-600 text-[13px] font-bold"><Clock className="w-4 h-4 mr-1.5 text-[#1abc60]" /> {t.time}</div>
+                        <div className="flex items-center text-gray-600 text-[13px] font-bold">
+                          <Calendar className="w-4 h-4 mr-1.5 text-[#1abc60]" /> 
+                          {new Date(t.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(t.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </div>
+                        <div className="flex items-center text-gray-600 text-[13px] font-bold"><Clock className="w-4 h-4 mr-1.5 text-[#1abc60]" /> TBA</div>
                       </div>
                       
-                      <button className="w-full !bg-[#1abc60] hover:!bg-[#169c4e] !text-white text-[14px] font-extrabold uppercase py-4 rounded-xl !border-none transition-all shadow-md active:scale-95">
-                        REGISTER NOW
+                      <button 
+                        disabled={(() => {
+                          const now = new Date();
+                          const deadline = new Date(t.registrationDeadline);
+                          const isFull = t.registeredTeams?.length >= (t.maxTeams || 16);
+                          const terminalStatuses = ['finished', 'completed', 'cancelled', 'postponed'];
+                          return now > deadline || isFull || terminalStatuses.includes(t.status?.toLowerCase());
+                        })()}
+                        className={`w-full text-[14px] font-extrabold uppercase py-4 rounded-xl !border-none transition-all shadow-md active:scale-95 ${
+                          (() => {
+                            const now = new Date();
+                            const deadline = new Date(t.registrationDeadline);
+                            const isFull = t.registeredTeams?.length >= (t.maxTeams || 16);
+                            const terminalStatuses = ['finished', 'completed', 'cancelled', 'postponed'];
+                            return now > deadline || isFull || terminalStatuses.includes(t.status?.toLowerCase());
+                          })()
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                            : '!bg-[#1abc60] hover:!bg-[#169c4e] !text-white'
+                        }`}
+                      >
+                        {(() => {
+                          const now = new Date();
+                          const deadline = new Date(t.registrationDeadline);
+                          const isFull = t.registeredTeams?.length >= (t.maxTeams || 16);
+                          if (t.status?.toLowerCase() === 'cancelled') return "Cancelled";
+                          if (t.status?.toLowerCase() === 'postponed') return "Postponed";
+                          if (t.status?.toLowerCase() === 'finished' || t.status?.toLowerCase() === 'completed') return "Finished";
+                          if (isFull) return "Full";
+                          if (now > deadline) return "Closed";
+                          return "REGISTER NOW";
+                        })()}
                       </button>
                     </div>
                   </div>

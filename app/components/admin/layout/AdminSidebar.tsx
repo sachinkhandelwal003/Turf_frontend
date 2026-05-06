@@ -14,6 +14,7 @@ import {
   X,
   ChevronDown,
   Square,
+  Trophy,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,7 +40,18 @@ const baseMenuItems = [
   { href: '/admin/settings', label: 'Settings', icon: Settings, permission: 'manage_settings' },
 ];
 
-const superadminMenuItems: any[] = [];
+const superadminMenuItems: any[] = [
+  {
+    href: '/admin/tournaments',
+    label: 'Tournaments',
+    icon: Trophy,
+    permission: 'manage_tournaments',
+    children: [
+      { href: '/admin/tournaments', label: 'List Tournaments', permission: 'manage_tournaments' },
+      { href: '/admin/tournaments/add', label: 'Add Tournament', permission: 'manage_tournaments' },
+    ],
+  },
+];
 
 interface AdminSidebarProps {
   sidebarOpen?: boolean;

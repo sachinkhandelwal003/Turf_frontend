@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Users, Shield, ShieldCheck, UserCheck, Activity, 
-  ArrowUpRight, Loader2, AlertCircle, RefreshCw, Key,
-  MapPin, CheckCircle, Clock, XCircle, Calendar, Trophy
+  Users, Shield, Activity, 
+  ArrowUpRight, Loader2, AlertCircle, RefreshCw,
+  MapPin, Clock, Calendar, Trophy, PieChart as PieChartIcon, BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/app/services/api';
 import { useAuth } from '@/app/context/AuthContext';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
+  ResponsiveContainer, PieChart, Pie, Cell, Legend 
+} from 'recharts';
 
 interface DashboardStats {
   users: {
@@ -60,6 +64,9 @@ interface RecentTurf {
   createdAt: string;
 }
 
+// Chart Colors
+const STATUS_COLORS = ['#10b981', '#f59e0b', '#ef4444']; // Green, Amber, Red
+
 export default function AdminDashboard() {
   const { user: currentUser } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -100,6 +107,26 @@ export default function AdminDashboard() {
     return `${baseUrl}${path}`;
   };
 
+  // Prepare Chart Data
+  const overviewData = useMemo(() => {
+    if (!stats) return [];
+    return [
+      { name: 'Users', total: stats.users.total },
+      { name: 'Venues', total: stats.turfs.total },
+      { name: 'Bookings', total: stats.bookings.total },
+      { name: 'Events', total: stats.tournaments.total },
+    ];
+  }, [stats]);
+
+  const bookingStatusData = useMemo(() => {
+    if (!stats) return [];
+    return [
+      { name: 'Confirmed', value: stats.bookings.confirmed },
+      { name: 'Pending', value: stats.bookings.pending },
+      { name: 'Cancelled', value: stats.bookings.cancelled },
+    ];
+  }, [stats]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh]">
@@ -116,7 +143,7 @@ export default function AdminDashboard() {
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-gray-900 mb-2">System Error</h2>
           <p className="text-gray-500 mb-6 text-sm">{error || 'Something went wrong'}</p>
-          <button onClick={fetchDashboardData} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+          <button onClick={fetchDashboardData} className="px-6 py-2.5 bg-[#1abc60] text-white rounded-lg hover:bg-[#17a554] transition-colors font-medium text-sm">
             Try Again
           </button>
         </div>
@@ -125,58 +152,126 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 space-y-6">
       
       {/* --- HEADER --- */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-500 mt-1 text-sm">Welcome back, {currentUser?.name}. Here's what's happening today.</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Admin Dashboard</h1>
+          <p className="text-gray-500 mt-1 text-sm">Welcome back, {currentUser?.name}. Here's your system overview.</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={fetchDashboardData}
             disabled={refreshing}
-            className="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 mr-2 text-gray-500 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh Data
+            {refreshing ? 'Syncing...' : 'Refresh Data'}
           </button>
         </div>
       </div>
 
       {/* --- TOP KPIs --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
         {[
-          { title: 'Total Users', value: stats.users?.total || 0, sub: 'Registered Accounts', icon: Users, color: 'blue', link: '/admin/users' },
-          { title: 'Total Venues', value: stats.turfs?.total || 0, sub: 'All listed turfs', icon: MapPin, color: 'emerald', link: '/admin/venues/list' },
-          { title: 'Total Bookings', value: stats.bookings?.total || 0, sub: 'Bookings placed', icon: Calendar, color: 'purple', link: '/admin/bookings' },
-          { title: 'Tournaments', value: stats.tournaments?.total || 0, sub: 'Active events', icon: Trophy, color: 'rose', link: '/admin/tournaments' },
-          { title: 'Pending Items', value: (stats.turfs?.pending || 0) + (stats.tournaments?.pending || 0), sub: 'Needs Review', icon: Clock, color: 'amber', link: '/admin/venues/list' },
-          { title: 'System Roles', value: stats.roles || 0, sub: 'Defined RBAC Roles', icon: Shield, color: 'indigo', link: '/admin/roles' },
+          { title: 'Total Users', value: stats.users?.total || 0, sub: 'Registered Accounts', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'hover:border-blue-200' },
+          { title: 'Total Venues', value: stats.turfs?.total || 0, sub: 'All listed turfs', icon: MapPin, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'hover:border-emerald-200' },
+          { title: 'Total Bookings', value: stats.bookings?.total || 0, sub: 'Bookings placed', icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50', border: 'hover:border-purple-200' },
+          { title: 'Tournaments', value: stats.tournaments?.total || 0, sub: 'Active events', icon: Trophy, color: 'text-rose-600', bg: 'bg-rose-50', border: 'hover:border-rose-200' },
+          { title: 'Pending Items', value: (stats.turfs?.pending || 0) + (stats.tournaments?.pending || 0), sub: 'Needs Review', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'hover:border-amber-200' },
+          { title: 'System Roles', value: stats.roles || 0, sub: 'Defined RBAC Roles', icon: Shield, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'hover:border-indigo-200' },
         ].map((stat, i) => (
           <motion.div 
             key={i} 
-            initial={{ opacity: 0, y: 20 }} 
+            initial={{ opacity: 0, y: 10 }} 
             animate={{ opacity: 1, y: 0 }} 
-            transition={{ delay: i * 0.1 }} 
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 group hover:border-blue-200 hover:shadow-md transition-all relative"
+            transition={{ delay: i * 0.05 }} 
+            className={`bg-white rounded-xl border border-gray-200 shadow-sm p-5 group ${stat.border} hover:shadow-md transition-all relative flex flex-col justify-between`}
           >
-            <div className="flex justify-between items-start mb-4">
-              <div className={`p-2.5 bg-${stat.color}-50 rounded-lg group-hover:bg-blue-50 transition-colors`}>
-                <stat.icon className={`w-5 h-5 text-${stat.color}-600 group-hover:text-blue-600`} />
+            <div className="flex justify-between items-start mb-3">
+              <div className={`p-2 rounded-lg ${stat.bg}`}>
+                <stat.icon className={`w-5 h-5 ${stat.color}`} />
               </div>
-              <Link href={stat.link} className="text-gray-300 hover:text-blue-500 transition-colors">
-                <ArrowUpRight className="w-5 h-5" />
-              </Link>
             </div>
             <div>
-              <h3 className="text-2xl font-semibold text-gray-900">{stat.value}</h3>
-              <p className="text-sm font-medium text-gray-600 mt-1">{stat.title}</p>
-              <p className="text-xs text-gray-400 mt-1">{stat.sub}</p>
+              <h3 className="text-2xl font-bold text-gray-900">{stat.value.toLocaleString()}</h3>
+              <p className="text-sm font-semibold text-gray-700 mt-1">{stat.title}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{stat.sub}</p>
             </div>
           </motion.div>
         ))}
+      </div>
+
+      {/* --- CHARTS SECTION --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* System Overview Bar Chart */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ delay: 0.2 }} 
+          className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:col-span-2"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-5 h-5 text-gray-500" />
+            <h2 className="text-base font-semibold text-gray-900">System Overview</h2>
+          </div>
+          <div className="w-full mt-4">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={overviewData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                <RechartsTooltip 
+                  cursor={{ fill: '#f9fafb' }}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Bar dataKey="total" fill="#1abc60" radius={[4, 4, 0, 0]} maxBarSize={50} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Bookings Status Donut Chart */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ delay: 0.3 }} 
+          className="bg-white rounded-xl border border-gray-200 shadow-sm p-6"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <PieChartIcon className="w-5 h-5 text-gray-500" />
+            <h2 className="text-base font-semibold text-gray-900">Booking Status</h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-2">Current distribution of all bookings</p>
+          
+          <div className="w-full mt-4">
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={bookingStatusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {bookingStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ color: '#374151', fontSize: '14px', fontWeight: 500 }}
+                />
+                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
       </div>
 
       {/* --- RECENT ACTIVITY --- */}
@@ -186,40 +281,40 @@ export default function AdminDashboard() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }} 
           animate={{ opacity: 1, y: 0 }} 
-          transition={{ delay: 0.3 }} 
-          className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+          transition={{ delay: 0.4 }} 
+          className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col"
         >
-          <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <div className="px-5 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <MapPin className="w-4 h-4 text-emerald-600" /> Recent Venues
             </h2>
-            <Link href="/admin/venues/list" className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors">
+            <Link href="/admin/venues/list" className="text-blue-600 text-xs font-semibold hover:text-blue-700 transition-colors">
               View All
             </Link>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-gray-100 flex-1">
             {recentTurfs.length === 0 ? (
               <div className="px-6 py-8 text-center text-gray-500 text-sm">No venues found</div>
             ) : (
               recentTurfs.map((t) => (
-                <div key={t._id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center overflow-hidden">
+                <div key={t._id} className="px-5 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center overflow-hidden shrink-0 border border-emerald-100">
                       {t.images && t.images.length > 0 ? (
                         <img src={getImageUrl(t.images[0])} alt={t.name} className="w-full h-full object-cover" />
                       ) : (
                         <MapPin className="w-5 h-5" />
                       )}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{t.name}</p>
-                      <p className="text-xs text-gray-500">Owned by {t.owner?.name}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{t.name}</p>
+                      <p className="text-xs text-gray-500 truncate">Owner: {t.owner?.name || 'Unknown'}</p>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                      t.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
-                      t.status === 'rejected' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
+                  <div className="flex flex-col items-end gap-1.5 shrink-0 ml-4">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-semibold capitalize border ${
+                      t.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                      t.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'
                     }`}>
                       {t.status}
                     </span>
@@ -235,107 +330,52 @@ export default function AdminDashboard() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }} 
           animate={{ opacity: 1, y: 0 }} 
-          transition={{ delay: 0.4 }} 
-          className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+          transition={{ delay: 0.5 }} 
+          className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col"
         >
-          <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <div className="px-5 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <Users className="w-4 h-4 text-blue-600" /> Recent Users
             </h2>
-            <Link href="/admin/users" className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors">
+            <Link href="/admin/users" className="text-blue-600 text-xs font-semibold hover:text-blue-700 transition-colors">
               View All
             </Link>
           </div>
-          <div className="divide-y divide-gray-50">
-            {recentUsers.map((u) => (
-              <div key={u._id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm overflow-hidden border border-blue-100">
-                    {u.profilePhoto ? (
-                      <img src={getImageUrl(u.profilePhoto)} alt={u.name} className="w-full h-full object-cover" />
-                    ) : (
-                      u.name.charAt(0)
-                    )}
+          <div className="divide-y divide-gray-100 flex-1">
+            {recentUsers.length === 0 ? (
+              <div className="px-6 py-8 text-center text-gray-500 text-sm">No users found</div>
+            ) : (
+              recentUsers.map((u) => (
+                <div key={u._id} className="px-5 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm overflow-hidden border border-blue-100 shrink-0">
+                      {u.profilePhoto ? (
+                        <img src={getImageUrl(u.profilePhoto)} alt={u.name} className="w-full h-full object-cover" />
+                      ) : (
+                        u.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{u.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{u.name}</p>
-                    <p className="text-xs text-gray-500">{u.email}</p>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0 ml-4">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-semibold capitalize border ${
+                      u.role === 'superadmin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                      u.role === 'admin' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}>
+                      {u.role}
+                    </span>
+                    <p className="text-[10px] text-gray-400">{new Date(u.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                    u.role === 'superadmin' ? 'bg-purple-50 text-purple-600' :
-                    u.role === 'admin' ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-600'
-                  }`}>
-                    {u.role}
-                  </span>
-                  <p className="text-[10px] text-gray-400">{new Date(u.createdAt).toLocaleDateString()}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </motion.div>
 
       </div>
-
-      {/* --- QUICK ACTIONS --- */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        transition={{ delay: 0.5 }} 
-        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6"
-      >
-        <h2 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
-          <Activity className="w-4 h-4 text-emerald-600" /> System Quick Stats
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tournament Status</p>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Approved</span>
-                <span className="font-semibold text-emerald-600">{stats.tournaments?.approved || 0}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Pending</span>
-                <span className="font-semibold text-amber-600">{stats.tournaments?.pending || 0}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Rejected</span>
-                <span className="font-semibold text-red-600">{stats.tournaments?.rejected || 0}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Venue Health</p>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Approved</span>
-                <span className="font-semibold text-emerald-600">{stats.turfs?.approved || 0}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Pending</span>
-                <span className="font-semibold text-amber-600">{stats.turfs?.pending || 0}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Rejected</span>
-                <span className="font-semibold text-red-600">{stats.turfs?.rejected || 0}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex flex-col justify-center">
-            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Session Info</p>
-            <p className="text-sm font-bold text-blue-900">{currentUser?.name}</p>
-            <p className="text-xs text-blue-700 capitalize">{currentUser?.role} Mode</p>
-            <div className="mt-3 flex items-center gap-2">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-[10px] font-bold text-emerald-600 uppercase">Live Connection</span>
-            </div>
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 }

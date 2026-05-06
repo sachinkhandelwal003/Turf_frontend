@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link'; 
-import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X, Loader2 } from 'lucide-react';
+import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X, Loader2, Search } from 'lucide-react';
 import api from '@/app/services/api';
 
 export default function GroundPage() {
@@ -66,9 +66,6 @@ export default function GroundPage() {
       const matchesRating = venue.rating >= minRating;
       const matchesPrice = venue.price <= maxPrice;
       
-      // If user wants to see all, we don't filter by isActive here
-      // But usually we only show active ones on public site.
-      // Given the user complaint, let's show all for now or check if isActive is the culprit.
       return matchesSearch && matchesCategory && matchesRating && matchesPrice;
     });
   }, [venues, searchQuery, selectedCategories, minRating, maxPrice]);
@@ -93,7 +90,7 @@ export default function GroundPage() {
       {/* ================= MOBILE FLOATING BUTTON (FAB) ================= */}
       <button 
         onClick={() => setIsMobileFilterOpen(true)}
-        className="lg:hidden fixed bottom-8 left-6 z-[40] !bg-[#1abc60] !text-white !p-4 !rounded-full shadow-[0_8px_30px_rgba(92,3,155,0.4)] !border-none flex items-center justify-center active:scale-95 transition-transform"
+        className="lg:hidden fixed bottom-8 left-6 z-[40] !bg-[#1abc60] !text-white !p-4 !rounded-full !shadow-[0_8px_30px_rgba(26,188,96,0.4)] !border-none flex items-center justify-center active:scale-95 transition-transform"
       >
         <Filter className="w-6 h-6" />
       </button>
@@ -106,7 +103,7 @@ export default function GroundPage() {
         />
       )}
 
-      {/* Main Container - Left edge se start hoga w-full ke sath */}
+      {/* Main Container */}
       <div className="w-full flex flex-col lg:flex-row pt-[120px]">
         
         {/* ================= SIDEBAR ================= */}
@@ -130,17 +127,17 @@ export default function GroundPage() {
             </button>
           </div>
 
-          {/* Location */}
+          {/* Location / Search Bar */}
           <div className="mb-8">
-            <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-3">Location</h3>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-3">Search Venue</h3>
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#1abc60] transition-colors z-10" />
               <input 
                 type="text" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search area or landmark..."
-                className="w-full bg-gray-50/50 border border-gray-200 text-[13px] rounded-lg pl-9 pr-3 py-2.5 outline-none focus:border-[#5C039B] transition-all"
+                className="!w-full !bg-white !border !border-gray-300 !text-gray-800 !text-[13px] !rounded-lg !pl-9 !pr-3 !py-2.5 !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !transition-all !shadow-sm"
               />
             </div>
           </div>
@@ -184,10 +181,10 @@ export default function GroundPage() {
                     checked={selectedCategories.includes(sport)}
                     onChange={() => toggleCategory(sport)}
                   />
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedCategories.includes(sport) ? 'bg-[#5C039B] border-[#5C039B]' : 'bg-white border-gray-300'}`}>
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedCategories.includes(sport) ? '!bg-[#1abc60] !border-[#1abc60]' : '!bg-white !border-gray-300'}`}>
                     {selectedCategories.includes(sport) && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
                   </div>
-                  <span className="text-[13px] font-medium text-gray-700">
+                  <span className="text-[13px] font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
                     {sport}
                   </span>
                 </label>
@@ -219,12 +216,12 @@ export default function GroundPage() {
           <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-2">
             <button 
               onClick={clearFilters}
-              className="text-[12px] font-extrabold !text-gray-600 uppercase tracking-wider hover:!text-gray-900 transition-colors !bg-transparent !border-none !p-0 !m-0 !shadow-none cursor-pointer"
+              className="text-[12px] font-extrabold !text-gray-500 uppercase tracking-wider hover:!text-gray-900 transition-colors !bg-transparent !border-none !p-0 !m-0 !shadow-none cursor-pointer"
             >
               Clear All
             </button>
             <button 
-              onClick={() => setIsMobileFilterOpen(false)} // Mobile drawer close 
+              onClick={() => setIsMobileFilterOpen(false)} 
               className="!bg-[#1abc60] hover:!bg-[#169c4e] !text-white text-[13px] font-bold uppercase px-6 py-2.5 rounded-xl transition-colors tracking-wide !border-none !shadow-sm cursor-pointer !m-0"
             >
               Apply
@@ -233,7 +230,6 @@ export default function GroundPage() {
         </aside>
 
         {/* ================= MAIN CONTENT ================= */}
-        {/* Main Content ki apni alag padding */}
         <main className="flex-1 px-4 md:px-8 lg:px-10 lg:pl-10 w-full pt-6 lg:pt-0">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h1 className="text-[28px] font-bold text-gray-800 tracking-tight">
@@ -244,7 +240,11 @@ export default function GroundPage() {
             </span>
           </div>
 
-          {filteredVenues.length > 0 ? (
+          {loading ? (
+             <div className="flex items-center justify-center py-20">
+               <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
+             </div>
+          ) : filteredVenues.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredVenues.map((venue) => (
                 <Link 

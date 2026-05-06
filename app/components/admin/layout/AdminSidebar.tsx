@@ -100,38 +100,36 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
   };
 
   const menuItems = (isSuperadmin ? [...baseMenuItems, ...superadminMenuItems] : baseMenuItems)
-     .filter(item => {
-       // If superadmin, show everything
-       if (isSuperadmin) return true;
-       
-       // Check if user has permission for this item
-       const userPermissions = user?.permissions || [];
-       
-       // DEBUG: console.log(`Checking permission for ${item.label}:`, item.permission, userPermissions);
-
-       if (item.permission && !userPermissions.includes(item.permission) && !userPermissions.includes('all')) {
-         return false;
-       }
-       
-       return true;
-     })
-     .map(item => {
-       // Filter children based on permissions if they exist
-       if (item.children) {
-         return {
-           ...item,
-           children: item.children.filter((child: any) => {
-             if (isSuperadmin) return true;
-             const userPermissions = user?.permissions || [];
-             if (child.permission && !userPermissions.includes(child.permission) && !userPermissions.includes('all')) {
-               return false;
-             }
-             return true;
-           })
-         };
-       }
-       return item;
-     });
+      .filter(item => {
+        // If superadmin, show everything
+        if (isSuperadmin) return true;
+        
+        // Check if user has permission for this item
+        const userPermissions = user?.permissions || [];
+        
+        if (item.permission && !userPermissions.includes(item.permission) && !userPermissions.includes('all')) {
+          return false;
+        }
+        
+        return true;
+      })
+      .map(item => {
+        // Filter children based on permissions if they exist
+        if (item.children) {
+          return {
+            ...item,
+            children: item.children.filter((child: any) => {
+              if (isSuperadmin) return true;
+              const userPermissions = user?.permissions || [];
+              if (child.permission && !userPermissions.includes(child.permission) && !userPermissions.includes('all')) {
+                return false;
+              }
+              return true;
+            })
+          };
+        }
+        return item;
+      });
 
   return (
     <>
@@ -228,7 +226,16 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                 {hasChildren && venueMenuOpen && !collapsed && (
                   <div className="mt-1 ml-4 space-y-1 border-l border-gray-200 pl-4">
                     {(item as any).children.map((child: any) => {
-                      const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
+                      // FIXED LOGIC: Stricter checking to prevent both sub-menus from highlighting
+                      const isExactMatch = pathname === child.href;
+                      const isSubPathMatch = pathname.startsWith(`${child.href}/`);
+                      const hasBetterMatch = (item as any).children.some((c: any) => 
+                        c.href !== child.href && 
+                        (pathname === c.href || pathname.startsWith(`${c.href}/`)) && 
+                        c.href.length > child.href.length
+                      );
+                      const childActive = isExactMatch || (isSubPathMatch && !hasBetterMatch);
+
                       return (
                         <Link
                           key={child.href}
@@ -349,7 +356,16 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                       {hasChildren && venueMenuOpen && (
                         <div className="mt-1 ml-4 space-y-1 border-l border-gray-200 pl-4">
                           {(item as any).children.map((child: any) => {
-                            const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
+                            // FIXED LOGIC FOR MOBILE TOO
+                            const isExactMatch = pathname === child.href;
+                            const isSubPathMatch = pathname.startsWith(`${child.href}/`);
+                            const hasBetterMatch = (item as any).children.some((c: any) => 
+                              c.href !== child.href && 
+                              (pathname === c.href || pathname.startsWith(`${c.href}/`)) && 
+                              c.href.length > child.href.length
+                            );
+                            const childActive = isExactMatch || (isSubPathMatch && !hasBetterMatch);
+
                             return (
                               <Link
                                 key={child.href}

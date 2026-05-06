@@ -111,9 +111,9 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
-      <div className="mb-8">
+      <div className="border-b border-gray-200 pb-5 mb-8">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">System Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Configure logos, authentication, and platform defaults.</p>
       </div>
@@ -128,11 +128,12 @@ export default function AdminSettingsPage() {
           ].map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id as any)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === tab.id 
-                  ? "bg-white text-[#1abc60] shadow-sm border border-gray-200" 
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  ? "bg-green-50 text-[#1abc60] shadow-sm border border-green-100" 
+                  : "bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50 border border-transparent"
               }`}
             >
               <tab.icon className="w-4 h-4" />
@@ -143,13 +144,13 @@ export default function AdminSettingsPage() {
 
         {/* Settings Content */}
         <div className="lg:col-span-3">
-          <form onSubmit={handleSave} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden p-6 lg:p-8">
+          <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden p-6 sm:p-8">
             
             {activeTab === "general" && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
                 {/* Site Name */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-2">Platform Identity</h3>
+                <div className="space-y-5">
+                  <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2">Platform Identity</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-gray-700">Site Name</label>
@@ -163,6 +164,7 @@ export default function AdminSettingsPage() {
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-gray-700">Support Email</label>
                       <input 
+                        type="email"
                         value={settings.contactEmail} 
                         onChange={e => setSettings({...settings, contactEmail: e.target.value})}
                         className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-sm" 
@@ -173,8 +175,8 @@ export default function AdminSettingsPage() {
                 </div>
 
                 {/* Logos */}
-                <div className="space-y-4 pt-4">
-                  <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-2">Branding Logos</h3>
+                <div className="space-y-5 pt-4">
+                  <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2">Branding Logos</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                     {/* Frontend Logo */}
                     <div className="space-y-3 p-5 bg-gray-50 rounded-xl border border-gray-200">
@@ -183,7 +185,7 @@ export default function AdminSettingsPage() {
                           <ImageIcon className="w-4 h-4 text-gray-500" />
                           <span className="text-sm font-semibold text-gray-700">Frontend Logo</span>
                         </div>
-                        <span className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wide bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">Required</span>
+                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">Required</span>
                       </div>
                       <MediaUpload 
                         initialFiles={settings.frontendLogo ? [settings.frontendLogo] : []}
@@ -201,7 +203,7 @@ export default function AdminSettingsPage() {
                           <ImageIcon className="w-4 h-4 text-gray-500" />
                           <span className="text-sm font-semibold text-gray-700">Admin Logo</span>
                         </div>
-                        <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide bg-gray-200 px-2 py-0.5 rounded-md border border-gray-300">Optional</span>
+                        <span className="text-xs font-semibold text-gray-600 bg-gray-200 px-2 py-0.5 rounded border border-gray-300">Optional</span>
                       </div>
                       <MediaUpload 
                         initialFiles={settings.backendLogo ? [settings.backendLogo] : []}
@@ -220,7 +222,7 @@ export default function AdminSettingsPage() {
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
                 {/* Google Login */}
                 <div className="space-y-5">
-                  <div className="flex items-center justify-between border border-gray-200 p-4 rounded-xl hover:border-gray-300 transition-all">
+                  <div className="flex items-center justify-between border border-gray-200 p-4 rounded-xl hover:border-gray-300 transition-all bg-gray-50/50">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-white border border-gray-200 rounded-lg flex items-center justify-center shadow-sm">
                         <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -234,7 +236,7 @@ export default function AdminSettingsPage() {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" checked={settings.googleLogin.enabled} onChange={e => setSettings({...settings, googleLogin: {...settings.googleLogin, enabled: e.target.checked}})} className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1abc60]"></div>
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1abc60]"></div>
                     </label>
                   </div>
 
@@ -246,7 +248,7 @@ export default function AdminSettingsPage() {
                           type="password"
                           value={settings.googleLogin.clientId} 
                           onChange={e => setSettings({...settings, googleLogin: {...settings.googleLogin, clientId: e.target.value}})}
-                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono text-sm" 
+                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all font-mono text-sm" 
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -255,7 +257,7 @@ export default function AdminSettingsPage() {
                           type="password"
                           value={settings.googleLogin.clientSecret} 
                           onChange={e => setSettings({...settings, googleLogin: {...settings.googleLogin, clientSecret: e.target.value}})}
-                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono text-sm" 
+                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all font-mono text-sm" 
                         />
                       </div>
                     </div>
@@ -264,7 +266,7 @@ export default function AdminSettingsPage() {
 
                 {/* Apple Login */}
                 <div className="space-y-5">
-                  <div className="flex items-center justify-between border border-gray-200 p-4 rounded-xl hover:border-gray-300 transition-all">
+                  <div className="flex items-center justify-between border border-gray-200 p-4 rounded-xl hover:border-gray-300 transition-all bg-gray-50/50">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center shadow-sm">
                         <Apple className="text-white w-5 h-5" />
@@ -276,7 +278,7 @@ export default function AdminSettingsPage() {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" checked={settings.appleLogin.enabled} onChange={e => setSettings({...settings, appleLogin: {...settings.appleLogin, enabled: e.target.checked}})} className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1abc60]"></div>
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1abc60]"></div>
                     </label>
                   </div>
 
@@ -287,7 +289,7 @@ export default function AdminSettingsPage() {
                         <input 
                           value={settings.appleLogin.clientId} 
                           onChange={e => setSettings({...settings, appleLogin: {...settings.appleLogin, clientId: e.target.value}})}
-                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none font-mono text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
+                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none font-mono text-sm focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all" 
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -295,7 +297,7 @@ export default function AdminSettingsPage() {
                         <input 
                           value={settings.appleLogin.teamId} 
                           onChange={e => setSettings({...settings, appleLogin: {...settings.appleLogin, teamId: e.target.value}})}
-                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none font-mono text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
+                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none font-mono text-sm focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all" 
                         />
                       </div>
                     </div>
@@ -306,13 +308,13 @@ export default function AdminSettingsPage() {
 
             {activeTab === "security" && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                <div className="bg-orange-50 p-5 rounded-xl border border-orange-200 flex gap-4">
-                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center shrink-0 border border-orange-200">
-                    <Shield className="text-orange-600 w-5 h-5" />
+                <div className="bg-orange-50 p-5 rounded-xl border border-orange-200 flex flex-col sm:flex-row gap-4">
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center shrink-0 border border-orange-200">
+                    <Shield className="text-orange-600 w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="text-orange-900 font-semibold text-sm">Maintenance Mode</h4>
-                    <p className="text-orange-800/80 text-xs mt-1">When active, only administrators can access the platform. Customers will see a maintenance message.</p>
+                    <h4 className="text-orange-900 font-semibold text-base">Maintenance Mode</h4>
+                    <p className="text-orange-800/80 text-sm mt-1">When active, only administrators can access the platform. Customers will see a maintenance message.</p>
                     <button 
                       type="button"
                       onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})}
@@ -329,8 +331,8 @@ export default function AdminSettingsPage() {
 
                 <div className="p-6 border border-dashed border-gray-300 rounded-xl space-y-3 bg-gray-50/50">
                   <div className="flex items-center gap-2 text-gray-700">
-                    <Info className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Advanced Security</span>
+                    <Info className="w-5 h-5 text-blue-500" />
+                    <span className="text-base font-semibold">Advanced Security</span>
                   </div>
                   <p className="text-sm text-gray-500 leading-relaxed">
                     More security features including IP Whitelisting, Audit Logs retention policy and Two-Factor Authentication enforcement will be available in future updates.
@@ -340,7 +342,7 @@ export default function AdminSettingsPage() {
             )}
 
             {/* Footer Actions */}
-            <div className="flex items-center justify-between pt-8 mt-8 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-8 mt-8 border-t border-gray-200 gap-4">
               <div className="flex items-center gap-2 text-gray-500">
                 <Check className="w-4 h-4 text-[#1abc60]" />
                 <span className="text-sm font-medium">Changes auto-saved as draft</span>
@@ -348,9 +350,10 @@ export default function AdminSettingsPage() {
               <button 
                 disabled={isSaving || !isSuperadmin} 
                 type="submit" 
-                className="px-6 py-2.5 bg-[#1abc60] text-white rounded-lg font-medium shadow-sm flex items-center gap-2 hover:bg-[#16a085] transition-all disabled:opacity-50 text-sm"
+                className="w-full sm:w-auto px-6 py-2.5 bg-[#1abc60] text-white rounded-lg font-medium shadow-sm flex items-center justify-center gap-2 hover:bg-[#17a554] transition-colors disabled:opacity-50 text-sm"
               >
-                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> Publish Settings</>}
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Publish Settings
               </button>
             </div>
           </form>

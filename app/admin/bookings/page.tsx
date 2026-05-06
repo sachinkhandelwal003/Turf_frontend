@@ -140,46 +140,45 @@ export default function AdminBookingsPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full space-y-5 px-4 sm:px-6 md:px-8 pb-8 !pt-2">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Manage Bookings</h1>
-          <p className="text-gray-500 font-bold text-sm mt-1 uppercase tracking-widest">Monitor and moderate venue reservations</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Manage Bookings</h1>
+          <p className="text-gray-500 text-sm mt-1">Monitor and moderate venue reservations</p>
         </div>
-        <div className="bg-white px-6 py-3 rounded-[24px] border border-gray-100 shadow-sm flex flex-col items-center">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Bookings</p>
-          <p className="text-xl font-black text-[#1abc60]">{totalBookings}</p>
+        <div className="bg-white px-5 py-3 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center min-w-[120px]">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total</p>
+          <p className="text-2xl font-semibold text-[#1abc60]">{totalBookings}</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm">
-        <div className="md:col-span-8 group flex items-center bg-gray-50/50 border border-gray-100 rounded-full focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
-          <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
-            <Search className="w-5 h-5" />
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+        <div className="md:col-span-8 group flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:bg-white focus-within:ring-2 focus-within:ring-green-100 focus-within:border-[#1abc60] transition-all">
+          <div className="pl-4 pr-3 text-gray-400">
+            <Search className="w-4 h-4" />
           </div>
-          <div className="w-px h-6 bg-gray-200" />
           <input 
             type="text" 
             placeholder="Search by ID, User, or Venue..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-5 py-4 bg-transparent outline-none transition-all font-bold text-sm text-gray-700 placeholder:text-gray-300"
+            className="!w-full !px-2 !py-2.5 !bg-transparent !outline-none !text-sm !text-gray-700 placeholder:!text-gray-400 !border-none focus:!ring-0"
           />
         </div>
 
-        <div className="md:col-span-4 relative group flex items-center bg-gray-50/50 border border-gray-100 rounded-full focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
-          <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+        <div className="md:col-span-4 relative group flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:bg-white focus-within:ring-2 focus-within:ring-green-100 focus-within:border-[#1abc60] transition-all">
+          <div className="pl-4 pr-3 text-gray-400">
             <Filter className="w-4 h-4" />
           </div>
-          <div className="w-px h-6 bg-gray-200" />
           <select 
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full px-5 py-4 bg-transparent outline-none transition-all font-bold text-sm text-gray-700 appearance-none cursor-pointer"
+            className="!w-full !px-2 !py-2.5 !bg-transparent !outline-none !text-sm !text-gray-700 !appearance-none !cursor-pointer !border-none focus:!ring-0"
           >
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
@@ -187,17 +186,17 @@ export default function AdminBookingsPage() {
             <option value="cancelled">Cancelled</option>
             <option value="completed">Completed</option>
           </select>
-          <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-focus-within:text-[#1abc60]">
-            <ChevronLeft className="w-4 h-4 rotate-270" />
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+            <ChevronLeft className="w-4 h-4 -rotate-90" />
           </div>
         </div>
       </div>
 
       {/* Bookings List */}
-      <div className="grid grid-cols-1 gap-6 min-h-[400px] relative">
+      <div className="grid grid-cols-1 gap-4 min-h-[400px] relative">
         {loading && bookings.length > 0 && (
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-[40px]">
-            <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
+            <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
           </div>
         )}
         
@@ -207,15 +206,13 @@ export default function AdminBookingsPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white p-24 rounded-[48px] border border-gray-100 text-center space-y-6 shadow-sm"
+              className="bg-white py-16 px-6 rounded-xl border border-gray-200 text-center shadow-sm"
             >
-              <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
-                <Calendar className="w-10 h-10 text-gray-200" />
+              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                <Calendar className="w-8 h-8 text-gray-300" />
               </div>
-              <div>
-                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">No Bookings Found</h3>
-                <p className="text-gray-400 font-bold text-sm mt-2 uppercase tracking-widest">Try adjusting your search or filters</p>
-              </div>
+              <h3 className="text-lg font-semibold text-gray-900">No Bookings Found</h3>
+              <p className="text-gray-500 text-sm mt-1">Try adjusting your search or filters to find what you're looking for.</p>
             </motion.div>
           ) : (
             bookings.map((booking) => (
@@ -225,60 +222,61 @@ export default function AdminBookingsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="bg-white rounded-[40px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:border-green-100 transition-all group border-l-8 border-l-[#1abc60]"
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="p-8 flex flex-col lg:flex-row gap-8 items-start lg:items-center">
+                <div className="p-6 flex flex-col lg:flex-row gap-6 items-start lg:items-center">
                   
                   {/* Turf Info */}
-                  <div className="flex items-center gap-6 flex-1 min-w-0 w-full">
-                    <div className="w-24 h-24 rounded-[28px] overflow-hidden shrink-0 shadow-sm bg-gray-50 flex items-center justify-center border border-gray-100">
+                  <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
+                    <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center border border-gray-200">
                       {booking.turf?.images?.[0] ? (
                         <img 
                           src={getImageUrl(booking.turf.images[0])} 
                           alt={booking.turf.name} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                          className="w-full h-full object-cover" 
                         />
                       ) : (
-                        <MapPin className="w-8 h-8 text-gray-200" />
+                        <MapPin className="w-6 h-6 text-gray-300" />
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="px-2 py-0.5 bg-gray-100 rounded-md flex items-center gap-1.5">
-                          <Hash className="w-3 h-3 text-gray-400" />
-                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{booking.bookingId || booking._id.slice(-8)}</span>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center text-gray-500">
+                          <Hash className="w-3.5 h-3.5 mr-1" />
+                          <span className="text-xs font-medium uppercase">{booking.bookingId || booking._id.slice(-8)}</span>
                         </div>
                       </div>
-                      <h3 className="text-xl font-black text-gray-900 truncate tracking-tight">{booking.turf?.name || 'Unknown Venue'}</h3>
-                      <div className="flex items-center gap-2 text-xs text-gray-400 font-bold mt-1 uppercase tracking-wider">
-                        <MapPin className="w-3 h-3 text-[#1abc60]" />
+                      <h3 className="text-base font-semibold text-gray-900 truncate">{booking.turf?.name || 'Unknown Venue'}</h3>
+                      <div className="flex items-center text-sm text-gray-500 mt-0.5">
+                        <MapPin className="w-3.5 h-3.5 mr-1 text-gray-400" />
                         {booking.turf?.location?.city || 'Unknown City'}
                       </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <span className="bg-green-50 text-[#1abc60] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-green-100">
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium border border-gray-200">
                           {booking.sport}
                         </span>
                         {booking.courts?.map((court, idx) => (
-                          <span key={idx} className="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
+                          <span key={idx} className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium border border-gray-200">
                             {court}
                           </span>
                         ))}
-                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                          booking.status === 'confirmed' ? 'bg-green-50 text-green-600 border-green-100' : 
-                          booking.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' : 
-                          booking.status === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' : 
-                          'bg-gray-50 text-gray-600 border-gray-100'
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${
+                          booking.status === 'confirmed' ? 'bg-green-50 text-green-700 border-green-200' : 
+                          booking.status === 'completed' ? 'bg-[#1abc60] text-white border-[#1abc60]' : 
+                          booking.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                          booking.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' : 
+                          'bg-gray-50 text-gray-700 border-gray-200'
                         }`}>
-                          {booking.status}
+                          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                         </span>
                       </div>
                     </div>
                   </div>
 
                   {/* User Info */}
-                  <div className="flex-1 w-full lg:border-l lg:pl-10 space-y-3">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 shadow-sm bg-gray-50 flex items-center justify-center border border-gray-100">
+                  <div className="flex-1 w-full lg:border-l border-gray-100 lg:px-6 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center border border-gray-200">
                         {booking.user?.profilePhoto ? (
                           <img 
                             src={getImageUrl(booking.user.profilePhoto)} 
@@ -286,72 +284,75 @@ export default function AdminBookingsPage() {
                             className="w-full h-full object-cover" 
                           />
                         ) : (
-                          <UserIcon className="w-6 h-6 text-gray-300" />
+                          <UserIcon className="w-5 h-5 text-gray-400" />
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-black text-gray-900 truncate uppercase tracking-tight">{booking.user?.name || 'Guest'}</p>
-                        <p className="text-[10px] text-gray-400 font-bold lowercase truncate">{booking.user?.email}</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">{booking.user?.name || 'Guest User'}</p>
+                        <p className="text-xs text-gray-500 truncate">{booking.user?.email}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                      <p className="text-[10px] text-gray-500 font-black tracking-widest">{booking.user?.phone || 'No phone'}</p>
+                    <div className="flex items-center gap-2 pl-[52px]">
+                      <span className="text-xs text-gray-600">{booking.user?.phone || 'No phone provided'}</span>
                     </div>
                   </div>
 
-                  {/* Slot Info */}
-                  <div className="flex-1 w-full lg:border-l lg:pl-10 space-y-4">
-                    <div className="space-y-2.5">
-                      <div className="flex items-center gap-3">
-                        <div className="p-1.5 bg-gray-50 rounded-lg border border-gray-100">
-                          <Calendar className="w-3.5 h-3.5 text-[#1abc60]" />
-                        </div>
-                        <span className="text-sm font-black text-gray-700 tracking-tight">{formatDate(booking.date)}</span>
+                  {/* Slot & Payment Info */}
+                  <div className="flex-1 w-full lg:border-l border-gray-100 lg:px-6 space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center text-sm text-gray-700">
+                        <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>{formatDate(booking.date)}</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="p-1.5 bg-gray-50 rounded-lg border border-gray-100">
-                          <Clock4 className="w-3.5 h-3.5 text-[#1abc60]" />
-                        </div>
-                        <span className="text-sm font-black text-gray-700 tracking-tight">{booking.startTime} - {booking.endTime}</span>
+                      <div className="flex items-center text-sm text-gray-700">
+                        <Clock4 className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>{booking.startTime} - {booking.endTime}</span>
                       </div>
                     </div>
-                    <div className="pt-3 border-t border-gray-50">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Payment: {booking.paymentStatus || 'Pending'}</p>
-                      <p className="text-2xl font-black text-gray-900 tracking-tighter">₹{booking.totalAmount || booking.price}</p>
-                      {booking.paymentMethod && <p className="text-[8px] text-gray-400 font-bold uppercase mt-1">Via {booking.paymentMethod}</p>}
+                    <div className="pt-2 border-t border-gray-100">
+                      <div className="flex justify-between items-baseline">
+                        <p className="text-xs font-medium text-gray-500">
+                          {booking.paymentStatus === 'paid' ? 'Paid via ' + (booking.paymentMethod || 'online') : 'Payment Pending'}
+                        </p>
+                        <p className="text-base font-semibold text-gray-900">₹{booking.totalAmount || booking.price}</p>
+                      </div>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex lg:flex-col gap-3 w-full lg:w-auto shrink-0">
+                  <div className="flex lg:flex-col gap-2 w-full lg:w-32 shrink-0">
                     {booking.status === 'pending' && (
                       <button 
                         onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
-                        className="flex-1 lg:w-36 bg-[#1abc60] text-white py-4 rounded-[18px] text-[10px] font-black uppercase tracking-widest hover:bg-[#16a085] hover:scale-105 transition-all shadow-xl shadow-green-100 flex items-center justify-center gap-2"
+                        className="!flex-1 !w-full !bg-[#1abc60] !text-white !py-2 !px-3 !rounded-lg !text-sm !font-medium hover:!bg-[#17a554] !transition-colors !flex !items-center !justify-center !gap-1.5 !border-none !cursor-pointer !shadow-sm"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Confirm
+                        <CheckCircle2 className="w-4 h-4" /> Confirm
                       </button>
                     )}
                     {['pending', 'confirmed'].includes(booking.status) && (
                       <button 
                         onClick={() => handleStatusUpdate(booking._id, 'cancelled')}
-                        className="flex-1 lg:w-36 bg-white text-red-500 border-2 border-red-50 py-4 rounded-[18px] text-[10px] font-black uppercase tracking-widest hover:bg-red-50 hover:border-red-100 transition-all flex items-center justify-center gap-2"
+                        className="!flex-1 !w-full !bg-white !text-red-600 !border !border-red-200 !py-2 !px-3 !rounded-lg !text-sm !font-medium hover:!bg-red-50 !transition-colors !flex !items-center !justify-center !gap-1.5 !cursor-pointer !shadow-sm"
                       >
-                        <XCircle className="w-3.5 h-3.5" /> Cancel
+                        <XCircle className="w-4 h-4" /> Cancel
                       </button>
                     )}
                     {booking.status === 'confirmed' && (
                       <button 
                         onClick={() => handleStatusUpdate(booking._id, 'completed')}
-                        className="flex-1 lg:w-36 bg-blue-600 text-white py-4 rounded-[18px] text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 hover:scale-105 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-2"
+                        className="!flex-1 !w-full !bg-[#1abc60] !text-white !py-2 !px-3 !rounded-lg !text-sm !font-medium hover:!bg-[#17a554] !transition-colors !flex !items-center !justify-center !gap-1.5 !border-none !cursor-pointer !shadow-sm"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Complete
+                        <CheckCircle2 className="w-4 h-4" /> Complete
                       </button>
                     )}
-                    {['cancelled', 'completed'].includes(booking.status) && (
-                      <div className="flex-1 lg:w-36 py-4 rounded-[18px] text-[10px] font-black uppercase tracking-widest text-center text-gray-400 border border-dashed border-gray-200">
-                        {booking.status}
+                    {booking.status === 'completed' && (
+                      <div className="!flex-1 !w-full !py-2 !px-3 !rounded-lg !text-sm !font-medium !text-center !text-[#1abc60] !bg-green-50 !border !border-green-200 !capitalize">
+                        Completed
+                      </div>
+                    )}
+                    {booking.status === 'cancelled' && (
+                      <div className="!flex-1 !w-full !py-2 !px-3 !rounded-lg !text-sm !font-medium !text-center !text-red-600 !bg-red-50 !border !border-red-200 !capitalize">
+                        Cancelled
                       </div>
                     )}
                   </div>
@@ -364,23 +365,22 @@ export default function AdminBookingsPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-10 border-t border-gray-100">
-          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">
-            Showing <span className="text-gray-900">{bookings.length}</span> of <span className="text-gray-900">{totalBookings}</span> reservations
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
+          <p className="text-sm text-gray-600">
+            Showing <span className="font-medium text-gray-900">{bookings.length}</span> of <span className="font-medium text-gray-900">{totalBookings}</span> results
           </p>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="p-3.5 bg-white border border-gray-100 rounded-[20px] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-all shadow-sm group"
+              className="!p-2 !bg-white !border !border-gray-200 !rounded-lg disabled:!opacity-50 disabled:!cursor-not-allowed hover:!bg-gray-50 !transition-colors !cursor-pointer"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-600 group-hover:-translate-x-0.5 transition-transform" />
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 px-2">
               {[...Array(totalPages)].map((_, i) => {
                 const pageNum = i + 1;
-                // Simple logic to show pages
                 if (
                   pageNum === 1 || 
                   pageNum === totalPages || 
@@ -390,10 +390,10 @@ export default function AdminBookingsPage() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-12 h-12 rounded-[20px] font-black text-sm transition-all shadow-sm ${
+                      className={`!min-w-[36px] !h-9 !px-3 !rounded-lg !text-sm !font-medium !transition-colors !cursor-pointer ${
                         currentPage === pageNum 
-                          ? 'bg-[#1abc60] text-white' 
-                          : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'
+                          ? '!bg-[#1abc60] !text-white !border !border-[#1abc60]' 
+                          : '!bg-white !text-gray-700 !border !border-gray-200 hover:!bg-gray-50'
                       }`}
                     >
                       {pageNum}
@@ -403,7 +403,7 @@ export default function AdminBookingsPage() {
                   pageNum === currentPage - 2 || 
                   pageNum === currentPage + 2
                 ) {
-                  return <span key={pageNum} className="text-gray-300 font-black px-1">...</span>;
+                  return <span key={pageNum} className="text-gray-400 px-1">...</span>;
                 }
                 return null;
               })}
@@ -412,9 +412,9 @@ export default function AdminBookingsPage() {
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="p-3.5 bg-white border border-gray-100 rounded-[20px] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-all shadow-sm group"
+              className="!p-2 !bg-white !border !border-gray-200 !rounded-lg disabled:!opacity-50 disabled:!cursor-not-allowed hover:!bg-gray-50 !transition-colors !cursor-pointer"
             >
-              <ChevronRight className="w-5 h-5 text-gray-600 group-hover:translate-x-0.5 transition-transform" />
+              <ChevronRight className="w-5 h-5 text-gray-600" />
             </button>
           </div>
         </div>

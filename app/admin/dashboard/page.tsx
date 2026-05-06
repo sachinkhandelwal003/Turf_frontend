@@ -148,12 +148,12 @@ export default function AdminDashboard() {
       {/* --- TOP KPIs --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         {[
-          { title: 'Total Users', value: stats.users.total, sub: 'Registered Accounts', icon: Users, color: 'blue', link: '/admin/users' },
-          { title: 'Total Venues', value: stats.turfs.total, sub: 'All listed turfs', icon: MapPin, color: 'emerald', link: '/admin/venues/list' },
-          { title: 'Total Bookings', value: stats.bookings.total, sub: 'Bookings placed', icon: Calendar, color: 'purple', link: '/admin/bookings' },
-          { title: 'Tournaments', value: stats.tournaments.total, sub: 'Active events', icon: Trophy, color: 'rose', link: '/admin/tournaments' },
-          { title: 'Pending Items', value: stats.turfs.pending + stats.tournaments.pending, sub: 'Needs Review', icon: Clock, color: 'amber', link: '/admin/venues/list' },
-          { title: 'System Roles', value: stats.roles, sub: 'Defined RBAC Roles', icon: Shield, color: 'indigo', link: '/admin/roles' },
+          { title: 'Total Users', value: stats.users?.total || 0, sub: 'Registered Accounts', icon: Users, color: 'blue', link: '/admin/users' },
+          { title: 'Total Venues', value: stats.turfs?.total || 0, sub: 'All listed turfs', icon: MapPin, color: 'emerald', link: '/admin/venues/list' },
+          { title: 'Total Bookings', value: stats.bookings?.total || 0, sub: 'Bookings placed', icon: Calendar, color: 'purple', link: '/admin/bookings' },
+          { title: 'Tournaments', value: stats.tournaments?.total || 0, sub: 'Active events', icon: Trophy, color: 'rose', link: '/admin/tournaments' },
+          { title: 'Pending Items', value: (stats.turfs?.pending || 0) + (stats.tournaments?.pending || 0), sub: 'Needs Review', icon: Clock, color: 'amber', link: '/admin/venues/list' },
+          { title: 'System Roles', value: stats.roles || 0, sub: 'Defined RBAC Roles', icon: Shield, color: 'indigo', link: '/admin/roles' },
         ].map((stat, i) => (
           <motion.div 
             key={i} 
@@ -294,15 +294,15 @@ export default function AdminDashboard() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Approved</span>
-                <span className="font-semibold text-emerald-600">{stats.tournaments.approved}</span>
+                <span className="font-semibold text-emerald-600">{stats.tournaments?.approved || 0}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Pending</span>
-                <span className="font-semibold text-amber-600">{stats.tournaments.pending}</span>
+                <span className="font-semibold text-amber-600">{stats.tournaments?.pending || 0}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Rejected</span>
-                <span className="font-semibold text-red-600">{stats.tournaments.rejected}</span>
+                <span className="font-semibold text-red-600">{stats.tournaments?.rejected || 0}</span>
               </div>
             </div>
           </div>
@@ -312,15 +312,15 @@ export default function AdminDashboard() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Approved</span>
-                <span className="font-semibold text-emerald-600">{stats.turfs.approved}</span>
+                <span className="font-semibold text-emerald-600">{stats.turfs?.approved || 0}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Pending</span>
-                <span className="font-semibold text-amber-600">{stats.turfs.pending}</span>
+                <span className="font-semibold text-amber-600">{stats.turfs?.pending || 0}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Rejected</span>
-                <span className="font-semibold text-red-600">{stats.turfs.rejected}</span>
+                <span className="font-semibold text-red-600">{stats.turfs?.rejected || 0}</span>
               </div>
             </div>
           </div>

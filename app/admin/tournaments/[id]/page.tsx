@@ -14,6 +14,7 @@ import {
   Clock,
   ShieldCheck,
   Edit,
+  XCircle,
   ListOrdered,
   Award,
   Phone,
@@ -27,6 +28,7 @@ import {
 import Link from 'next/link';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
+import { useAuth } from '@/app/context/AuthContext';
 
 interface Tournament {
   _id: string;
@@ -68,6 +70,7 @@ interface Tournament {
   maxTeams: number;
   registeredTeams: any[];
   status: string;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
   image?: string;
   gallery?: string[];
 }
@@ -75,6 +78,7 @@ interface Tournament {
 export default function TournamentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { isSuperadmin } = useAuth();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -95,6 +99,18 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
 
     fetchTournament();
   }, [id, router]);
+
+  const handleApproval = async (status: 'approved' | 'rejected') => {
+    try {
+      const res = await api.patch(`/tournaments/${id}/approve`, { status });
+      if (res.data.success) {
+        toast.success(`Tournament ${status} successfully`);
+        setTournament(prev => prev ? { ...prev, approvalStatus: status } : null);
+      }
+    } catch (error) {
+      toast.error('Failed to update approval status');
+    }
+  };
 
   const getImageUrl = (path: string) => {
     if (!path) return '/heroimage.png';
@@ -166,6 +182,13 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
                 <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${getStatusColor(tournament.status)}`}>
                   {tournament.status}
                 </span>
+                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${
+                  tournament.approvalStatus === 'approved' ? 'bg-green-500 text-white' : 
+                  tournament.approvalStatus === 'rejected' ? 'bg-red-500 text-white' : 
+                  'bg-amber-500 text-white'
+                }`}>
+                  {tournament.approvalStatus || 'pending'}
+                </span>
                 <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] font-black uppercase tracking-widest">
                   {tournament.sport}
                 </span>
@@ -184,13 +207,37 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
                 </div>
               </div>
             </div>
-            <Link 
-              href={`/admin/tournaments/edit/${tournament._id}`}
-              className="px-8 py-4 bg-[#1abc60] text-white rounded-2xl font-black text-lg hover:bg-[#16a352] transition-all shadow-2xl shadow-green-500/20 active:scale-95 flex items-center gap-3"
-            >
-              <Edit className="w-6 h-6" />
-              Edit Details
-            </Link>
+            <div className="flex flex-wrap items-center gap-4">
+              {isSuperadmin && (
+                <>
+                  {tournament.approvalStatus !== 'approved' && (
+                    <button 
+                      onClick={() => handleApproval('approved')}
+                      className="px-8 py-4 bg-green-600 text-white rounded-2xl font-black text-lg hover:bg-green-700 transition-all shadow-2xl shadow-green-500/20 active:scale-95 flex items-center gap-3"
+                    >
+                      <ShieldCheck className="w-6 h-6" />
+                      Approve
+                    </button>
+                  )}
+                  {tournament.approvalStatus !== 'rejected' && (
+                    <button 
+                      onClick={() => handleApproval('rejected')}
+                      className="px-8 py-4 bg-red-600 text-white rounded-2xl font-black text-lg hover:bg-red-700 transition-all shadow-2xl shadow-red-500/20 active:scale-95 flex items-center gap-3"
+                    >
+                      <XCircle className="w-6 h-6" />
+                      Reject
+                    </button>
+                  )}
+                </>
+              )}
+              <Link 
+                href={`/admin/tournaments/edit/${tournament._id}`}
+                className="px-8 py-4 bg-[#1abc60] text-white rounded-2xl font-black text-lg hover:bg-[#16a352] transition-all shadow-2xl shadow-green-500/20 active:scale-95 flex items-center gap-3"
+              >
+                <Edit className="w-6 h-6" />
+                Edit Details
+              </Link>
+            </div>
           </div>
         </div>
       </div>

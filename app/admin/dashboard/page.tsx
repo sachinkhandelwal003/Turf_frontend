@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { 
   Users, Shield, ShieldCheck, UserCheck, Activity, 
   ArrowUpRight, Loader2, AlertCircle, RefreshCw, Key,
-  MapPin, CheckCircle, Clock, XCircle, Calendar
+  MapPin, CheckCircle, Clock, XCircle, Calendar, Trophy
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/app/services/api';
@@ -29,6 +29,12 @@ interface DashboardStats {
     confirmed: number;
     pending: number;
     cancelled: number;
+  };
+  tournaments: {
+    total: number;
+    pending: number;
+    approved: number;
+    rejected: number;
   };
   roles: number;
 }
@@ -140,12 +146,13 @@ export default function AdminDashboard() {
       </div>
 
       {/* --- TOP KPIs --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         {[
           { title: 'Total Users', value: stats.users.total, sub: 'Registered Accounts', icon: Users, color: 'blue', link: '/admin/users' },
           { title: 'Total Venues', value: stats.turfs.total, sub: 'All listed turfs', icon: MapPin, color: 'emerald', link: '/admin/venues/list' },
           { title: 'Total Bookings', value: stats.bookings.total, sub: 'Bookings placed', icon: Calendar, color: 'purple', link: '/admin/bookings' },
-          { title: 'Pending Approval', value: stats.turfs.pending, sub: 'Waiting for review', icon: Clock, color: 'amber', link: '/admin/venues/list' },
+          { title: 'Tournaments', value: stats.tournaments.total, sub: 'Active events', icon: Trophy, color: 'rose', link: '/admin/tournaments' },
+          { title: 'Pending Items', value: stats.turfs.pending + stats.tournaments.pending, sub: 'Needs Review', icon: Clock, color: 'amber', link: '/admin/venues/list' },
           { title: 'System Roles', value: stats.roles, sub: 'Defined RBAC Roles', icon: Shield, color: 'indigo', link: '/admin/roles' },
         ].map((stat, i) => (
           <motion.div 
@@ -283,19 +290,19 @@ export default function AdminDashboard() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">User Distribution</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tournament Status</p>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Customers</span>
-                <span className="font-semibold">{stats.users.customers}</span>
+                <span className="text-gray-600">Approved</span>
+                <span className="font-semibold text-emerald-600">{stats.tournaments.approved}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Admins</span>
-                <span className="font-semibold">{stats.users.admins}</span>
+                <span className="text-gray-600">Pending</span>
+                <span className="font-semibold text-amber-600">{stats.tournaments.pending}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Super Admins</span>
-                <span className="font-semibold">{stats.users.superadmins}</span>
+                <span className="text-gray-600">Rejected</span>
+                <span className="font-semibold text-red-600">{stats.tournaments.rejected}</span>
               </div>
             </div>
           </div>

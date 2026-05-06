@@ -127,13 +127,19 @@ export default function AdminRolesPage() {
             <h3 className="font-semibold text-gray-900">New System Role</h3>
             <button onClick={() => setIsAdding(false)} className="p-1.5 hover:bg-gray-100 rounded-md transition-colors"><X className="text-gray-400 w-4 h-4" /></button>
           </div>
-          <input 
-            type="text" 
-            placeholder="Role Name (e.g. Moderator)"
-            value={newRole.name}
-            onChange={(e) => setNewRole({...newRole, name: e.target.value})}
-            className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60] transition-all"
-          />
+          <div className="group flex items-center bg-gray-50/50 border border-gray-100 rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
+            <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div className="w-px h-6 bg-gray-200" />
+            <input 
+              type="text" 
+              placeholder="Role Name (e.g. Moderator)"
+              value={newRole.name}
+              onChange={(e) => setNewRole({...newRole, name: e.target.value})}
+              className="w-full px-5 py-3.5 bg-transparent outline-none transition-all font-bold text-sm text-gray-700 placeholder:text-gray-300"
+            />
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {availablePermissions.map(p => (
               <label key={p._id} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100 cursor-pointer hover:bg-white hover:border-[#1abc60] transition-all group">
@@ -158,11 +164,17 @@ export default function AdminRolesPage() {
             {/* Card Header */}
             <div className="px-5 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
               {editingId === role._id ? (
-                <input 
-                  value={editRole.name}
-                  onChange={(e) => setEditRole({...editRole, name: e.target.value})}
-                  className="bg-white border border-[#1abc60] rounded-md px-3 py-1.5 text-sm font-semibold text-gray-900 outline-none w-full max-w-[200px]"
-                />
+                <div className="group flex items-center bg-white border border-[#1abc60] rounded-lg focus-within:ring-4 focus-within:ring-green-50 transition-all max-w-[240px]">
+                  <div className="pl-3 pr-2 text-[#1abc60]">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <div className="w-px h-4 bg-gray-200" />
+                  <input 
+                    value={editRole.name}
+                    onChange={(e) => setEditRole({...editRole, name: e.target.value})}
+                    className="flex-1 px-3 py-1.5 bg-transparent outline-none text-sm font-bold text-gray-900"
+                  />
+                </div>
               ) : (
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2 capitalize">
                   <Shield className="w-4 h-4 text-[#1abc60]" />

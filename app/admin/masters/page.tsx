@@ -141,23 +141,27 @@ export default function AdminMastersPage() {
           {/* Content */}
           <div className="lg:col-span-3 space-y-6">
             {/* Add New Form */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+            <div className="bg-white rounded-[32px] border border-gray-200 p-6 shadow-sm">
               <form onSubmit={handleAdd} className="flex gap-4">
-                <div className="flex-1 relative">
+                <div className="flex-1 group flex items-center bg-gray-50/50 border border-gray-100 rounded-full focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
+                  <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <div className="w-px h-6 bg-gray-200" />
                   <input 
                     type="text" 
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     placeholder={`Enter new ${activeCategory.replace('_', ' ')} name...`}
-                    className="w-full px-5 py-3 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-sm font-medium"
+                    className="w-full px-5 py-3.5 bg-transparent outline-none transition-all text-sm font-bold text-gray-700 placeholder:text-gray-300"
                   />
                 </div>
                 <button 
                   disabled={isSaving || !newName.trim()}
                   type="submit"
-                  className="bg-[#1abc60] hover:bg-[#16a085] text-white px-6 py-3 rounded-lg font-medium transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 text-sm"
+                  className="bg-[#1abc60] hover:bg-[#16a085] text-white px-8 py-3.5 rounded-full font-bold transition-all shadow-lg shadow-green-100 flex items-center gap-2 disabled:opacity-50 text-sm uppercase tracking-wider"
                 >
-                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4" /> Add Entry</>}
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-5 h-5" /> Add Entry</>}
                 </button>
               </form>
             </div>

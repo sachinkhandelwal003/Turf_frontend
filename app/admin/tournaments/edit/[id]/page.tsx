@@ -32,6 +32,7 @@ import {
 import Link from 'next/link';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 export default function EditTournamentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -167,7 +168,6 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
             rules: t.rules || [],
             maxTeams: t.maxTeams || 16,
             status: t.status || 'upcoming',
-            prizePool: t.prizePool || '',
           });
           if (t.image) {
             setImagePreview(getImageUrl(t.image));
@@ -274,10 +274,22 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
       });
 
       if (res.data.success) {
+        await Swal.fire({
+          title: 'Tournament Updated',
+          text: 'The tournament details have been successfully saved.',
+          icon: 'success',
+          confirmButtonColor: '#1abc60',
+        });
         toast.success('Tournament updated successfully');
         router.push('/admin/tournaments');
       }
     } catch (error: any) {
+      await Swal.fire({
+        title: 'Update Failed',
+        text: error.response?.data?.error || 'Failed to update tournament.',
+        icon: 'error',
+        confirmButtonColor: '#ef4444',
+      });
       toast.error(error.response?.data?.error || 'Failed to update tournament');
     } finally {
       setSaving(false);

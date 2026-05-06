@@ -16,11 +16,16 @@ export default function AdminSettingsPage() {
   const { isSuperadmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"general" | "auth" | "security">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "auth" | "security" | "hero">("general");
 
   const [settings, setSettings] = useState<any>({
     frontendLogo: "",
     backendLogo: "",
+    heroBanner: {
+      title: "UP YOUR GAME",
+      subtitle: "Premium sports venues, professional training, and competitive matches. Book your victory in seconds.",
+      image: "/heroimage.png",
+    },
     googleLogin: {
       enabled: false,
       clientId: "",
@@ -37,9 +42,10 @@ export default function AdminSettingsPage() {
     maintenanceMode: false,
   });
 
-  const [logoFiles, setLogoFiles] = useState<{
+  const [uploadedFiles, setUploadedFiles] = useState<{
     frontend?: any;
     backend?: any;
+    hero?: any;
   }>({});
 
   useEffect(() => {
@@ -50,7 +56,15 @@ export default function AdminSettingsPage() {
     try {
       const res = await api.get("/settings");
       if (res.data.success) {
-        setSettings(res.data.settings);
+        // Merge with initial state to ensure all fields exist
+        setSettings((prev: any) => ({
+          ...prev,
+          ...res.data.settings,
+          heroBanner: {
+            ...prev.heroBanner,
+            ...(res.data.settings.heroBanner || {})
+          }
+        }));
       }
     } catch (error) {
       console.error("Failed to fetch settings");
@@ -73,18 +87,36 @@ export default function AdminSettingsPage() {
       formData.append("maintenanceMode", String(settings.maintenanceMode));
       formData.append("googleLogin", JSON.stringify(settings.googleLogin));
       formData.append("appleLogin", JSON.stringify(settings.appleLogin));
+      
+      // Send both as a JSON string and as individual fields to be safe
+      const heroBannerData = {
+        title: settings.heroBanner?.title || "",
+        subtitle: settings.heroBanner?.subtitle || "",
+        image: settings.heroBanner?.image || "",
+      };
+      formData.append("heroBanner", JSON.stringify(heroBannerData));
+      formData.append("heroTitle", settings.heroBanner?.title || "");
+      formData.append("heroSubtitle", settings.heroBanner?.subtitle || "");
+      formData.append("hero_title", settings.heroBanner?.title || "");
+      formData.append("hero_subtitle", settings.heroBanner?.subtitle || "");
 
       // Handle logos
-      if (logoFiles.frontend?.originalFile) {
-        formData.append("frontendLogo", logoFiles.frontend.originalFile);
+      if (uploadedFiles.frontend?.originalFile) {
+        formData.append("frontendLogo", uploadedFiles.frontend.originalFile);
       } else if (typeof settings.frontendLogo === 'string') {
         formData.append("existingFrontendLogo", settings.frontendLogo);
       }
 
-      if (logoFiles.backend?.originalFile) {
-        formData.append("backendLogo", logoFiles.backend.originalFile);
+      if (uploadedFiles.backend?.originalFile) {
+        formData.append("backendLogo", uploadedFiles.backend.originalFile);
       } else if (typeof settings.backendLogo === 'string') {
         formData.append("existingBackendLogo", settings.backendLogo);
+      }
+
+      if (uploadedFiles.hero?.originalFile) {
+        formData.append("image", uploadedFiles.hero.originalFile);
+      } else if (settings.heroBanner?.image) {
+        formData.append("existingHeroImage", settings.heroBanner.image);
       }
 
       const res = await api.post("/settings", formData, {
@@ -92,7 +124,14 @@ export default function AdminSettingsPage() {
       });
 
       if (res.data.success) {
-        setSettings(res.data.settings);
+        setSettings((prev: any) => ({
+          ...prev,
+          ...res.data.settings,
+          heroBanner: {
+            ...prev.heroBanner,
+            ...(res.data.settings.heroBanner || {})
+          }
+        }));
         toast.success("Settings updated successfully");
       }
     } catch (error: any) {
@@ -123,6 +162,7 @@ export default function AdminSettingsPage() {
         <div className="lg:col-span-1 space-y-1.5">
           {[
             { id: "general", label: "Branding & General", icon: Globe },
+            { id: "hero", label: "Hero Banner", icon: ImageIcon },
             { id: "auth", label: "Authentication", icon: Lock },
             { id: "security", label: "Security & Access", icon: Shield },
           ].map((tab) => (
@@ -187,7 +227,7 @@ export default function AdminSettingsPage() {
                       </div>
                       <MediaUpload 
                         initialFiles={settings.frontendLogo ? [settings.frontendLogo] : []}
-                        onFilesChange={(files) => setLogoFiles(prev => ({ ...prev, frontend: files[0] }))}
+                        onFilesChange={(files) => setUploadedFiles(prev => ({ ...prev, frontend: files[0] }))}
                         className="bg-white"
                         maxFiles={1}
                       />
@@ -205,11 +245,77 @@ export default function AdminSettingsPage() {
                       </div>
                       <MediaUpload 
                         initialFiles={settings.backendLogo ? [settings.backendLogo] : []}
-                        onFilesChange={(files) => setLogoFiles(prev => ({ ...prev, backend: files[0] }))}
+                        onFilesChange={(files) => setUploadedFiles(prev => ({ ...prev, backend: files[0] }))}
                         className="bg-white"
                         maxFiles={1}
                       />
                       <p className="text-xs text-gray-500">Recommended: 200x200 Square SVG or PNG</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "hero" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+                {/* Hero Content */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-2">Hero Section Content</h3>
+                  <div className="space-y-6 pt-2">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">Main Heading</label>
+                      <input 
+                        value={settings.heroBanner?.title || ""} 
+                        onChange={e => setSettings({...settings, heroBanner: {...settings.heroBanner, title: e.target.value}})}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-sm font-bold" 
+                        placeholder="e.g. UP YOUR GAME"
+                      />
+                      <p className="text-[10px] text-gray-500 font-medium italic">* The last word will automatically be styled in green on the frontend.</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">Sub-heading / Description</label>
+                      <textarea 
+                        value={settings.heroBanner?.subtitle || ""} 
+                        onChange={e => setSettings({...settings, heroBanner: {...settings.heroBanner, subtitle: e.target.value}})}
+                        rows={3}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-sm leading-relaxed" 
+                        placeholder="Premium sports venues, professional training..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hero Background Image */}
+                <div className="space-y-4 pt-4">
+                  <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-2">Hero Background</h3>
+                  <div className="pt-2">
+                    <div className="space-y-3 p-5 bg-gray-50 rounded-xl border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ImageIcon className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm font-semibold text-gray-700">Background Image</span>
+                        </div>
+                      </div>
+                      <MediaUpload 
+                        initialFiles={settings.heroBanner?.image ? [(() => {
+                          const img = settings.heroBanner.image;
+                          if (img.startsWith('http') || img.startsWith('data:') || img.startsWith('blob:')) return img;
+                          if (img.startsWith('/uploads') || img.startsWith('uploads')) {
+                            const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
+                            const path = img.startsWith('/') ? img : `/${img}`;
+                            return `${baseUrl}${path}`;
+                          }
+                          // For local assets like /heroimage.png, ensure they load from frontend origin
+                          if (typeof window !== 'undefined' && img.startsWith('/')) {
+                            return window.location.origin + img;
+                          }
+                          return img;
+                        })()] : []}
+                        onFilesChange={(files) => setUploadedFiles(prev => ({ ...prev, hero: files[0] }))}
+                        className="bg-white"
+                        maxFiles={1}
+                      />
+                      <p className="text-xs text-gray-500">Recommended: High resolution 1920x1080 JPEG or WEBP</p>
                     </div>
                   </div>
                 </div>

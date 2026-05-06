@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link'; 
 import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X, Loader2 } from 'lucide-react';
 import api from '@/app/services/api';
+import { useSearchParams } from 'next/navigation';
 
-export default function GroundPage() {
+function GroundContent() {
+  const searchParams = useSearchParams();
   const [venues, setVenues] = useState<any[]>([]);
+  const [availableSports, setAvailableSports] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   // --- States for Filtering ---
@@ -17,6 +20,36 @@ export default function GroundPage() {
   
   // FIX: Mobile Filter Drawer State
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Handle query parameters
+  useEffect(() => {
+    const location = searchParams.get('location');
+    const sport = searchParams.get('sport');
+
+    if (location) {
+      setSearchQuery(location);
+    }
+    if (sport) {
+      setSelectedCategories([sport]);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fetchMasters = async () => {
+      try {
+        const res = await api.get('/masters');
+        if (res.data.success) {
+          const sports = res.data.masters
+            .filter((m: any) => m.category === 'sport')
+            .map((m: any) => m.name);
+          setAvailableSports(sports);
+        }
+      } catch (error) {
+        console.error("Failed to fetch sports:", error);
+      }
+    };
+    fetchMasters();
+  }, []);
 
   useEffect(() => {
     const fetchVenues = async () => {
@@ -176,7 +209,7 @@ export default function GroundPage() {
           <div className="mb-8">
             <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-4">Sport Category</h3>
             <div className="flex flex-col gap-3">
-              {["Football", "Cricket", "Tennis", "Badminton", "Basketball"].map((sport) => (
+              {availableSports.map((sport) => (
                 <label key={sport} className="flex items-center gap-3 cursor-pointer group">
                   <input 
                     type="checkbox"
@@ -192,6 +225,9 @@ export default function GroundPage() {
                   </span>
                 </label>
               ))}
+              {availableSports.length === 0 && (
+                <p className="text-xs text-gray-400 italic">No sports available</p>
+              )}
             </div>
           </div>
 
@@ -333,5 +369,17 @@ export default function GroundPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function GroundPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
+      </div>
+    }>
+      <GroundContent />
+    </Suspense>
   );
 }

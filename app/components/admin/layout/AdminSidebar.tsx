@@ -75,7 +75,16 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
         if (res.data.success && res.data.settings.backendLogo) {
           const backendLogo = res.data.settings.backendLogo;
           const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
-          setLogo(backendLogo.startsWith('http') ? backendLogo : `${baseUrl}${backendLogo}`);
+          
+          if (backendLogo.startsWith('http')) {
+            setLogo(backendLogo);
+          } else if (backendLogo.startsWith('/uploads') || backendLogo.startsWith('uploads')) {
+            const path = backendLogo.startsWith('/') ? backendLogo : `/${backendLogo}`;
+            setLogo(`${baseUrl}${path}`);
+          } else {
+            // Keep as is for local public assets
+            setLogo(backendLogo);
+          }
         }
       } catch (error) {
         // Silent error

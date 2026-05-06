@@ -1,8 +1,10 @@
 "use client";
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Search, ChevronDown } from 'lucide-react';
+import { MapPin, Search, ChevronDown, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import api from '@/app/services/api';
 
 // Mock Data Dropdowns ke liye
 const LOCATIONS = [
@@ -13,23 +15,112 @@ const LOCATIONS = [
   "Jayanagar, Bangalore"
 ];
 
-const SPORTS = [
-  "Football",
-  "Cricket",
-  "Badminton",
-  "Tennis",
-  "Swimming",
-  "Basketball"
-];
-
 export default function Hero() {
+  const router = useRouter();
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedSport, setSelectedSport] = useState('');
+  const [sports, setSports] = useState<string[]>([]);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [isSportOpen, setIsSportOpen] = useState(false);
+  const [heroData, setHeroData] = useState({
+    title: "UP YOUR GAME",
+    subtitle: "Premium sports venues, professional training, and competitive matches. Book your victory in seconds.",
+    image: "/heroimage.png"
+  });
 
   const locationRef = useRef<HTMLDivElement>(null);
   const sportRef = useRef<HTMLDivElement>(null);
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (selectedLocation) params.set('location', selectedLocation);
+    if (selectedSport) params.set('sport', selectedSport);
+    
+    router.push(`/ground?${params.toString()}`);
+  };
+
+  useEffect(() => {
+    const fetchSports = async () => {
+      try {
+        const res = await api.get('/masters');
+        if (res.data.success) {
+          const sportsList = res.data.masters
+            .filter((m: any) => m.category === 'sport')
+            .map((m: any) => m.name);
+          setSports(sportsList);
+        }
+      } catch (error) {
+        console.error('Failed to fetch sports:', error);
+      }
+    };
+
+    const fetchHeroSettings = async () => {
+      try {
+        const res = await api.get('/settings');
+        if (res.data.success && res.data.settings) {
+          const s = res.data.settings;
+          const hero = s.heroBanner || {};
+          
+          // Fallback to top level fields if heroBanner is not an object
+          const title = hero.title || s.heroTitle || s.hero_title || "UP YOUR GAME";
+          const subtitle = hero.subtitle || s.heroSubtitle || s.hero_subtitle || "Premium sports venues, professional training, and competitive matches. Book your victory in seconds.";
+          
+          // Check various possible image fields
+          let image = hero.image || s.heroImage || s.hero_image || s.image || "";
+          if (!image && s.images && s.images.length > 0) {
+            image = s.images[0];
+          }
+          
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
+          
+          let finalImageUrl = "/heroimage.png"; // Default fallback
+          
+          if (image) {
+            if (image.startsWith('http')) {
+              finalImageUrl = image;
+            } else if (image.startsWith('/uploads') || image.startsWith('uploads')) {
+              // Backend uploads
+              const path = image.startsWith('/') ? image : `/${image}`;
+              finalImageUrl = `${baseUrl}${path}`;
+            } else if (image.startsWith('/')) {
+              // Local public assets or absolute paths
+              // If it's a known backend path pattern, prepend baseUrl
+              // Otherwise keep as is for frontend public assets
+              finalImageUrl = image;
+            } else {
+              // Relative path, assume backend
+              finalImageUrl = `${baseUrl}/${image}`;
+            }
+          }
+          
+          setHeroData({
+            title: title,
+            subtitle: subtitle,
+            image: finalImageUrl
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch hero settings:', error);
+      }
+    };
+
+    fetchSports();
+    fetchHeroSettings();
+  }, []);
+
+  const formatTitle = (title: string) => {
+    const words = title.trim().split(' ');
+    if (words.length <= 1) return title;
+    
+    const lastWord = words.pop();
+    const remainingTitle = words.join(' ');
+    
+    return (
+      <>
+        {remainingTitle} <span className="text-[#1abc60]">{lastWord}</span>
+      </>
+    );
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -49,7 +140,7 @@ export default function Hero() {
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img
-          src="/heroimage.png"
+          src={heroData.image}
           alt="Sports Turf Banner"
           className="w-full h-full object-cover"
         />
@@ -67,7 +158,7 @@ export default function Hero() {
           transition={{ duration: 0.6 }}
           className="text-5xl md:text-7xl lg:text-[85px] font-bold !text-white uppercase tracking-tight mb-4 leading-none"
         >
-          UP YOUR <span className="text-[#1abc60]">GAME</span>
+          {formatTitle(heroData.title)}
         </motion.h1>
 
         {/* Sub-heading */}
@@ -76,9 +167,9 @@ export default function Hero() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="text-white text-[14px] md:text-[17px] font-medium mb-10 max-w-2xl mx-auto leading-relaxed"
+          className="text-white text-[14px] md:text-[17px] font-medium mb-10 max-w-2xl mx-auto leading-relaxed whitespace-pre-line"
         >
-          Premium sports venues, professional training, and competitive <br className="hidden md:block" /> matches. Book your victory in seconds.
+          {heroData.subtitle}
         </motion.p>
 
         {/* ================= COMPACT SEARCH BAR ================= */}
@@ -107,6 +198,15 @@ export default function Hero() {
                 placeholder="Location"
                 className="w-full outline-none text-gray-800 bg-transparent text-[14px] md:text-[15px] font-medium placeholder:text-gray-600 cursor-pointer truncate"
               />
+              {selectedLocation && (
+                <X 
+                  className="w-4 h-4 text-gray-400 hover:text-gray-600 ml-1 cursor-pointer flex-shrink-0" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedLocation('');
+                  }}
+                />
+              )}
             </div>
 
             <AnimatePresence>
@@ -160,6 +260,15 @@ export default function Hero() {
                   placeholder="sports"
                   className="w-full outline-none text-gray-800 bg-transparent text-[14px] md:text-[15px] font-medium placeholder:text-gray-600 cursor-pointer truncate"
                 />
+                {selectedSport && (
+                  <X 
+                    className="w-4 h-4 text-gray-400 hover:text-gray-600 ml-1 cursor-pointer flex-shrink-0" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSport('');
+                    }}
+                  />
+                )}
               </div>
               <ChevronDown
                 className="w-4 h-4 text-gray-400 transition-transform flex-shrink-0"
@@ -175,7 +284,7 @@ export default function Hero() {
                   exit={{ opacity: 0, y: 10 }}
                   className="absolute top-[120%] left-0 w-[180px] md:w-full bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 text-left"
                 >
-                  {SPORTS.map((sport, idx) => (
+                  {sports.map((sport, idx) => (
                     <div
                       key={idx}
                       onClick={() => {
@@ -187,6 +296,11 @@ export default function Hero() {
                       {sport}
                     </div>
                   ))}
+                  {sports.length === 0 && (
+                    <div className="px-4 py-2.5 text-[14px] text-gray-400 italic">
+                      No sports available
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -196,13 +310,13 @@ export default function Hero() {
           <div className="h-6 w-[1.5px] bg-[#f5e3b5] flex-shrink-0 mx-1 md:mx-2"></div>
 
           {/* SEARCH BUTTON */}
-          <Link
-            href="/ground"
-            className="bg-[#1abc60] hover:bg-[#169c4e] !text-white font-medium py-4 px-5 md:px-6 rounded-lg transition-colors flex items-center justify-center gap-1.5 text-[14px] md:text-[15px] flex-shrink-0 !no-underline"
+          <button
+            onClick={handleSearch}
+            className="bg-[#1abc60] hover:bg-[#169c4e] !text-white font-medium py-4 px-5 md:px-6 rounded-lg transition-colors flex items-center justify-center gap-1.5 text-[14px] md:text-[15px] flex-shrink-0 !border-none"
           >
             <span className="hidden sm:inline">Search</span>
             <Search className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
-          </Link>
+          </button>
 
         </motion.div>
 

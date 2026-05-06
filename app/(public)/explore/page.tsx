@@ -50,7 +50,7 @@ export default function ExploreTurfsPage() {
       if (minRating) params.rating = minRating;
       params.maxPrice = priceRange;
 
-      const res = await api.get("/turfs", { params });
+      const res = await api.get("turfs", { params });
       if (res.data.success) setTurfs(res.data.turfs);
     } catch (error) {
       console.error("Fetch Error:", error);

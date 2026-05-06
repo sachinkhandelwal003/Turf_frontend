@@ -39,7 +39,7 @@ export default function TournamentsPage() {
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const res = await api.get('/tournaments');
+        const res = await api.get('tournaments');
         if (res.data.success) {
           setTournaments(res.data.tournaments);
         }

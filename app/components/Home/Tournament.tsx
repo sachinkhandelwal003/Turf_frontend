@@ -33,7 +33,7 @@ export default function Tournaments() {
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const res = await api.get('/tournaments');
+        const res = await api.get('tournaments');
         if (res.data.success) {
           // Show only first 2 for home page
           setTournaments(res.data.tournaments.slice(0, 2));

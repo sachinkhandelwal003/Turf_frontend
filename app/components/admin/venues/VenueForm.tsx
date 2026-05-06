@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
-import { Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2 } from 'lucide-react';
+import { Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2, Plus, Trash2, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import api from '@/app/services/api';
@@ -14,24 +14,42 @@ interface VenueFormProps {
   turfId?: string;
 }
 
+interface Court {
+  name: string;
+  courtType: string;
+}
+
+interface PriceHike {
+  day: string;
+  startTime: string;
+  endTime: string;
+  hikePercentage: number;
+}
+
 interface FormShape {
   name: string;
   description: string;
-  sports: string[];
+  pricePerHour: number | string;
+  peakHourSurcharge: number | string;
   surfaceType: string;
-  amenities: string[];
   address: string;
   city: string;
   landmark: string;
   postcode: string;
   mapUrl: string;
-  pricePerHour: string;
-  peakHourSurcharge: string;
+  sports: string[];
+  amenities: string[];
+  courts: Court[];
+  priceHikes: PriceHike[];
   weekdayOpen: string;
   weekdayClose: string;
   weekendOpen: string;
   weekendClose: string;
   termsAccepted: boolean;
+  logoFile?: File;
+  galleryFiles: File[];
+  profilePhoto?: string;
+  images?: string[];
 }
 
 interface ApiCarryForwardShape {
@@ -44,22 +62,27 @@ interface ApiCarryForwardShape {
 const defaultForm: FormShape = {
   name: '',
   description: '',
-  sports: ['Cricket'],
+  pricePerHour: 0,
+  peakHourSurcharge: 0,
   surfaceType: 'Hybrid Grass',
-  amenities: ['Floodlights', 'Changing Rooms'],
   address: '',
   city: '',
   landmark: '',
   postcode: '',
   mapUrl: '',
-  pricePerHour: '',
-  peakHourSurcharge: '',
+  sports: [],
+  amenities: [],
+  courts: [{ name: 'Court 1', courtType: 'Turf' }],
+  priceHikes: [],
   weekdayOpen: '06:00',
   weekdayClose: '23:00',
   weekendOpen: '08:00',
   weekendClose: '22:00',
   termsAccepted: false,
+  galleryFiles: [],
 };
+
+const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const fallbackSports = ['Football', 'Cricket', 'Tennis', 'Basketball'];
 const fallbackSurfaceOptions = ['Artificial Turf (A-Grade)', 'Hybrid Grass', 'Hard Court'];
@@ -100,14 +123,12 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
 
         if (sports.length) {
           setSportsOptions(sports);
-          setForm((prev) => ({ ...prev, sports: prev.sports.length ? prev.sports : [sports[0]] }));
         }
         if (amenities.length) {
           setAmenitiesOptions(amenities);
         }
         if (surfaces.length) {
           setSurfaceOptions(surfaces);
-          setForm((prev) => ({ ...prev, surfaceType: prev.surfaceType || surfaces[0] }));
         }
       } catch (error) {
         toast.error('Failed to load masters, using default options.');
@@ -145,9 +166,9 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         setForm({
           name: target.name || '',
           description: target.description || '',
-          sports: target.sports?.length ? target.sports : ['Cricket'],
+          sports: target.sports || [],
           surfaceType: target.surfaceType || 'Hybrid Grass',
-          amenities: target.amenities?.length ? target.amenities : [],
+          amenities: target.amenities || [],
           address: target.location?.address || '',
           city: target.location?.city || '',
           landmark: target.location?.landmark || '',
@@ -159,19 +180,16 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           weekdayClose: weekdayHours?.close || '23:00',
           weekendOpen: weekendHours?.open || '08:00',
           weekendClose: weekendHours?.close || '22:00',
+          priceHikes: target.priceHikes || [],
           termsAccepted: true,
+          courts: target.courts?.length ? target.courts : [{ name: 'Court 1', courtType: target.surfaceType || 'Synthetic' }],
+          galleryFiles: [],
         });
         setExistingImages(Array.isArray(target.images) ? target.images : []);
         setApiCarryForward({
           rates: Array.isArray(target.rates) ? target.rates : [],
           availableSlots: Array.isArray(target.availableSlots) ? target.availableSlots : [],
-          courts:
-            Array.isArray(target.courts) && target.courts.length
-              ? target.courts.map((court: any) => ({
-                  name: court.name || 'Court 1',
-                  courtType: court.courtType || court.type || target.surfaceType || 'Synthetic',
-                }))
-              : [{ name: 'Court 1', courtType: target.surfaceType || 'Synthetic' }],
+          courts: target.courts || [],
           unavailableDates: Array.isArray(target.unavailableDates) ? target.unavailableDates : [],
         });
       } catch (error) {
@@ -215,9 +233,11 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
 
   const detectCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported.');
+      toast.error('Geolocation is not supported by your browser.');
       return;
     }
+
+    const toastId = toast.loading('Detecting your location...');
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -231,10 +251,14 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
             `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
             {
               headers: {
-                'User-Agent': 'TurfApp/1.0',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'User-Agent': 'TurfBookingApp/1.0 (contact: admin@turf.com)',
               },
             },
           );
+
+          if (!reverseRes.ok) throw new Error('Location service unavailable');
+          
           const reverseData = await reverseRes.json();
           
           const address = reverseData?.display_name || `Lat ${lat.toFixed(5)}, Lng ${lon.toFixed(5)}`;
@@ -254,7 +278,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
             postcode: postcode,
             mapUrl,
           }));
-          toast.success('Current location applied.');
+          toast.success('Location detected successfully!', { id: toastId });
         } catch (error) {
           console.error('Reverse Geocoding Error:', error);
           setForm((prev) => ({
@@ -262,17 +286,17 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
             address: `Lat ${lat.toFixed(5)}, Lng ${lon.toFixed(5)}`,
             mapUrl,
           }));
-          toast.success('Location coordinates applied (address fetch failed).');
+          toast.success('Coordinates captured (address lookup failed).', { id: toastId });
         }
       },
       (error) => {
-        if (error.code === 1) {
-          toast.error('Location permission denied. Please allow location access.');
-          return;
-        }
-        toast.error('Unable to fetch current location. Please try again.');
+        let msg = 'Unable to fetch location.';
+        if (error.code === 1) msg = 'Location permission denied.';
+        else if (error.code === 2) msg = 'Location unavailable.';
+        else if (error.code === 3) msg = 'Location request timed out.';
+        toast.error(msg, { id: toastId });
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -292,47 +316,24 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
     return [...weekdays, ...weekends];
   };
 
-  const toEmbedUrl = (url: string) => {
-    if (!url) {
-      return '';
-    }
-    if (url.includes('output=embed') || url.includes('/maps/embed')) {
-      return url;
-    }
-
-    const latLngMatch = url.match(/q=(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)/);
-    if (latLngMatch?.[1] && latLngMatch?.[3]) {
-      return `https://www.google.com/maps?q=${latLngMatch[1]},${latLngMatch[3]}&output=embed`;
-    }
-
-    if (url.includes('google.com/maps')) {
-      return `${url}${url.includes('?') ? '&' : '?'}output=embed`;
-    }
-
-    return url;
-  };
-
   const effectiveMapPreviewUrl = () => {
     if (form.mapUrl?.trim()) {
-      return toEmbedUrl(form.mapUrl.trim());
+      const url = form.mapUrl.trim();
+      if (url.includes('output=embed') || url.includes('/maps/embed')) return url;
+      const latLngMatch = url.match(/q=(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)/);
+      if (latLngMatch?.[1] && latLngMatch?.[3]) return `https://www.google.com/maps?q=${latLngMatch[1]},${latLngMatch[3]}&output=embed`;
+      if (url.includes('google.com/maps')) return `${url}${url.includes('?') ? '&' : '?'}output=embed`;
+      return url;
     }
     const query = [form.address, form.city, form.postcode].filter(Boolean).join(', ');
-    if (!query) {
-      return '';
-    }
+    if (!query) return '';
     return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
   };
 
   const submitVenue = async (event: FormEvent) => {
     event.preventDefault();
-    if (!form.termsAccepted) {
-      toast.error('Please accept the Venue Partner Agreement.');
-      return;
-    }
-    if (!form.name || !form.city || !form.address) {
-      toast.error('Please fill venue name and location details.');
-      return;
-    }
+    if (!form.termsAccepted) return toast.error('Please accept the Agreement.');
+    if (!form.name || !form.city || !form.address) return toast.error('Please fill name and location.');
 
     setSaving(true);
     try {
@@ -341,42 +342,24 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       payload.append('description', form.description);
       payload.append('sports', JSON.stringify(form.sports));
       payload.append('amenities', JSON.stringify(form.amenities));
-      payload.append('pricePerHour', String(Number(form.pricePerHour || 0)));
-      payload.append('peakHourSurcharge', String(Number(form.peakHourSurcharge || 0)));
+      
+      const price = parseFloat(String(form.pricePerHour)) || 0;
+      const surcharge = parseFloat(String(form.peakHourSurcharge)) || 0;
+      
+      payload.append('pricePerHour', String(price));
+      payload.append('peakHourSurcharge', String(surcharge));
       payload.append('surfaceType', form.surfaceType);
-      payload.append(
-        'location',
-        JSON.stringify({
-          address: form.address,
-          city: form.city,
-          landmark: form.landmark,
-          postcode: form.postcode,
-          mapUrl: form.mapUrl,
-        }),
-      );
+      payload.append('location', JSON.stringify({ address: form.address, city: form.city, landmark: form.landmark, postcode: form.postcode, mapUrl: form.mapUrl }));
       payload.append('operatingHours', JSON.stringify(buildOperatingHours()));
-      payload.append('availableSlots', JSON.stringify(apiCarryForward.availableSlots));
-      payload.append('rates', JSON.stringify(apiCarryForward.rates));
-      payload.append(
-        'courts',
-        JSON.stringify(
-          (apiCarryForward.courts?.length ? apiCarryForward.courts : [{ name: 'Court 1', courtType: form.surfaceType }]).map(
-            (court: any) => ({
-              name: court.name || 'Court 1',
-              courtType: court.courtType || court.type || form.surfaceType,
-            }),
-          ),
-        ),
-      );
-      payload.append('unavailableDates', JSON.stringify(apiCarryForward.unavailableDates));
-      payload.append('existingImages', JSON.stringify(existingImages));
+      payload.append('availableSlots', JSON.stringify(apiCarryForward.availableSlots || []));
+      payload.append('rates', JSON.stringify(apiCarryForward.rates || []));
+      payload.append('courts', JSON.stringify(form.courts || []));
+      payload.append('priceHikes', JSON.stringify(form.priceHikes || []));
+      payload.append('unavailableDates', JSON.stringify(apiCarryForward.unavailableDates || []));
+      payload.append('existingImages', JSON.stringify(existingImages || []));
 
-      if (logoFile) {
-        payload.append('logo', logoFile);
-      }
-      if (heroImage) {
-        payload.append('images', heroImage);
-      }
+      if (logoFile) payload.append('logo', logoFile);
+      if (heroImage) payload.append('images', heroImage);
       galleryImages.forEach((file) => payload.append('images', file));
 
       if (mode === 'edit' && turfId) {
@@ -384,135 +367,76 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       } else {
         await api.post('/turfs', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
       }
-      await Swal.fire({
-        title: mode === 'edit' ? 'Venue Updated' : 'Venue Submitted',
-        text: mode === 'edit' ? 'Your venue details were updated successfully.' : 'Your venue was submitted for review successfully.',
-        icon: 'success',
-        confirmButtonColor: '#1ab35b',
-      });
-      toast.success(mode === 'edit' ? 'Venue updated successfully.' : 'Venue submitted for review.');
+      await Swal.fire({ title: 'Success', icon: 'success' });
       router.push('/admin/venues/list');
     } catch (error: any) {
-      await Swal.fire({
-        title: 'Save Failed',
-        text: error?.response?.data?.error || 'Failed to save venue.',
-        icon: 'error',
-        confirmButtonColor: '#ef4444',
-      });
       toast.error(error?.response?.data?.error || 'Failed to save venue.');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-[#1ab35b]" />
-      </div>
-    );
-  }
+  if (loading) return <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#1ab35b]" /></div>;
 
   return (
     <form onSubmit={submitVenue} className="mx-auto w-full max-w-5xl space-y-6 text-[#2a2a2a]">
       <div>
-        <h1 className="text-3xl font-bold leading-tight text-[#2f3337] md:text-4xl">{mode === 'edit' ? 'Edit Venue' : 'Add Venue'}</h1>
-        <p className="mt-1 text-sm text-[#6f757c] md:text-base">Manage your athlete credentials and contact information.</p>
+        <h1 className="text-3xl font-bold text-[#2f3337] md:text-4xl">{mode === 'edit' ? 'Edit Venue' : 'Add Venue'}</h1>
+        <p className="mt-1 text-sm text-[#6f757c]">Manage your venue information, courts, and pricing.</p>
       </div>
 
       <section className="space-y-4">
-        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">01 Venue Identity</h2>
-        <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
+        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold text-[#353a3f]">01 Venue Identity</h2>
+        <div className="rounded-2xl bg-[#f4f5f5] p-5">
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              VENUE NAME
-              <input
-                value={form.name}
-                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g. The Kinetic Arena South"
-                className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]"
-              />
+            <label className="text-[11px] font-bold text-[#3f3f3f]">VENUE NAME
+              <input value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
             </label>
-            <div className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              OFFICIAL BRAND LOGO
+            <div className="text-[11px] font-bold text-[#3f3f3f]">BRAND LOGO
               <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={onLogoSelected} />
-              <button type="button" onClick={() => logoRef.current?.click()} className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-md border border-dashed border-[#d6dad7] bg-[#f2f4f3] text-sm font-medium text-[#5f656b]">
-                <Upload className="h-4 w-4" />
-                {logoFile ? logoFile.name : 'Select Logo'}
+              <button type="button" onClick={() => logoRef.current?.click()} className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-md border border-dashed border-[#d6dad7] bg-[#f2f4f3] text-sm text-[#5f656b]">
+                <Upload className="h-4 w-4" /> {logoFile ? logoFile.name : 'Select Logo'}
               </button>
             </div>
           </div>
-          <label className="mt-4 block text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-            VENUE DESCRIPTION
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder="Tell owners about your facility's history, vibe, and unique features..."
-              className="mt-2 h-28 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 py-2 text-sm outline-none focus:border-[#1ab35b]"
-            />
+          <label className="mt-4 block text-[11px] font-bold text-[#3f3f3f]">DESCRIPTION
+            <textarea value={form.description} onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))} className="mt-2 h-28 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 py-2 text-sm outline-none focus:border-[#1ab35b]" />
           </label>
         </div>
       </section>
 
       <section className="space-y-4">
-        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">02 Sports & Facilities</h2>
-        <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
-          <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">SUPPORTED SPORTS</p>
+        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold text-[#353a3f]">02 Sports & Facilities</h2>
+        <div className="rounded-2xl bg-[#f4f5f5] p-5">
+          <p className="text-[11px] font-bold text-[#3f3f3f]">SUPPORTED SPORTS</p>
           <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {sportsOptions.map((sport) => {
+            {sportsOptions.map(sport => {
               const active = form.sports.includes(sport);
               return (
-                <button
-                  key={sport}
-                  type="button"
-                  onClick={() => toggleListValue('sports', sport)}
-                  className={`h-16 rounded-xl border-2 text-sm font-bold transition flex items-center justify-center gap-2 relative ${
-                    active 
-                      ? 'border-[#1ab35b] bg-[#eefaf3] text-[#1ab35b] shadow-sm' 
-                      : 'border-[#e3e6e4] bg-[#f6f7f6] text-[#34383c] hover:border-gray-300'
-                  }`}
-                >
-                  {active && <CheckCircle2 className="h-4 w-4 fill-[#1ab35b] text-white" />}
-                  {sport}
-                  {active && (
-                    <div className="absolute top-1 right-1">
-                      <div className="h-2 w-2 rounded-full bg-[#1ab35b]" />
-                    </div>
-                  )}
+                <button key={sport} type="button" onClick={() => toggleListValue('sports', sport)} className={`h-16 rounded-xl border-2 text-sm font-bold transition flex items-center justify-center gap-2 relative ${active ? 'border-[#1ab35b] bg-[#eefaf3] text-[#1ab35b]' : 'border-[#e3e6e4] bg-[#f6f7f6] text-[#34383c]'}`}>
+                  {active && <CheckCircle2 className="h-4 w-4 fill-[#1ab35b] text-white" />} {sport}
                 </button>
               );
             })}
           </div>
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
             <div>
-              <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">SURFACE TYPE</p>
+              <p className="text-[11px] font-bold text-[#3f3f3f]">SURFACE TYPE</p>
               <div className="mt-3 space-y-2">
-                {surfaceOptions.map((surface) => (
+                {surfaceOptions.map(surface => (
                   <label key={surface} className="flex h-12 items-center gap-3 rounded-md bg-[#eef0ef] px-3 text-sm text-[#34383c]">
-                    <input
-                      type="radio"
-                      checked={form.surfaceType === surface}
-                      onChange={() => setForm((prev) => ({ ...prev, surfaceType: surface }))}
-                      className="hidden"
-                    />
-                    {form.surfaceType === surface ? <Circle className="h-4 w-4 fill-[#1ab35b] text-[#1ab35b]" /> : <Circle className="h-4 w-4 text-[#6c7379]" />}
-                    {surface}
+                    <input type="radio" checked={form.surfaceType === surface} onChange={() => setForm(prev => ({ ...prev, surfaceType: surface }))} className="hidden" />
+                    <Circle className={`h-4 w-4 ${form.surfaceType === surface ? 'fill-[#1ab35b] text-[#1ab35b]' : 'text-[#6c7379]'}`} /> {surface}
                   </label>
                 ))}
               </div>
             </div>
             <div>
-              <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">AMENITIES</p>
+              <p className="text-[11px] font-bold text-[#3f3f3f]">AMENITIES</p>
               <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {amenitiesOptions.map((item) => (
+                {amenitiesOptions.map(item => (
                   <label key={item} className="flex items-center gap-2 text-sm text-[#3a3f43]">
-                    <input
-                      type="checkbox"
-                      checked={form.amenities.includes(item)}
-                      onChange={() => toggleListValue('amenities', item)}
-                      className="h-4 w-4 rounded accent-[#1ab35b]"
-                    />
-                    {item}
+                    <input type="checkbox" checked={form.amenities.includes(item)} onChange={() => toggleListValue('amenities', item)} className="h-4 w-4 rounded accent-[#1ab35b]" /> {item}
                   </label>
                 ))}
               </div>
@@ -522,181 +446,102 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       </section>
 
       <section className="space-y-4">
-        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">03 Location Details</h2>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
-            <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              STREET ADDRESS
-              <input value={form.address} onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
-            </label>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-                CITY
-                <input value={form.city} onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))} className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
+        <h2 className="inline-block border-b-4 border-[#1abc60] pb-1 text-2xl font-bold text-[#353a3f]">03 Courts Management</h2>
+        <div className="rounded-2xl bg-[#f4f5f5] p-5 space-y-4">
+          {form.courts.map((court, index) => (
+            <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-white p-4 rounded-xl border border-gray-100">
+              <label className="text-[11px] font-bold text-[#3f3f3f]">COURT NAME
+                <input value={court.name} onChange={(e) => {
+                  const newCourts = [...form.courts];
+                  newCourts[index].name = e.target.value;
+                  setForm(prev => ({ ...prev, courts: newCourts }));
+                }} className="mt-2 h-11 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1abc60]" />
               </label>
-              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-                LANDMARK
-                <input value={form.landmark} onChange={(e) => setForm((prev) => ({ ...prev, landmark: e.target.value }))} className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
+              <label className="text-[11px] font-bold text-[#3f3f3f]">COURT TYPE
+                <select value={court.courtType} onChange={(e) => {
+                  const newCourts = [...form.courts];
+                  newCourts[index].courtType = e.target.value;
+                  setForm(prev => ({ ...prev, courts: newCourts }));
+                }} className="mt-2 h-11 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1abc60]">
+                  {surfaceOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
               </label>
-            </div>
-            <div className="mt-3">
-              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-                POSTCODE
-                <input value={form.postcode} onChange={(e) => setForm((prev) => ({ ...prev, postcode: e.target.value }))} className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
-              </label>
-            </div>
-            <button type="button" onClick={detectCurrentLocation} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-md border border-[#d7dbd8] bg-white text-base font-semibold text-[#3f4348]">
-              Detect Current Location
-              <MapPin className="h-4 w-4" />
-            </button>
-
-            <label className="mt-3 block text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              MAP LINK (OPTIONAL)
-              <input
-                value={form.mapUrl}
-                onChange={(e) => setForm((prev) => ({ ...prev, mapUrl: e.target.value }))}
-                placeholder="Paste Google Maps link (https://maps.google.com/...)"
-                className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]"
-              />
-            </label>
-            {form.mapUrl ? (
-              <a
-                href={form.mapUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-flex text-xs font-semibold text-[#1ab35b] underline"
-              >
-                Open map link
-              </a>
-            ) : null}
-          </div>
-          <div className="overflow-hidden rounded-2xl border border-[#dde1df] bg-[#ecefee]">
-            {effectiveMapPreviewUrl() ? (
-              <iframe
-                title="Venue Map Preview"
-                src={effectiveMapPreviewUrl()}
-                className="h-[320px] w-full border-0"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-            ) : (
-              <div className="flex h-[320px] w-full items-center justify-center bg-[radial-gradient(circle_at_15%_20%,#dfe7e3_8%,transparent_8%),radial-gradient(circle_at_80%_35%,#d5dfda_8%,transparent_8%),linear-gradient(120deg,#dbe3df,#eff3f1)]">
-                <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-[#485057] shadow">
-                  <MapPin className="h-4 w-4 text-red-500" />
-                  Paste map link for preview
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">04 Pricing & Availability</h2>
-        <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              BASE RATE (PER HOUR)
-              <input value={form.pricePerHour} onChange={(e) => setForm((prev) => ({ ...prev, pricePerHour: e.target.value }))} placeholder="₹ 4500.00" className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
-              <p className="mt-1 text-xs font-medium text-[#8d9399]">Average rate for similar venues in your area is ₹ 3500 - ₹ 5000.</p>
-            </label>
-            <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              PEAK HOUR SURCHARGE
-              <input value={form.peakHourSurcharge} onChange={(e) => setForm((prev) => ({ ...prev, peakHourSurcharge: e.target.value }))} placeholder="₹ 1500.00" className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
-              <p className="mt-1 text-xs font-medium text-[#8d9399]">Applied weekdays 6 PM - 10 PM.</p>
-            </label>
-          </div>
-          <div className="mt-5">
-            <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">OPERATING HOURS</p>
-            <div className="mt-3 space-y-2 text-sm">
-              <div className="grid gap-2 sm:grid-cols-[120px_1fr_20px_1fr] sm:items-center">
-                <span className="font-semibold text-[#3a3f43]">Weekdays</span>
-                <div className="relative">
-                  <input type="time" value={form.weekdayOpen} onChange={(e) => setForm((prev) => ({ ...prev, weekdayOpen: e.target.value }))} className="h-11 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 outline-none focus:border-[#1ab35b]" />
-                  <ChevronDown className="pointer-events-none absolute right-2 top-3 h-4 w-4 text-[#677077]" />
-                </div>
-                <span className="text-left text-xs font-bold text-[#676f76] sm:text-center sm:text-base">TO</span>
-                <div className="relative">
-                  <input type="time" value={form.weekdayClose} onChange={(e) => setForm((prev) => ({ ...prev, weekdayClose: e.target.value }))} className="h-11 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 outline-none focus:border-[#1ab35b]" />
-                  <ChevronDown className="pointer-events-none absolute right-2 top-3 h-4 w-4 text-[#677077]" />
-                </div>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-[120px_1fr_20px_1fr] sm:items-center">
-                <span className="font-semibold text-[#3a3f43]">Weekends</span>
-                <div className="relative">
-                  <input type="time" value={form.weekendOpen} onChange={(e) => setForm((prev) => ({ ...prev, weekendOpen: e.target.value }))} className="h-11 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 outline-none focus:border-[#1ab35b]" />
-                  <ChevronDown className="pointer-events-none absolute right-2 top-3 h-4 w-4 text-[#677077]" />
-                </div>
-                <span className="text-left text-xs font-bold text-[#676f76] sm:text-center sm:text-base">TO</span>
-                <div className="relative">
-                  <input type="time" value={form.weekendClose} onChange={(e) => setForm((prev) => ({ ...prev, weekendClose: e.target.value }))} className="h-11 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 outline-none focus:border-[#1ab35b]" />
-                  <ChevronDown className="pointer-events-none absolute right-2 top-3 h-4 w-4 text-[#677077]" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">05 Photo Gallery</h2>
-        <div className="space-y-3 rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
-          <div className="grid gap-3 md:grid-cols-3">
-            <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={onHeroSelected} />
-            <button type="button" onClick={() => heroRef.current?.click()} className="col-span-2 flex h-56 flex-col items-center justify-center rounded-xl border border-dashed border-[#d7dcda] bg-[#f9faf9] text-[#6f777d] overflow-hidden">
-              {heroImage ? (
-                <img src={URL.createObjectURL(heroImage)} alt="Hero" className="w-full h-full object-cover" />
-              ) : (
-                <>
-                  <Camera className="h-7 w-7 text-[#1ab35b]" />
-                  <span className="mt-2 text-base font-semibold">Upload Hero Image</span>
-                  <span className="text-xs">Minimum 1920x1080 recommended</span>
-                </>
-              )}
-            </button>
-            <div className="grid gap-3">
-              <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={onGallerySelected} />
-              <button type="button" onClick={() => galleryRef.current?.click()} className="flex h-[108px] flex-col items-center justify-center rounded-xl border border-dashed border-[#d7dcda] bg-[#f9faf9] text-[#5f666d] overflow-hidden">
-                {galleryImages.length > 0 ? (
-                  <div className="grid grid-cols-2 w-full h-full">
-                    {galleryImages.slice(0, 4).map((file, idx) => (
-                      <img key={idx} src={URL.createObjectURL(file)} alt="Gallery" className="w-full h-full object-cover" />
-                    ))}
-                  </div>
-                ) : (
-                  <>
-                    <ImagePlus className="h-6 w-6" />
-                    <span className="text-[10px] mt-1 font-bold">Add Gallery</span>
-                  </>
-                )}
+              <button type="button" onClick={() => setForm(prev => ({ ...prev, courts: prev.courts.filter((_, i) => i !== index) }))} className="h-11 flex items-center justify-center gap-2 bg-red-50 text-red-600 rounded-md px-4 font-bold text-xs">
+                <Trash2 className="w-4 h-4" /> Remove
               </button>
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] font-bold text-[#1ab35b]">{galleryImages.length} selected</span>
-                {galleryImages.length > 0 && (
-                  <button type="button" onClick={() => setGalleryImages([])} className="text-[10px] font-bold text-red-500 hover:underline">Clear</button>
-                )}
-              </div>
             </div>
+          ))}
+          <button type="button" onClick={() => setForm(prev => ({ ...prev, courts: [...prev.courts, { name: `Court ${prev.courts.length + 1}`, courtType: prev.surfaceType }] }))} className="flex items-center gap-2 text-[#1abc60] font-bold text-sm hover:underline">
+            <Plus className="w-4 h-4" /> Add Another Court
+          </button>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="inline-block border-b-4 border-[#1abc60] pb-1 text-2xl font-bold text-[#353a3f]">04 Pricing & Hikes</h2>
+        <div className="rounded-2xl bg-[#f4f5f5] p-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="text-[11px] font-bold text-[#3f3f3f]">BASE RATE (PER HOUR)
+              <input value={form.pricePerHour} onChange={(e) => setForm(prev => ({ ...prev, pricePerHour: e.target.value }))} className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
+            </label>
+            <label className="text-[11px] font-bold text-[#3f3f3f]">PEAK SURCHARGE (DEPRECATED)
+              <input value={form.peakHourSurcharge} onChange={(e) => setForm(prev => ({ ...prev, peakHourSurcharge: e.target.value }))} className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
+            </label>
           </div>
-          {(existingImages.length > 0 || galleryImages.length > 0 || heroImage) && (
-            <div className="rounded-md border border-[#d7dcda] bg-white px-3 py-2 text-xs text-[#5f666d]">
-              Existing: {existingImages.length} | New: {(heroImage ? 1 : 0) + galleryImages.length} / 10
-            </div>
-          )}
-          <div className="rounded-md bg-[#eceeed] px-3 py-2 text-xs text-[#7a8288]">
-            Professional photography can increase booking rates by up to 300%. Our "Kinetic Editorial" style favors wide-angle shots of empty arenas or high-intensity action shots during peak hours.
+          <div className="mt-5 space-y-4">
+            <p className="text-[11px] font-bold text-[#3f3f3f]">CUSTOM PRICE HIKES</p>
+            {form.priceHikes.map((hike, index) => (
+              <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end bg-white p-4 rounded-xl border border-gray-100">
+                <select value={hike.day} onChange={(e) => {
+                  const newHikes = [...form.priceHikes];
+                  newHikes[index].day = e.target.value;
+                  setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                }} className="h-11 w-full rounded-md bg-[#eff1f0] px-3 text-sm">{daysOfWeek.map(day => <option key={day} value={day}>{day}</option>)}</select>
+                <input type="time" value={hike.startTime} onChange={(e) => {
+                  const newHikes = [...form.priceHikes];
+                  newHikes[index].startTime = e.target.value;
+                  setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                }} className="h-11 w-full rounded-md bg-[#eff1f0] px-3 text-sm" />
+                <input type="time" value={hike.endTime} onChange={(e) => {
+                  const newHikes = [...form.priceHikes];
+                  newHikes[index].endTime = e.target.value;
+                  setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                }} className="h-11 w-full rounded-md bg-[#eff1f0] px-3 text-sm" />
+                <input type="number" value={hike.hikePercentage} onChange={(e) => {
+                  const newHikes = [...form.priceHikes];
+                  newHikes[index].hikePercentage = Number(e.target.value);
+                  setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                }} className="h-11 w-full rounded-md bg-[#eff1f0] px-3 text-sm" placeholder="Hike %" />
+                <button type="button" onClick={() => setForm(prev => ({ ...prev, priceHikes: prev.priceHikes.filter((_, i) => i !== index) }))} className="h-11 flex items-center justify-center bg-red-50 text-red-600 rounded-md"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            ))}
+            <button type="button" onClick={() => setForm(prev => ({ ...prev, priceHikes: [...prev.priceHikes, { day: 'Saturday', startTime: '18:00', endTime: '22:00', hikePercentage: 20 }] }))} className="flex items-center gap-2 text-[#1abc60] font-bold text-sm"><Plus className="w-4 h-4" /> Add Hike Rule</button>
           </div>
         </div>
       </section>
 
-      <div className="flex flex-col gap-4 border-t border-[#e1e4e2] pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <label className="flex items-center gap-2 text-sm text-[#72787e]">
-          <input type="checkbox" checked={form.termsAccepted} onChange={(e) => setForm((prev) => ({ ...prev, termsAccepted: e.target.checked }))} className="h-4 w-4 accent-[#1ab35b]" />
-          I agree to the <span className="font-semibold text-[#1ab35b]">Venue Partner Agreement</span>
+      <section className="space-y-4">
+        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold text-[#353a3f]">05 Photo Gallery</h2>
+        <div className="rounded-2xl bg-[#f4f5f5] p-5 space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <button type="button" onClick={() => heroRef.current?.click()} className="col-span-2 h-56 rounded-xl border border-dashed bg-[#f9faf9] overflow-hidden flex flex-col items-center justify-center">
+              {heroImage ? <img src={URL.createObjectURL(heroImage)} className="w-full h-full object-cover" /> : <Camera className="h-7 w-7 text-[#1ab35b]" />}
+            </button>
+            <div className="grid grid-cols-2 gap-2">
+              {galleryImages.slice(0, 4).map((file, idx) => <img key={idx} src={URL.createObjectURL(file)} className="h-24 w-full rounded-xl object-cover" />)}
+              <button type="button" onClick={() => galleryRef.current?.click()} className="h-24 rounded-xl border border-dashed bg-[#f9faf9] flex items-center justify-center"><Plus className="h-6 w-6" /></button>
+            </div>
+            <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={onHeroSelected} />
+            <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={onGallerySelected} />
+          </div>
+        </div>
+      </section>
+
+      <div className="flex flex-col gap-4 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={form.termsAccepted} onChange={(e) => setForm(prev => ({ ...prev, termsAccepted: e.target.checked }))} className="h-4 w-4" /> I agree to the terms
         </label>
-        <button disabled={saving} type="submit" className="inline-flex h-12 items-center justify-center rounded-md bg-[#1ab35b] px-10 text-sm font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#14994d] disabled:opacity-60">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === 'edit' ? 'Update Venue' : 'Submit Venue For Review'}
-        </button>
+        <button disabled={saving} type="submit" className="h-12 bg-[#1ab35b] px-10 rounded-md text-white font-bold uppercase">{saving ? <Loader2 className="animate-spin" /> : 'Save Venue'}</button>
       </div>
     </form>
   );

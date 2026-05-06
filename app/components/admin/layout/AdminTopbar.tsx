@@ -5,6 +5,7 @@ import { Bell, User, LogOut, Menu, Crown, Search, Settings } from 'lucide-react'
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 interface AdminTopbarProps {
   onMenuClick?: () => void;
@@ -15,19 +16,51 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const pathname = usePathname();
 
+  const handleStopImpersonation = () => {
+    const originalToken = localStorage.getItem('impersonator_token');
+    const originalUser = localStorage.getItem('impersonator_user');
+    
+    if (originalToken && originalUser) {
+      localStorage.setItem('token', originalToken);
+      localStorage.setItem('user', originalUser);
+      localStorage.removeItem('impersonator_token');
+      localStorage.removeItem('impersonator_user');
+      
+      toast.success('Restored original session');
+      window.location.href = '/admin/users';
+    }
+  };
+
+  const isImpersonating = typeof window !== 'undefined' && !!localStorage.getItem('impersonator_token');
+
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-40 h-24 shrink-0">
       <div className="h-full px-6 lg:px-8">
         <div className="flex justify-between items-center h-full">
           
           {/* Left: Mobile Toggle */}
-          <div className="flex items-center">
+          <div className="flex items-center gap-4">
             <button
               onClick={onMenuClick}
               className="lg:hidden p-2 !bg-transparent !border-none !shadow-none !text-slate-500 hover:!bg-slate-100 rounded-xl transition-all"
             >
               <Menu className="w-6 h-6" />
             </button>
+
+            {isImpersonating && (
+              <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl animate-pulse">
+                <div className="flex flex-col">
+                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Impersonating</p>
+                  <p className="text-xs font-bold text-amber-900">{user?.name}</p>
+                </div>
+                <button 
+                  onClick={handleStopImpersonation}
+                  className="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-amber-700 transition-all shadow-sm"
+                >
+                  Exit
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Right Actions: Notification + Profile (FIXED GAP) */}

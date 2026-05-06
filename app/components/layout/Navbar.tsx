@@ -1,10 +1,12 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X, User, LogOut } from 'lucide-react'; 
+
+import { useAuth } from '@/app/context/AuthContext';
 
 const navLinks = [
   { name: 'Home', href: '/' },
@@ -13,28 +15,18 @@ const navLinks = [
 ];
 
 export default function Navbar() {
+  const { user, logout, isAuthenticated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-
-  // === AUTHENTICATION STATES ===
-  const [isLoggedIn, setIsLoggedIn] = useState(false); 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // =======================================================
-  // 1. SMART AUTH CHECKER: Har page change pe check karega
-  // =======================================================
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('token'); 
-      if (token) {
-        setIsLoggedIn(true);
-      } else {
-        setIsLoggedIn(false);
-      }
-    };
-    checkAuth();
-  }, [pathname]);
+  const getImageUrl = (path: string | undefined) => {
+    if (!path) return `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=1abc60&color=fff`;
+    if (path.startsWith('http')) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:5001';
+    return `${baseUrl}${path}`;
+  };
 
   // 2. Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -94,7 +86,7 @@ export default function Navbar() {
 
             {/* --- RIGHT: AUTH / PROFILE (DESKTOP) --- */}
             <div className="hidden lg:flex flex-1 items-center justify-end gap-6">
-              {isLoggedIn ? (
+              {isAuthenticated ? (
                 // === LOGGED IN STATE ===
                 <div className="relative" ref={dropdownRef}>
                   <button
@@ -103,7 +95,7 @@ export default function Navbar() {
                     className="w-10 h-10 rounded-full border-2 border-transparent hover:border-[#1abc60] overflow-hidden cursor-pointer transition-all shadow-sm focus:outline-none !bg-transparent !p-0"
                   >
                     <img
-                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" 
+                      src={getImageUrl(user?.profilePhoto)} 
                       alt="Profile"
                       className="w-full h-full object-cover bg-gray-100"
                     />
@@ -121,8 +113,8 @@ export default function Navbar() {
                       >
                         {/* Header: Exact image jaisa design */}
                         <div className="px-5 py-4 border-b border-gray-50 mb-2">
-                          <p className="text-[15px] font-bold !text-[#2d3748] truncate tracking-tight">John Doe</p>
-                          <p className="text-[13px] font-medium !text-gray-500 truncate">john@example.com</p>
+                          <p className="text-[15px] font-bold !text-[#2d3748] truncate tracking-tight">{user?.name}</p>
+                          <p className="text-[13px] font-medium !text-gray-500 truncate">{user?.email}</p>
                         </div>
                         
                         <Link
@@ -134,16 +126,10 @@ export default function Navbar() {
                           <User className="w-4 h-4" strokeWidth={2.5} /> My Profile
                         </Link>
                         
-                        {/* 
-                          SIGN OUT FIX: 
-                          <button> ki jagah <div> use kiya hai. Global CSS ab isko kabhi target nahi kar payegi. 
-                        */}
                         <div
                           onClick={() => {
-                            localStorage.removeItem('token'); 
+                            logout();
                             setIsDropdownOpen(false);
-                            setIsLoggedIn(false); 
-                            window.location.href = '/'; 
                           }}
                           className="flex items-center gap-3 px-5 py-3 text-[14px] font-bold !text-red-500 hover:bg-red-50 transition-colors cursor-pointer m-0"
                         >
@@ -242,7 +228,7 @@ export default function Navbar() {
                   transition={{ delay: 0.4 }}
                   className="mt-8 flex flex-col gap-4"
                 >
-                  {isLoggedIn ? (
+                  {isAuthenticated ? (
                     // === MOBILE LOGGED IN STATE ===
                     <>
                       <Link 
@@ -253,13 +239,10 @@ export default function Navbar() {
                         <User className="w-5 h-5" /> My Profile
                       </Link>
                       
-                      {/* MOBILE SIGN OUT FIX: Button ko Div banaya */}
                       <div 
                         onClick={() => {
-                          localStorage.removeItem('token');
+                          logout();
                           setIsOpen(false);
-                          setIsLoggedIn(false); 
-                          window.location.href = '/';
                         }}
                         className="w-full flex items-center justify-center gap-2 py-3.5 bg-red-50 !text-red-500 font-bold rounded-[10px] hover:bg-red-100 transition-colors cursor-pointer"
                       >

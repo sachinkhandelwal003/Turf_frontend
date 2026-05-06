@@ -3,7 +3,36 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/app/context/AuthContext';
-import { Search, Shield, User as UserIcon, Loader2, Check, AlertCircle, Save, X, Plus, Trash2, Mail, Phone, Lock, UserPlus, Edit2, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
+import { Search, Shield, User as UserIcon, Loader2, Check, AlertCircle, Save, X, Plus, Trash2, Mail, Phone, Lock, UserPlus, Edit2, ChevronLeft, ChevronRight, Camera, LogIn } from 'lucide-react';
+
+// ... inside AdminUsersPage ...
+  const handleImpersonate = async (userId: string) => {
+    try {
+      const res = await api.post('/auth/impersonate', { userId });
+      if (res.data.token) {
+        // Save current session so we can go back later if needed
+        const currentToken = localStorage.getItem('token');
+        const currentUserData = localStorage.getItem('user');
+        
+        if (currentToken && currentUserData) {
+          localStorage.setItem('impersonator_token', currentToken);
+          localStorage.setItem('impersonator_user', currentUserData);
+        }
+
+        // Set new session
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        
+        toast.success(`Now logged in as ${res.data.user.name}`);
+        
+        // Refresh page to apply new permissions
+        window.location.href = '/admin/dashboard';
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.msg || 'Impersonation failed');
+    }
+  };
+// ... pass handleImpersonate to UserRow ...
 import { motion } from 'framer-motion';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
@@ -265,6 +294,7 @@ export default function AdminUsersPage() {
                   isUpdating={updatingId === u._id}
                   onUpdate={handleUpdateUser}
                   onDelete={handleDeleteUser}
+                  onImpersonate={handleImpersonate}
                   isCurrentUser={u._id === currentUser?.id}
                 />
               ))}
@@ -491,14 +521,25 @@ export default function AdminUsersPage() {
   );
 }
 
-function UserRow({ user, isSuperadmin, roles, availablePermissions, isUpdating, onUpdate, onDelete, isCurrentUser }: { 
+function UserRow({ 
+  user, 
+  isSuperadmin, 
+  roles, 
+  availablePermissions, 
+  isUpdating, 
+  onUpdate, 
+  onDelete, 
+  onImpersonate,
+  isCurrentUser 
+}: { 
   user: User, 
   isSuperadmin: boolean, 
-  roles: Role[],
+  roles: Role[], 
   availablePermissions: Permission[],
   isUpdating: boolean,
   onUpdate: (id: string, data: any) => void,
   onDelete: (id: string) => void,
+  onImpersonate: (id: string) => void,
   isCurrentUser: boolean
 }) {
   const [isEditing, setIsModalOpen] = useState(false);
@@ -598,6 +639,15 @@ function UserRow({ user, isSuperadmin, roles, availablePermissions, isUpdating, 
         <td className="px-6 py-4">
           {!isCurrentUser && (
             <div className="flex gap-2">
+              {isSuperadmin && (
+                <button 
+                  onClick={() => onImpersonate(user._id)} 
+                  className="p-2 text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors shadow-sm"
+                  title="Login as User"
+                >
+                  <LogIn className="w-4 h-4" />
+                </button>
+              )}
               <button onClick={() => setIsModalOpen(true)} className="p-2 text-white bg-[#1abc60] hover:bg-[#16a085] rounded-lg transition-colors shadow-sm"><Edit2 className="w-4 h-4" /></button>
               <button onClick={() => onDelete(user._id)} className="p-2 text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors shadow-sm"><Trash2 className="w-4 h-4" /></button>
             </div>

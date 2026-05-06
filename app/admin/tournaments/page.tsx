@@ -11,11 +11,15 @@ import {
   Edit, 
   Trash2, 
   Loader2,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Eye
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
+import { useAuth } from '@/app/context/AuthContext';
 
 interface Tournament {
   _id: string;
@@ -26,6 +30,7 @@ interface Tournament {
   startDate: string;
   endDate: string;
   status: string;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
   location: {
     city: string;
     venue: string;
@@ -36,6 +41,7 @@ interface Tournament {
 }
 
 export default function TournamentsListPage() {
+  const { isSuperadmin } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,7 +65,8 @@ export default function TournamentsListPage() {
 
   const fetchTournaments = async () => {
     try {
-      const res = await api.get('/tournaments');
+      setLoading(true);
+      const res = await api.get('/tournaments/my/all');
       if (res.data.success) {
         setTournaments(res.data.tournaments);
       }
@@ -67,6 +74,18 @@ export default function TournamentsListPage() {
       toast.error('Failed to load tournaments');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApproval = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+      const res = await api.patch(`/tournaments/${id}/approve`, { status });
+      if (res.data.success) {
+        toast.success(`Tournament ${status} successfully`);
+        setTournaments(prev => prev.map(t => t._id === id ? { ...t, approvalStatus: status } : t));
+      }
+    } catch (error) {
+      toast.error('Failed to update approval status');
     }
   };
 
@@ -139,15 +158,18 @@ export default function TournamentsListPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+      <div className="bg-white p-5 rounded-[32px] shadow-sm border border-gray-100">
+        <div className="relative max-w-md group flex items-center bg-gray-50/50 border border-gray-100 rounded-full focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
+          <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+            <Search className="w-5 h-5" />
+          </div>
+          <div className="w-px h-6 bg-gray-200" />
           <input 
             type="text"
-            placeholder="Search tournaments..."
+            placeholder="Search tournaments by title or sport..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-sm"
+            className="w-full px-5 py-3.5 bg-transparent outline-none transition-all text-sm font-bold text-gray-700 placeholder:text-gray-300"
           />
         </div>
       </div>
@@ -164,9 +186,16 @@ export default function TournamentsListPage() {
                   alt={tournament.title} 
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
                   <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg backdrop-blur-md ${getStatusColor(tournament.status)}`}>
                     {tournament.status}
+                  </div>
+                  <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg backdrop-blur-md ${
+                    tournament.approvalStatus === 'approved' ? 'bg-green-500 text-white' : 
+                    tournament.approvalStatus === 'rejected' ? 'bg-red-500 text-white' : 
+                    'bg-amber-500 text-white'
+                  }`}>
+                    {tournament.approvalStatus || 'pending'}
                   </div>
                 </div>
                 <div className="absolute bottom-4 left-4">
@@ -231,44 +260,54 @@ export default function TournamentsListPage() {
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <select 
-                      value={tournament.status}
-                      onChange={(e) => handleStatusUpdate(tournament._id, e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-200 text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-lg cursor-pointer outline-none hover:bg-white focus:ring-2 focus:ring-[#1abc60]/20 transition-all"
+                {/* Actions */}
+                <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Link 
+                      href={`/admin/tournaments/${tournament._id}`}
+                      className="p-2 text-gray-400 hover:text-[#1abc60] hover:bg-green-50 rounded-lg transition-all"
+                      title="View Details"
                     >
-                      <option value="upcoming">Upcoming</option>
-                      <option value="ongoing">Ongoing</option>
-                      <option value="postponed">Postponed</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="finished">Finished</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-1">
+                      <Eye className="w-5 h-5" />
+                    </Link>
                     <Link 
                       href={`/admin/tournaments/edit/${tournament._id}`}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                      title="Edit"
+                      className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                      title="Edit Tournament"
                     >
                       <Edit className="w-5 h-5" />
                     </Link>
                     <button 
                       onClick={() => handleDelete(tournament._id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                      title="Delete"
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      title="Delete Tournament"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
-                    <Link 
-                      href={`/admin/tournaments/${tournament._id}`}
-                      className="p-2 text-[#1abc60] hover:bg-green-50 rounded-lg transition-all"
-                      title="View Details"
-                    >
-                      <Trophy className="w-5 h-5" />
-                    </Link>
                   </div>
+
+                  {isSuperadmin && (
+                    <div className="flex items-center gap-2">
+                      {tournament.approvalStatus !== 'approved' && (
+                        <button 
+                          onClick={() => handleApproval(tournament._id, 'approved')}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                          title="Approve"
+                        >
+                          <CheckCircle2 className="w-5 h-5" />
+                        </button>
+                      )}
+                      {tournament.approvalStatus !== 'rejected' && (
+                        <button 
+                          onClick={() => handleApproval(tournament._id, 'rejected')}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          title="Reject"
+                        >
+                          <XCircle className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

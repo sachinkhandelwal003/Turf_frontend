@@ -107,28 +107,46 @@ export default function AdminPermissionsPage() {
             <button onClick={() => setIsAdding(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="text-gray-400 w-5 h-5" /></button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input 
-              type="text" 
-              placeholder="Permission Name (e.g. View Dashboard)"
-              value={newPermission.name}
-              onChange={(e) => setNewPermission({...newPermission, name: e.target.value})}
-              className="p-2 border rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]"
-            />
-            <input 
-              type="text" 
-              placeholder="Slug (e.g. view_dashboard)"
-              value={newPermission.slug}
-              onChange={(e) => setNewPermission({...newPermission, slug: e.target.value.toLowerCase().replace(/\s+/g, '_')})}
-              className="p-2 border rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]"
+            <div className="group flex items-center bg-gray-50/50 border border-gray-100 rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
+              <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+                <Info className="w-5 h-5" />
+              </div>
+              <div className="w-px h-6 bg-gray-200" />
+              <input 
+                type="text" 
+                placeholder="Permission Name (e.g. View Dashboard)"
+                value={newPermission.name}
+                onChange={(e) => setNewPermission({...newPermission, name: e.target.value})}
+                className="w-full px-5 py-3.5 bg-transparent outline-none transition-all font-bold text-sm text-gray-700 placeholder:text-gray-300"
+              />
+            </div>
+            <div className="group flex items-center bg-gray-50/50 border border-gray-100 rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
+              <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div className="w-px h-6 bg-gray-200" />
+              <input 
+                type="text" 
+                placeholder="Slug (e.g. view_dashboard)"
+                value={newPermission.slug}
+                onChange={(e) => setNewPermission({...newPermission, slug: e.target.value.toLowerCase().replace(/\s+/g, '_')})}
+                className="w-full px-5 py-3.5 bg-transparent outline-none transition-all font-bold text-sm text-gray-700 placeholder:text-gray-300"
+              />
+            </div>
+          </div>
+          <div className="group flex items-start bg-gray-50/50 border border-gray-100 rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
+            <div className="pl-6 pr-3 pt-4 text-gray-400 group-focus-within:text-[#1abc60]">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div className="w-px h-6 bg-gray-200 mt-4" />
+            <textarea 
+              placeholder="Description (Optional)"
+              value={newPermission.description}
+              onChange={(e) => setNewPermission({...newPermission, description: e.target.value})}
+              className="w-full px-5 py-4 bg-transparent outline-none transition-all font-bold text-sm text-gray-700 placeholder:text-gray-300 h-24 resize-none"
             />
           </div>
-          <textarea 
-            placeholder="Description (Optional)"
-            value={newPermission.description}
-            onChange={(e) => setNewPermission({...newPermission, description: e.target.value})}
-            className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60] h-20"
-          />
-          <button onClick={handleCreate} className="w-full bg-[#1abc60] text-white py-2.5 rounded-lg font-bold hover:bg-[#16a085] transition-all">Save Permission</button>
+          <button onClick={handleCreate} className="w-full bg-[#1abc60] text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-[#16a085] transition-all shadow-xl shadow-green-100">Save Permission</button>
         </div>
       )}
 

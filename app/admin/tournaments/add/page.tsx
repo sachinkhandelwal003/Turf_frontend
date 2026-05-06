@@ -32,6 +32,7 @@ import {
 import Link from 'next/link';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 export default function AddTournamentPage() {
   const router = useRouter();
@@ -195,12 +196,24 @@ export default function AddTournamentPage() {
       });
 
       if (res.data.success) {
+        await Swal.fire({
+          title: 'Tournament Created',
+          text: 'Your tournament has been created and is now live or pending review.',
+          icon: 'success',
+          confirmButtonColor: '#1abc60',
+        });
         toast.success('Tournament created successfully');
         router.push('/admin/tournaments');
       }
     } catch (error: any) {
       console.error('Full Error Object:', error);
       console.error('Response Data:', error.response?.data);
+      await Swal.fire({
+        title: 'Creation Failed',
+        text: error.response?.data?.error || 'Failed to create tournament.',
+        icon: 'error',
+        confirmButtonColor: '#ef4444',
+      });
       toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to create tournament');
     } finally {
       setLoading(false);

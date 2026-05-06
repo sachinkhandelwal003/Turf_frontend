@@ -153,27 +153,33 @@ export default function AdminBookingsPage() {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-white p-4 rounded-[32px] border border-gray-100 shadow-sm">
-        <div className="md:col-span-8 relative group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#1abc60] transition-colors" />
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm">
+        <div className="md:col-span-8 group flex items-center bg-gray-50/50 border border-gray-100 rounded-full focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
+          <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+            <Search className="w-5 h-5" />
+          </div>
+          <div className="w-px h-6 bg-gray-200" />
           <input 
             type="text" 
             placeholder="Search by ID, User, or Venue..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-6 py-4 bg-gray-50/50 border border-transparent rounded-[20px] outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all font-bold text-sm text-gray-700"
+            className="w-full px-5 py-4 bg-transparent outline-none transition-all font-bold text-sm text-gray-700 placeholder:text-gray-300"
           />
         </div>
 
-        <div className="md:col-span-4 relative">
-          <Filter className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="md:col-span-4 relative group flex items-center bg-gray-50/50 border border-gray-100 rounded-full focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
+          <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+            <Filter className="w-4 h-4" />
+          </div>
+          <div className="w-px h-6 bg-gray-200" />
           <select 
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full pl-12 pr-10 py-4 bg-gray-50/50 border border-transparent rounded-[20px] outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all font-bold text-sm text-gray-700 appearance-none cursor-pointer"
+            className="w-full px-5 py-4 bg-transparent outline-none transition-all font-bold text-sm text-gray-700 appearance-none cursor-pointer"
           >
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
@@ -181,8 +187,8 @@ export default function AdminBookingsPage() {
             <option value="cancelled">Cancelled</option>
             <option value="completed">Completed</option>
           </select>
-          <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-            <ChevronLeft className="w-4 h-4 text-gray-400 rotate-270" />
+          <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-focus-within:text-[#1abc60]">
+            <ChevronLeft className="w-4 h-4 rotate-270" />
           </div>
         </div>
       </div>

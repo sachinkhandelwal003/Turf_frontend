@@ -1,7 +1,10 @@
 'use client';
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
-import { Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2 } from 'lucide-react';
+import { 
+  Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2,
+  Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import api from '@/app/services/api';
@@ -424,33 +427,45 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">01 Venue Identity</h2>
         <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              VENUE NAME
-              <input
-                value={form.name}
-                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g. The Kinetic Arena South"
-                className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]"
-              />
-            </label>
-            <div className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              OFFICIAL BRAND LOGO
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
+                VENUE NAME
+              </label>
+              <div className="relative group flex items-center bg-[#eff1f0] border border-[#e6e8e7] rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus-within:border-[#1abc60] transition-all">
+                <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+                  <Building className="w-5 h-5" />
+                </div>
+                <div className="w-px h-6 bg-gray-300/50" />
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g. The Kinetic Arena South"
+                  className="flex-1 px-5 py-4 bg-transparent text-sm font-bold outline-none text-gray-700"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
+                OFFICIAL BRAND LOGO
+              </p>
               <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={onLogoSelected} />
-              <button type="button" onClick={() => logoRef.current?.click()} className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-md border border-dashed border-[#d6dad7] bg-[#f2f4f3] text-sm font-medium text-[#5f656b]">
-                <Upload className="h-4 w-4" />
+              <button type="button" onClick={() => logoRef.current?.click()} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#d6dad7] bg-[#f2f4f3] text-sm font-bold text-[#5f656b] hover:border-[#1abc60] hover:bg-white transition-all">
+                <Upload className="h-5 w-5" />
                 {logoFile ? logoFile.name : 'Select Logo'}
               </button>
             </div>
           </div>
-          <label className="mt-4 block text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-            VENUE DESCRIPTION
+          <div className="mt-4 space-y-2">
+            <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
+              VENUE DESCRIPTION
+            </label>
             <textarea
               value={form.description}
               onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="Tell owners about your facility's history, vibe, and unique features..."
-              className="mt-2 h-28 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 py-2 text-sm outline-none focus:border-[#1ab35b]"
+              className="h-32 w-full rounded-2xl border border-[#e6e8e7] bg-[#eff1f0] px-5 py-4 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all resize-none"
             />
-          </label>
+          </div>
         </div>
       </section>
 
@@ -459,29 +474,21 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
           <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">SUPPORTED SPORTS</p>
           <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {sportsOptions.map((sport) => {
-              const active = form.sports.includes(sport);
-              return (
-                <button
-                  key={sport}
-                  type="button"
-                  onClick={() => toggleListValue('sports', sport)}
-                  className={`h-16 rounded-xl border-2 text-sm font-bold transition flex items-center justify-center gap-2 relative ${
-                    active 
-                      ? 'border-[#1ab35b] bg-[#eefaf3] text-[#1ab35b] shadow-sm' 
-                      : 'border-[#e3e6e4] bg-[#f6f7f6] text-[#34383c] hover:border-gray-300'
-                  }`}
-                >
-                  {active && <CheckCircle2 className="h-4 w-4 fill-[#1ab35b] text-white" />}
-                  {sport}
-                  {active && (
-                    <div className="absolute top-1 right-1">
-                      <div className="h-2 w-2 rounded-full bg-[#1ab35b]" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+            {sportsOptions.map((sport) => (
+              <button
+                key={sport}
+                type="button"
+                onClick={() => toggleListValue('sports', sport)}
+                className={`flex items-center gap-3 rounded-2xl border-2 px-5 py-3 text-xs font-black uppercase tracking-widest transition-all active:scale-95 ${
+                  form.sports.includes(sport)
+                    ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-lg shadow-green-100'
+                    : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200'
+                }`}
+              >
+                {sport}
+                {form.sports.includes(sport) && <CheckCircle2 className="h-4 w-4 fill-[#1abc60] text-white" />}
+              </button>
+            ))}
           </div>
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
             <div>
@@ -524,41 +531,78 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       <section className="space-y-4">
         <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">03 Location Details</h2>
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
-            <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              STREET ADDRESS
-              <input value={form.address} onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
-            </label>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-                CITY
-                <input value={form.city} onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))} className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
+          <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5 space-y-4">
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
+                STREET ADDRESS
               </label>
-              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-                LANDMARK
-                <input value={form.landmark} onChange={(e) => setForm((prev) => ({ ...prev, landmark: e.target.value }))} className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
-              </label>
+              <div className="relative group flex items-center bg-[#eff1f0] border border-[#e6e8e7] rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
+                <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div className="w-px h-6 bg-gray-300/50" />
+                <input 
+                  value={form.address} 
+                  onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))} 
+                  placeholder="Street Name, Area"
+                  className="flex-1 px-5 py-4 bg-transparent text-sm font-bold outline-none text-gray-700" 
+                />
+              </div>
             </div>
-            <div className="mt-3">
-              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
+                  CITY
+                </label>
+                <input 
+                  value={form.city} 
+                  onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))} 
+                  placeholder="City"
+                  className="h-14 w-full rounded-2xl border border-[#e6e8e7] bg-[#eff1f0] px-5 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
+                  LANDMARK
+                </label>
+                <input 
+                  value={form.landmark} 
+                  onChange={(e) => setForm((prev) => ({ ...prev, landmark: e.target.value }))} 
+                  placeholder="Nearby landmark"
+                  className="h-14 w-full rounded-2xl border border-[#e6e8e7] bg-[#eff1f0] px-5 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all" 
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
                 POSTCODE
-                <input value={form.postcode} onChange={(e) => setForm((prev) => ({ ...prev, postcode: e.target.value }))} className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
               </label>
+              <input 
+                value={form.postcode} 
+                onChange={(e) => setForm((prev) => ({ ...prev, postcode: e.target.value }))} 
+                placeholder="PIN Code"
+                className="h-14 w-full rounded-2xl border border-[#e6e8e7] bg-[#eff1f0] px-5 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all" 
+              />
             </div>
-            <button type="button" onClick={detectCurrentLocation} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-md border border-[#d7dbd8] bg-white text-base font-semibold text-[#3f4348]">
+
+            <button type="button" onClick={detectCurrentLocation} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#d7dbd8] bg-white text-sm font-bold text-[#3f4348] hover:bg-gray-50 transition-all shadow-sm">
+              <MapPin className="h-5 w-5 text-red-500" />
               Detect Current Location
-              <MapPin className="h-4 w-4" />
             </button>
 
-            <label className="mt-3 block text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              MAP LINK (OPTIONAL)
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
+                MAP LINK (OPTIONAL)
+              </label>
               <input
                 value={form.mapUrl}
                 onChange={(e) => setForm((prev) => ({ ...prev, mapUrl: e.target.value }))}
-                placeholder="Paste Google Maps link (https://maps.google.com/...)"
-                className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]"
+                placeholder="Paste Google Maps link"
+                className="h-14 w-full rounded-2xl border border-[#e6e8e7] bg-[#eff1f0] px-5 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all"
               />
-            </label>
+            </div>
             {form.mapUrl ? (
               <a
                 href={form.mapUrl}
@@ -595,43 +639,57 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">04 Pricing & Availability</h2>
         <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              BASE RATE (PER HOUR)
-              <input value={form.pricePerHour} onChange={(e) => setForm((prev) => ({ ...prev, pricePerHour: e.target.value }))} placeholder="₹ 4500.00" className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
-              <p className="mt-1 text-xs font-medium text-[#8d9399]">Average rate for similar venues in your area is ₹ 3500 - ₹ 5000.</p>
-            </label>
-            <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">
-              PEAK HOUR SURCHARGE
-              <input value={form.peakHourSurcharge} onChange={(e) => setForm((prev) => ({ ...prev, peakHourSurcharge: e.target.value }))} placeholder="₹ 1500.00" className="mt-2 h-12 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 text-sm outline-none focus:border-[#1ab35b]" />
-              <p className="mt-1 text-xs font-medium text-[#8d9399]">Applied weekdays 6 PM - 10 PM.</p>
-            </label>
-          </div>
-          <div className="mt-5">
-            <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">OPERATING HOURS</p>
-            <div className="mt-3 space-y-2 text-sm">
-              <div className="grid gap-2 sm:grid-cols-[120px_1fr_20px_1fr] sm:items-center">
-                <span className="font-semibold text-[#3a3f43]">Weekdays</span>
-                <div className="relative">
-                  <input type="time" value={form.weekdayOpen} onChange={(e) => setForm((prev) => ({ ...prev, weekdayOpen: e.target.value }))} className="h-11 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 outline-none focus:border-[#1ab35b]" />
-                  <ChevronDown className="pointer-events-none absolute right-2 top-3 h-4 w-4 text-[#677077]" />
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
+                BASE RATE (PER HOUR)
+              </label>
+              <div className="relative group flex items-center bg-[#eff1f0] border border-[#e6e8e7] rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
+                <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+                  <IndianRupee className="w-5 h-5" />
                 </div>
-                <span className="text-left text-xs font-bold text-[#676f76] sm:text-center sm:text-base">TO</span>
-                <div className="relative">
-                  <input type="time" value={form.weekdayClose} onChange={(e) => setForm((prev) => ({ ...prev, weekdayClose: e.target.value }))} className="h-11 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 outline-none focus:border-[#1ab35b]" />
-                  <ChevronDown className="pointer-events-none absolute right-2 top-3 h-4 w-4 text-[#677077]" />
-                </div>
+                <div className="w-px h-6 bg-gray-300/50" />
+                <input 
+                  value={form.pricePerHour} 
+                  onChange={(e) => setForm((prev) => ({ ...prev, pricePerHour: e.target.value }))} 
+                  placeholder="₹ 4500.00" 
+                  className="flex-1 px-5 py-4 bg-transparent text-sm font-bold outline-none text-gray-700" 
+                />
               </div>
-              <div className="grid gap-2 sm:grid-cols-[120px_1fr_20px_1fr] sm:items-center">
-                <span className="font-semibold text-[#3a3f43]">Weekends</span>
-                <div className="relative">
-                  <input type="time" value={form.weekendOpen} onChange={(e) => setForm((prev) => ({ ...prev, weekendOpen: e.target.value }))} className="h-11 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 outline-none focus:border-[#1ab35b]" />
-                  <ChevronDown className="pointer-events-none absolute right-2 top-3 h-4 w-4 text-[#677077]" />
+              <p className="mt-1 text-xs font-medium text-[#8d9399]">Average rate for similar venues in your area is ₹ 3500 - ₹ 5000.</p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
+                PEAK HOUR SURCHARGE
+              </label>
+              <div className="relative group flex items-center bg-[#eff1f0] border border-[#e6e8e7] rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
+                <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
+                  <IndianRupee className="w-5 h-5" />
                 </div>
-                <span className="text-left text-xs font-bold text-[#676f76] sm:text-center sm:text-base">TO</span>
-                <div className="relative">
-                  <input type="time" value={form.weekendClose} onChange={(e) => setForm((prev) => ({ ...prev, weekendClose: e.target.value }))} className="h-11 w-full rounded-md border border-[#e6e8e7] bg-[#eff1f0] px-3 outline-none focus:border-[#1ab35b]" />
-                  <ChevronDown className="pointer-events-none absolute right-2 top-3 h-4 w-4 text-[#677077]" />
-                </div>
+                <div className="w-px h-6 bg-gray-300/50" />
+                <input 
+                  value={form.peakHourSurcharge} 
+                  onChange={(e) => setForm((prev) => ({ ...prev, peakHourSurcharge: e.target.value }))} 
+                  placeholder="₹ 1500.00" 
+                  className="flex-1 px-5 py-4 bg-transparent text-sm font-bold outline-none text-gray-700" 
+                />
+              </div>
+              <p className="mt-1 text-xs font-medium text-[#8d9399]">Applied weekdays 6 PM - 10 PM.</p>
+            </div>
+          </div>
+          <div className="mt-6">
+            <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">OPERATING HOURS</p>
+            <div className="mt-4 space-y-4 text-sm">
+              <div className="grid gap-3 sm:grid-cols-[120px_1fr_20px_1fr] sm:items-center">
+                <span className="font-bold text-[#3a3f43] uppercase tracking-wider text-[11px]">Weekdays</span>
+                <input type="time" value={form.weekdayOpen} onChange={(e) => setForm((prev) => ({ ...prev, weekdayOpen: e.target.value }))} className="h-12 w-full rounded-xl border border-[#e6e8e7] bg-[#eff1f0] px-5 outline-none focus:bg-white focus:border-[#1abc60] transition-all font-bold" />
+                <span className="text-left text-xs font-black text-gray-400 sm:text-center">TO</span>
+                <input type="time" value={form.weekdayClose} onChange={(e) => setForm((prev) => ({ ...prev, weekdayClose: e.target.value }))} className="h-12 w-full rounded-xl border border-[#e6e8e7] bg-[#eff1f0] px-5 outline-none focus:bg-white focus:border-[#1abc60] transition-all font-bold" />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-[120px_1fr_20px_1fr] sm:items-center">
+                <span className="font-bold text-[#3a3f43] uppercase tracking-wider text-[11px]">Weekends</span>
+                <input type="time" value={form.weekendOpen} onChange={(e) => setForm((prev) => ({ ...prev, weekendOpen: e.target.value }))} className="h-12 w-full rounded-xl border border-[#e6e8e7] bg-[#eff1f0] px-5 outline-none focus:bg-white focus:border-[#1abc60] transition-all font-bold" />
+                <span className="text-left text-xs font-black text-gray-400 sm:text-center">TO</span>
+                <input type="time" value={form.weekendClose} onChange={(e) => setForm((prev) => ({ ...prev, weekendClose: e.target.value }))} className="h-12 w-full rounded-xl border border-[#e6e8e7] bg-[#eff1f0] px-5 outline-none focus:bg-white focus:border-[#1abc60] transition-all font-bold" />
               </div>
             </div>
           </div>
@@ -639,24 +697,26 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       </section>
 
       <section className="space-y-4">
-        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">05 Photo Gallery</h2>
-        <div className="space-y-3 rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
+        <h2 className="inline-block border-b-4 border-gray-100 pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">05 Photo Gallery</h2>
+        <div className="space-y-3 rounded-2xl bg-white border border-gray-100 p-4 sm:p-5 shadow-sm">
           <div className="grid gap-3 md:grid-cols-3">
             <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={onHeroSelected} />
-            <button type="button" onClick={() => heroRef.current?.click()} className="col-span-2 flex h-56 flex-col items-center justify-center rounded-xl border border-dashed border-[#d7dcda] bg-[#f9faf9] text-[#6f777d] overflow-hidden">
+            <button type="button" onClick={() => heroRef.current?.click()} className="col-span-2 flex h-56 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50/50 text-gray-400 overflow-hidden hover:border-[#1abc60] hover:bg-white transition-all group">
               {heroImage ? (
                 <img src={URL.createObjectURL(heroImage)} alt="Hero" className="w-full h-full object-cover" />
               ) : (
                 <>
-                  <Camera className="h-7 w-7 text-[#1ab35b]" />
-                  <span className="mt-2 text-base font-semibold">Upload Hero Image</span>
-                  <span className="text-xs">Minimum 1920x1080 recommended</span>
+                  <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <Camera className="h-6 w-6 text-gray-300 group-hover:text-[#1abc60]" />
+                  </div>
+                  <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Upload Hero Image</span>
+                  <span className="text-[10px] font-bold text-gray-300 mt-1 uppercase tracking-tighter">Recommended: 1920x1080</span>
                 </>
               )}
             </button>
             <div className="grid gap-3">
               <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={onGallerySelected} />
-              <button type="button" onClick={() => galleryRef.current?.click()} className="flex h-[108px] flex-col items-center justify-center rounded-xl border border-dashed border-[#d7dcda] bg-[#f9faf9] text-[#5f666d] overflow-hidden">
+              <button type="button" onClick={() => galleryRef.current?.click()} className="flex h-[108px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50/50 text-gray-400 overflow-hidden hover:border-[#1abc60] hover:bg-white transition-all group">
                 {galleryImages.length > 0 ? (
                   <div className="grid grid-cols-2 w-full h-full">
                     {galleryImages.slice(0, 4).map((file, idx) => (
@@ -665,15 +725,15 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                   </div>
                 ) : (
                   <>
-                    <ImagePlus className="h-6 w-6" />
-                    <span className="text-[10px] mt-1 font-bold">Add Gallery</span>
+                    <ImagePlus className="h-6 w-6 text-gray-300 group-hover:text-[#1abc60]" />
+                    <span className="text-[10px] mt-2 font-bold uppercase tracking-widest text-gray-400">Add Gallery</span>
                   </>
                 )}
               </button>
               <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] font-bold text-[#1ab35b]">{galleryImages.length} selected</span>
+                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{galleryImages.length} images</span>
                 {galleryImages.length > 0 && (
-                  <button type="button" onClick={() => setGalleryImages([])} className="text-[10px] font-bold text-red-500 hover:underline">Clear</button>
+                  <button type="button" onClick={() => setGalleryImages([])} className="text-[10px] font-black text-red-400 hover:text-red-500 uppercase tracking-widest underline decoration-2 underline-offset-4">Clear</button>
                 )}
               </div>
             </div>
@@ -689,13 +749,29 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         </div>
       </section>
 
-      <div className="flex flex-col gap-4 border-t border-[#e1e4e2] pt-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 border-t border-[#e1e4e2] pt-8 sm:flex-row sm:items-center sm:justify-between">
         <label className="flex items-center gap-2 text-sm text-[#72787e]">
           <input type="checkbox" checked={form.termsAccepted} onChange={(e) => setForm((prev) => ({ ...prev, termsAccepted: e.target.checked }))} className="h-4 w-4 accent-[#1ab35b]" />
           I agree to the <span className="font-semibold text-[#1ab35b]">Venue Partner Agreement</span>
         </label>
-        <button disabled={saving} type="submit" className="inline-flex h-12 items-center justify-center rounded-md bg-[#1ab35b] px-10 text-sm font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#14994d] disabled:opacity-60">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === 'edit' ? 'Update Venue' : 'Submit Venue For Review'}
+        <button
+          disabled={saving}
+          type="submit"
+          className="group relative flex h-16 items-center justify-center overflow-hidden rounded-[24px] bg-[#1abc60] px-12 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-2xl shadow-green-200 transition-all hover:bg-[#16a085] hover:scale-105 active:scale-95 disabled:opacity-50"
+        >
+          <span className="relative z-10 flex items-center gap-3">
+            {saving ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-5 w-5" />
+                {mode === 'edit' ? 'Update Venue Profile' : 'Publish Venue Profile'}
+              </>
+            )}
+          </span>
         </button>
       </div>
     </form>

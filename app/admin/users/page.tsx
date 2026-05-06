@@ -226,18 +226,19 @@ export default function AdminUsersPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center bg-gray-50 border border-gray-100 rounded-xl focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] transition-all group max-w-md">
-            <div className="pl-3 text-gray-400 group-focus-within:text-[#1abc60]">
+      <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-5 border-b border-gray-100">
+          <div className="flex items-center bg-gray-50/50 border border-gray-100 rounded-full focus-within:ring-4 focus-within:ring-green-50 focus-within:border-[#1abc60] focus-within:bg-white transition-all group max-w-md">
+            <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
               <Search className="w-5 h-5" />
             </div>
+            <div className="w-px h-6 bg-gray-200" />
             <input
               type="text"
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-3 py-2.5 bg-transparent border-none outline-none transition-all text-sm font-bold text-gray-700 placeholder:text-gray-300"
+              className="flex-1 px-5 py-3.5 bg-transparent border-none outline-none transition-all text-sm font-bold text-gray-700 placeholder:text-gray-300"
             />
           </div>
         </div>

@@ -39,10 +39,6 @@ const baseMenuItems = [
   { href: '/admin/roles', label: 'Roles', icon: Shield, permission: 'manage_roles' },
   { href: '/admin/permissions', label: 'Permissions', icon: Shield, permission: 'manage_permissions' },
   { href: '/admin/masters', label: 'Masters', icon: Database, permission: 'manage_masters' },
-  { href: '/admin/settings', label: 'Settings', icon: Settings, permission: 'manage_settings' },
-];
-
-const superadminMenuItems: any[] = [
   {
     href: '/admin/tournaments',
     label: 'Tournaments',
@@ -53,7 +49,10 @@ const superadminMenuItems: any[] = [
       { href: '/admin/tournaments/add', label: 'Add Tournament', permission: 'manage_tournaments' },
     ],
   },
+  { href: '/admin/settings', label: 'Settings', icon: Settings, permission: 'manage_settings' },
 ];
+
+const superadminMenuItems: any[] = [];
 
 interface AdminSidebarProps {
   sidebarOpen?: boolean;

@@ -35,11 +35,17 @@ export default function AdminSettingsPage() {
     siteName: "Turf Booking",
     contactEmail: "",
     maintenanceMode: false,
+    heroBanner: {
+      title: "UP YOUR GAME",
+      subtitle: "Premium sports venues, professional training, and competitive matches. Book your victory in seconds.",
+      image: "",
+    },
   });
 
   const [logoFiles, setLogoFiles] = useState<{
     frontend?: any;
     backend?: any;
+    hero?: any;
   }>({});
 
   useEffect(() => {
@@ -73,18 +79,31 @@ export default function AdminSettingsPage() {
       formData.append("maintenanceMode", String(settings.maintenanceMode));
       formData.append("googleLogin", JSON.stringify(settings.googleLogin));
       formData.append("appleLogin", JSON.stringify(settings.appleLogin));
+      formData.append("heroBanner", JSON.stringify(settings.heroBanner));
 
       // Handle logos
       if (logoFiles.frontend?.originalFile) {
         formData.append("frontendLogo", logoFiles.frontend.originalFile);
+      } else if (logoFiles.frontend === null) {
+        formData.append("frontendLogo", ""); // Signal removal
       } else if (typeof settings.frontendLogo === 'string') {
-        formData.append("existingFrontendLogo", settings.frontendLogo);
+        formData.append("frontendLogo", settings.frontendLogo);
       }
 
       if (logoFiles.backend?.originalFile) {
         formData.append("backendLogo", logoFiles.backend.originalFile);
+      } else if (logoFiles.backend === null) {
+        formData.append("backendLogo", ""); // Signal removal
       } else if (typeof settings.backendLogo === 'string') {
-        formData.append("existingBackendLogo", settings.backendLogo);
+        formData.append("backendLogo", settings.backendLogo);
+      }
+
+      if (logoFiles.hero?.originalFile) {
+        formData.append("image", logoFiles.hero.originalFile);
+      } else if (logoFiles.hero === null) {
+        formData.append("heroBannerImage", ""); // Signal removal
+      } else if (typeof settings.heroBanner?.image === 'string') {
+        formData.append("heroBannerImage", settings.heroBanner.image);
       }
 
       const res = await api.post("/settings", formData, {
@@ -122,7 +141,8 @@ export default function AdminSettingsPage() {
         {/* Sidebar Tabs */}
         <div className="lg:col-span-1 space-y-1.5">
           {[
-            { id: "general", label: "Branding & General", icon: Globe },
+            {id: "general", label: "Branding & General", icon: Globe },
+            { id: "hero", label: "Hero Banner", icon: ImageIcon },
             { id: "auth", label: "Authentication", icon: Lock },
             { id: "security", label: "Security & Access", icon: Shield },
           ].map((tab) => (
@@ -189,7 +209,7 @@ export default function AdminSettingsPage() {
                       </div>
                       <MediaUpload 
                         initialFiles={settings.frontendLogo ? [settings.frontendLogo] : []}
-                        onFilesChange={(files) => setLogoFiles(prev => ({ ...prev, frontend: files[0] }))}
+                        onFilesChange={(files) => setLogoFiles(prev => ({ ...prev, frontend: files.length > 0 ? files[0] : null }))}
                         className="bg-white"
                         maxFiles={1}
                       />
@@ -207,12 +227,63 @@ export default function AdminSettingsPage() {
                       </div>
                       <MediaUpload 
                         initialFiles={settings.backendLogo ? [settings.backendLogo] : []}
-                        onFilesChange={(files) => setLogoFiles(prev => ({ ...prev, backend: files[0] }))}
+                        onFilesChange={(files) => setLogoFiles(prev => ({ ...prev, backend: files.length > 0 ? files[0] : null }))}
                         className="bg-white"
                         maxFiles={1}
                       />
                       <p className="text-xs text-gray-500">Recommended: 200x200 Square SVG or PNG</p>
                     </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "hero" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+                {/* Hero Banner Text */}
+                <div className="space-y-5">
+                  <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2">Hero Banner Content</h3>
+                  <div className="space-y-6 pt-2">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">Main Heading (Title)</label>
+                      <input 
+                        value={settings.heroBanner?.title} 
+                        onChange={e => setSettings({...settings, heroBanner: {...settings.heroBanner, title: e.target.value}})}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-sm font-bold" 
+                        placeholder="e.g. UP YOUR GAME"
+                      />
+                      <p className="text-[10px] text-gray-500">The last word will be highlighted in green automatically.</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">Sub-heading (Subtitle)</label>
+                      <textarea 
+                        rows={3}
+                        value={settings.heroBanner?.subtitle} 
+                        onChange={e => setSettings({...settings, heroBanner: {...settings.heroBanner, subtitle: e.target.value}})}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-sm resize-none" 
+                        placeholder="Enter the descriptive text for your hero section..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hero Banner Image */}
+                <div className="space-y-5 pt-4">
+                  <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2">Banner Background Image</h3>
+                  <div className="p-5 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm font-semibold text-gray-700">Background Image</span>
+                      </div>
+                    </div>
+                    <MediaUpload 
+                      initialFiles={settings.heroBanner?.image ? [settings.heroBanner.image] : []}
+                      onFilesChange={(files) => setLogoFiles(prev => ({ ...prev, hero: files.length > 0 ? files[0] : null }))}
+                      className="bg-white"
+                      maxFiles={1}
+                    />
+                    <p className="text-xs text-gray-500">Recommended: High-resolution (1920x1080) JPG or WEBP. This will be the main banner image.</p>
                   </div>
                 </div>
               </motion.div>

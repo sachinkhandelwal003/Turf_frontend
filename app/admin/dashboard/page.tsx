@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { 
   Users, Shield, Activity, 
   ArrowUpRight, Loader2, AlertCircle, RefreshCw,
-  MapPin, Clock, Calendar, Trophy, PieChart as PieChartIcon, BarChart3
+  MapPin, Clock, Calendar, Trophy, PieChart as PieChartIcon, BarChart3,
+  IndianRupee, TrendingUp, DollarSign
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/app/services/api';
@@ -39,6 +40,11 @@ interface DashboardStats {
     pending: number;
     approved: number;
     rejected: number;
+  };
+  revenue: {
+    total: number;
+    bookings: number;
+    tournaments: number;
   };
   roles: number;
 }
@@ -170,6 +176,32 @@ export default function AdminDashboard() {
             {refreshing ? 'Syncing...' : 'Refresh Data'}
           </button>
         </div>
+      </div>
+
+      {/* --- REVENUE KPIs --- */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        {[
+          { title: 'Total Revenue', value: stats.revenue?.total || 0, sub: 'Total earnings', icon: Activity, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100 hover:border-green-300' },
+          { title: 'Booking Revenue', value: stats.revenue?.bookings || 0, sub: 'From turf bookings', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100 hover:border-blue-300' },
+          { title: 'Tournament Revenue', value: stats.revenue?.tournaments || 0, sub: 'From tournament entries', icon: Trophy, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100 hover:border-amber-300' },
+        ].map((stat, i) => (
+          <motion.div 
+            key={i} 
+            initial={{ opacity: 0, scale: 0.95 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            transition={{ delay: i * 0.1 }} 
+            className={`bg-white rounded-2xl border-[1.5px] shadow-sm p-6 group ${stat.border} hover:shadow-lg transition-all flex items-center gap-5`}
+          >
+            <div className={`w-14 h-14 rounded-2xl ${stat.bg} flex items-center justify-center shrink-0 transition-transform group-hover:scale-110`}>
+              <stat.icon className={`w-7 h-7 ${stat.color}`} />
+            </div>
+            <div>
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{stat.title}</p>
+              <h3 className="text-2xl font-black text-gray-900 leading-none tracking-tight">₹{stat.value.toLocaleString()}</h3>
+              <p className="text-[10px] text-gray-500 font-bold mt-2 uppercase tracking-tight opacity-0 group-hover:opacity-100 transition-opacity">{stat.sub}</p>
+            </div>
+          </motion.div>
+        ))}
       </div>
 
       {/* --- TOP KPIs --- */}

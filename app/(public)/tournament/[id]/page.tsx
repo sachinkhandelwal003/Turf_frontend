@@ -145,8 +145,10 @@ export default function TournamentDetailsPage() {
 
   const [teamName, setTeamName] = useState("");
   const [captainName, setCaptainName] = useState("");
+  const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [altMobile, setAltMobile] = useState("");
+  const [address, setAddress] = useState("");
 
   const isRegistrationClosed = () => {
     if (!tournament) return true;
@@ -192,18 +194,39 @@ export default function TournamentDetailsPage() {
 
   const handleRegistrationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teamName || !captainName || !mobile) {
+    if (!teamName || !captainName || !email || !mobile || !address) {
       toast.error("Please fill all required fields!");
       return;
     }
 
     setRegLoading(true);
     try {
+      // If tournament has an entry fee, we should go to checkout first
+      if (tournament.entryFee > 0) {
+        // We'll pass the registration details in the URL or session storage
+        const registrationData = {
+          teamName,
+          captainName,
+          email,
+          phone: mobile,
+          altPhone: altMobile,
+          address,
+          tournamentId: id,
+          entryFee: tournament.entryFee,
+          tournamentTitle: tournament.title
+        };
+        sessionStorage.setItem('pending_registration', JSON.stringify(registrationData));
+        router.push(`/tournament/checkout/${id}`);
+        return;
+      }
+
       const res = await api.post(`/tournaments/${id}/register`, {
         teamName,
         captainName,
+        email,
         phone: mobile,
-        altPhone: altMobile
+        altPhone: altMobile,
+        address
       });
 
       if (res.data.success) {
@@ -212,8 +235,11 @@ export default function TournamentDetailsPage() {
         // Reset form
         setTeamName("");
         setCaptainName("");
+        setEmail("");
         setMobile("");
         setAltMobile("");
+        setAddress("");
+        router.push(`/payment-success/tournament_${id}`);
       }
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Registration failed. Please try again.");
@@ -251,90 +277,146 @@ export default function TournamentDetailsPage() {
       
       {/* ================= 0. REGISTRATION MODAL ================= */}
       {showRegModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-[500px] rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-8 space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-black text-[#1e293b]">Tournament Registration</h2>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Complete your team details</p>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-[500px] rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-gray-100">
+            <div className="relative">
+              {/* Header with Background Pattern */}
+              <div className="bg-[#1abc60] p-8 pb-12 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-12 -mb-12 blur-xl" />
+                
+                <div className="relative z-10 flex justify-between items-start">
+                  <div>
+                    <h2 className="text-3xl font-black text-white leading-tight">Secure Your Spot</h2>
+                    <p className="text-white/80 text-sm font-medium mt-1">Join the ultimate {tournament.sport} showdown</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowRegModal(false)}
+                    className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all text-white backdrop-blur-md"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <button 
-                  onClick={() => setShowRegModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <X className="w-6 h-6 text-gray-400" />
-                </button>
               </div>
 
-              <form onSubmit={handleRegistrationSubmit} className="space-y-5">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Team Name</label>
-                    <div className="relative">
-                      <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input 
-                        required
-                        type="text" 
-                        placeholder="e.g. Kinetic Mavericks" 
-                        value={teamName}
-                        onChange={(e) => setTeamName(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-5 py-4 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1abc60] transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Captain Name</label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input 
-                        required
-                        type="text" 
-                        placeholder="Full Legal Name" 
-                        value={captainName}
-                        onChange={(e) => setCaptainName(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-5 py-4 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1abc60] transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Mobile Number</label>
-                    <div className="relative flex">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-bold text-gray-400 border-r border-gray-200 pr-2">+91</span>
+              {/* Form Content */}
+              <div className="p-8 -mt-6 bg-white rounded-t-[40px] relative z-20">
+                <form onSubmit={handleRegistrationSubmit} className="space-y-6">
+                  <div className="space-y-5">
+                    {/* Team Name */}
+                    <div className="group">
+                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Team Identity</label>
+                      <div className="relative">
+                        <Users className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
+                        <input 
+                          required
+                          type="text" 
+                          placeholder="Enter Team Name" 
+                          value={teamName}
+                          onChange={(e) => setTeamName(e.target.value)}
+                          className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300"
+                        />
                       </div>
-                      <input 
-                        required
-                        type="tel" 
-                        placeholder="98765 43210" 
-                        value={mobile}
-                        onChange={(e) => setMobile(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-24 pr-5 py-4 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1abc60] transition-all"
-                      />
+                    </div>
+
+                    {/* Captain Name */}
+                    <div className="group">
+                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Captain&apos;s Full Name</label>
+                      <div className="relative">
+                        <User className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
+                        <input 
+                          required
+                          type="text" 
+                          placeholder="As per ID Proof" 
+                          value={captainName}
+                          onChange={(e) => setCaptainName(e.target.value)}
+                          className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email */}
+                    <div className="group">
+                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Captain&apos;s Email</label>
+                      <div className="relative">
+                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
+                        <input 
+                          required
+                          type="email" 
+                          placeholder="captain@example.com" 
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Contact Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="group">
+                        <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Primary Phone</label>
+                        <div className="relative">
+                          <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
+                          <input 
+                            required
+                            type="tel" 
+                            placeholder="Mobile Number" 
+                            value={mobile}
+                            onChange={(e) => setMobile(e.target.value)}
+                            className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300"
+                          />
+                        </div>
+                      </div>
+                      <div className="group">
+                        <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Alt Contact (Optional)</label>
+                        <div className="relative">
+                          <Contact className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
+                          <input 
+                            type="tel" 
+                            placeholder="Alt Number" 
+                            value={altMobile}
+                            onChange={(e) => setAltMobile(e.target.value)}
+                            className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Address */}
+                    <div className="group">
+                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Captain&apos;s Address</label>
+                      <div className="relative">
+                        <MapIcon className="absolute left-5 top-5 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
+                        <textarea 
+                          required
+                          placeholder="Complete Address" 
+                          value={address}
+                          onChange={(e) => setAddress(e.target.value)}
+                          className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300 min-h-[100px] resize-none"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="pt-4">
-                  <button 
-                    type="submit"
-                    disabled={regLoading}
-                    className="w-full bg-[#1abc60] hover:bg-[#169c4e] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-green-100 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2"
-                  >
-                    {regLoading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      "Complete Registration"
-                    )}
-                  </button>
-                  <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-tighter mt-4">
-                    By clicking complete, you agree to the tournament rules and guidelines.
-                  </p>
-                </div>
-              </form>
+                  <div className="pt-2">
+                    <button 
+                      type="submit"
+                      disabled={regLoading}
+                      className="w-full bg-gray-900 text-white rounded-2xl py-5 font-black text-sm uppercase tracking-[0.2em] shadow-xl hover:bg-[#1abc60] transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group"
+                    >
+                      {regLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        "Proceed to Secure Checkout"
+                      )}
+                    </button>
+                    <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-6 flex items-center justify-center gap-2">
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#1abc60]" />
+                      100% Encrypted & Secure Registration
+                    </p>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>

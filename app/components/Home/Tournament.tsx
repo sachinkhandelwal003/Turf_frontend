@@ -35,8 +35,8 @@ export default function Tournaments() {
       try {
         const res = await api.get('tournaments');
         if (res.data.success) {
-          // Show only first 2 for home page
-          setTournaments(res.data.tournaments.slice(0, 2));
+          // Show only first 4 for home page
+          setTournaments(res.data.tournaments.slice(0, 4));
         }
       } catch (error) {
         console.error('Failed to fetch tournaments:', error);
@@ -54,7 +54,7 @@ export default function Tournaments() {
     // Replace backslashes with forward slashes for cross-platform compatibility
     const normalizedPath = path.replace(/\\/g, '/');
     
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.rkinteriorstudio.in/api';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
     const baseUrl = apiUrl.replace(/\/api$/, '').replace(/\/$/, '');
     const cleanPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
     return `${baseUrl}${cleanPath}`;
@@ -78,7 +78,14 @@ export default function Tournaments() {
     );
   }
 
-  if (tournaments.length === 0) return null;
+  if (tournaments.length === 0) return (
+    <section className="py-20 bg-[#f8f9fa]">
+      <div className="max-w-[1200px] mx-auto px-4 text-center">
+        <h2 className="text-4xl font-bold text-gray-900 mb-3">Tournaments</h2>
+        <p className="text-gray-500 text-[15px]">No active tournaments at the moment. Check back later!</p>
+      </div>
+    </section>
+  );
 
   return (
     <section className="py-20 bg-[#f8f9fa]">

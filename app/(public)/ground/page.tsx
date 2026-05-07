@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link'; 
 import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X, Loader2, Search } from 'lucide-react';
 import api from '@/app/services/api';
+import { useSearchParams } from 'next/navigation';
 
-export default function GroundPage() {
+function GroundContent() {
+  const searchParams = useSearchParams();
   const [venues, setVenues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,6 +19,14 @@ export default function GroundPage() {
   
   // FIX: Mobile Filter Drawer State
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Handle sport query param
+  useEffect(() => {
+    const sport = searchParams.get('sport');
+    if (sport) {
+      setSelectedCategories([sport]);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchVenues = async () => {
@@ -333,5 +343,17 @@ export default function GroundPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function GroundPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
+      </div>
+    }>
+      <GroundContent />
+    </Suspense>
   );
 }

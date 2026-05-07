@@ -5,6 +5,7 @@ import { Bell, User, LogOut, Menu, Crown, Search, Settings } from 'lucide-react'
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 interface AdminTopbarProps {
   onMenuClick?: () => void;
@@ -14,6 +15,15 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
   const { user, logout, isSuperadmin } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const pathname = usePathname();
+
+  const getProfileImageUrl = (path: string | undefined) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:5001';
+    return `${baseUrl}${path}`;
+  };
+
+  const profileImage = getProfileImageUrl(user?.profilePhoto);
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-40 h-24 shrink-0">
@@ -44,8 +54,18 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
                 onClick={() => setShowDropdown(!showDropdown)}
                 className="flex items-center gap-3 p-1.5 !bg-transparent !border-none !shadow-none hover:!bg-slate-50 rounded-2xl transition-all group"
               >
-                <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-slate-200 group-hover:scale-105 transition-transform">
-                  {user?.name?.[0]?.toUpperCase() || 'S'}
+                <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-slate-200 group-hover:scale-105 transition-transform overflow-hidden relative">
+                  {profileImage ? (
+                    <Image
+                      src={profileImage}
+                      alt={user?.name || 'Profile'}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    user?.name?.[0]?.toUpperCase() || 'S'
+                  )}
                 </div>
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-bold text-slate-900 leading-none">{user?.name || 'Super Admin'}</p>
@@ -65,8 +85,18 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
                     >
                       <div className="px-6 py-4 border-b border-slate-50 bg-slate-50/50">
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold">
-                            {user?.name?.[0]?.toUpperCase() || 'S'}
+                          <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold overflow-hidden relative">
+                            {profileImage ? (
+                              <Image
+                                src={profileImage}
+                                alt={user?.name || 'Profile'}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              user?.name?.[0]?.toUpperCase() || 'S'
+                            )}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-slate-900 truncate">{user?.name || 'Super Admin'}</p>

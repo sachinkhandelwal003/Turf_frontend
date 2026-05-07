@@ -109,6 +109,7 @@ export default function Hero() {
   }, []);
 
   const formatTitle = (title: string) => {
+    if (!title) return "";
     const words = title.trim().split(' ');
     if (words.length <= 1) return title;
     

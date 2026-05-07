@@ -21,6 +21,20 @@ import api from '@/app/services/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/context/AuthContext';
 
+interface RegisteredTeam {
+  name: string;
+  captain: string;
+  contact: string;
+  altContact?: string;
+  status: string;
+  registeredAt: string;
+  paymentDetails?: {
+    paymentId: string;
+    paymentMethod: string;
+    amount: number;
+  };
+}
+
 interface Tournament {
   _id: string;
   title: string;
@@ -45,6 +59,7 @@ export default function TournamentsListPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'tournaments' | 'registrations'>('tournaments');
 
   const getImageUrl = (path: string) => {
     if (!path || path === 'undefined' || path === 'null' || path === '') return '/heroimage.png';
@@ -285,28 +300,26 @@ export default function TournamentsListPage() {
                     </button>
                   </div>
 
-                  {isSuperadmin && (
-                    <div className="flex items-center gap-1">
-                      {tournament.approvalStatus !== 'approved' && (
-                        <button 
-                          onClick={() => handleApproval(tournament._id, 'approved')}
-                          className="!flex !items-center !justify-center !w-8 !h-8 !text-green-600 hover:!bg-green-50 !rounded-md !transition-colors !bg-transparent !border-none !cursor-pointer"
-                          title="Approve"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                        </button>
-                      )}
-                      {tournament.approvalStatus !== 'rejected' && (
-                        <button 
-                          onClick={() => handleApproval(tournament._id, 'rejected')}
-                          className="!flex !items-center !justify-center !w-8 !h-8 !text-red-600 hover:!bg-red-50 !rounded-md !transition-colors !bg-transparent !border-none !cursor-pointer"
-                          title="Reject"
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {tournament.approvalStatus !== 'approved' && (
+                      <button 
+                        onClick={() => handleApproval(tournament._id, 'approved')}
+                        className="!flex !items-center !justify-center !w-8 !h-8 !text-green-600 hover:!bg-green-50 !rounded-md !transition-colors !bg-transparent !border-none !cursor-pointer"
+                        title="Approve"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    {tournament.approvalStatus !== 'rejected' && (
+                      <button 
+                        onClick={() => handleApproval(tournament._id, 'rejected')}
+                        className="!flex !items-center !justify-center !w-8 !h-8 !text-red-600 hover:!bg-red-50 !rounded-md !transition-colors !bg-transparent !border-none !cursor-pointer"
+                        title="Reject"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

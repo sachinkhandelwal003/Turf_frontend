@@ -36,14 +36,49 @@ interface Booking {
   bookingCount?: number;
 }
 
+interface TournamentRegistration {
+  _id: string;
+  title: string;
+  sport: string;
+  startDate: string;
+  location: {
+    address: string;
+    city: string;
+    venue: string;
+  };
+  image?: string;
+  entryFee: number;
+}
+
 export default function PaymentSuccessPage() {
   const { id } = useParams();
   const [booking, setBooking] = useState<Booking | null>(null);
+  const [tournament, setTournament] = useState<TournamentRegistration | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isTournament, setIsTournament] = useState(false);
 
   useEffect(() => {
-    fetchBooking();
+    if (String(id).startsWith('tournament_')) {
+      setIsTournament(true);
+      fetchTournament();
+    } else {
+      fetchBooking();
+    }
   }, [id]);
+
+  const fetchTournament = async () => {
+    try {
+      const tournamentId = String(id).replace('tournament_', '');
+      const res = await api.get(`/tournaments/${tournamentId}`);
+      if (res.data.success) {
+        setTournament(res.data.tournament);
+      }
+    } catch (error: any) {
+      toast.error("Tournament details not found");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchBooking = async () => {
     try {
@@ -74,7 +109,7 @@ export default function PaymentSuccessPage() {
     );
   }
 
-  if (!booking) return null;
+  if (!booking && !tournament) return null;
 
   return (
     <div className="min-h-screen bg-white pt-32 pb-20 font-sans">
@@ -91,11 +126,13 @@ export default function PaymentSuccessPage() {
           </div>
           <div className="space-y-2">
             <h1 className="text-4xl font-black text-[#1abc60] uppercase tracking-tight">Payment Successful!</h1>
-            <p className="text-gray-500 font-medium text-sm">Your slot is locked in. Get ready for the game.</p>
+            <p className="text-gray-500 font-medium text-sm">
+              {isTournament ? "Your team registration is confirmed. See you at the tournament!" : "Your slot is locked in. Get ready for the game."}
+            </p>
           </div>
         </motion.div>
 
-        {/* --- BOOKING TICKET CARD --- */}
+        {/* --- BOOKING/TOURNAMENT TICKET CARD --- */}
         <motion.div 
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -105,8 +142,8 @@ export default function PaymentSuccessPage() {
           {/* Top Banner Image */}
           <div className="h-56 relative">
             <img 
-              src={getImageUrl(booking.turf.images?.[0])} 
-              alt={booking.turf.name}
+              src={isTournament ? getImageUrl(tournament?.image) : getImageUrl(booking?.turf.images?.[0])} 
+              alt={isTournament ? tournament?.title : booking?.turf.name}
               className="w-full h-full object-cover"
             />
             <div className="absolute top-6 right-6 bg-[#1abc60] text-white px-5 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg">
@@ -115,18 +152,26 @@ export default function PaymentSuccessPage() {
           </div>
 
           <div className="p-10 lg:p-12 space-y-10">
-            {/* Title & Booking ID */}
+            {/* Title & ID */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
               <div className="space-y-2">
-                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">{booking.turf.name}</h2>
+                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">
+                  {isTournament ? tournament?.title : booking?.turf.name}
+                </h2>
                 <div className="flex items-center gap-2 text-gray-400 font-bold text-xs uppercase tracking-widest">
                   <MapPin className="w-4 h-4 text-[#1abc60]" />
-                  {booking.turf.location.address || 'Plot 42, Sector 18, Gurugram, Haryana'}
+                  {isTournament 
+                    ? `${tournament?.location.venue}, ${tournament?.location.city}` 
+                    : (booking?.turf.location.address || 'Plot 42, Sector 18, Gurugram, Haryana')}
                 </div>
               </div>
               <div className="text-left md:text-right">
-                <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Booking ID</p>
-                <p className="text-base font-black text-gray-900">#{booking.bookingId}</p>
+                <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">
+                  {isTournament ? 'Tournament' : 'Booking ID'}
+                </p>
+                <p className="text-base font-black text-gray-900">
+                  {isTournament ? `#TRN-${tournament?._id.slice(-6).toUpperCase()}` : `#${booking?.bookingId}`}
+                </p>
               </div>
             </div>
 
@@ -141,40 +186,54 @@ export default function PaymentSuccessPage() {
                 </div>
                 <div>
                   <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-0.5">Date</p>
-                  <p className="text-sm font-black text-gray-900 uppercase">{booking.date}</p>
+                  <p className="text-sm font-black text-gray-900 uppercase">
+                    {isTournament 
+                      ? new Date(tournament?.startDate || '').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                      : booking?.date}
+                  </p>
                 </div>
               </div>
 
-              {/* Time */}
+              {/* Time/Status */}
               <div className="flex items-center gap-5">
                 <div className="w-12 h-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-[#1abc60] shadow-sm">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-0.5">Time Slot{booking.isMultiple ? 's' : ''}</p>
+                  <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-0.5">
+                    {isTournament ? 'Status' : `Time Slot${booking?.isMultiple ? 's' : ''}`}
+                  </p>
                   <div className="space-y-0.5">
-                    {booking.isMultiple && booking.slots ? (
-                      booking.slots.map((slot, i) => (
-                        <p key={i} className="text-sm font-black text-gray-900">{slot}</p>
-                      ))
+                    {isTournament ? (
+                      <p className="text-sm font-black text-gray-900">REGISTRATION CONFIRMED</p>
                     ) : (
-                      <p className="text-sm font-black text-gray-900">{booking.startTime} - {booking.endTime}</p>
+                      booking?.isMultiple && booking.slots ? (
+                        booking.slots.map((slot, i) => (
+                          <p key={i} className="text-sm font-black text-gray-900">{slot}</p>
+                        ))
+                      ) : (
+                        <p className="text-sm font-black text-gray-900">{booking?.startTime} - {booking?.endTime}</p>
+                      )
                     )}
-                    {booking.isMultiple && booking.bookingCount && (
+                    {!isTournament && booking?.isMultiple && booking.bookingCount && (
                       <p className="text-[10px] font-bold text-[#1abc60] uppercase tracking-widest">Total: {booking.bookingCount} Hours</p>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Court */}
+              {/* Court/Sport */}
               <div className="flex items-center gap-5">
                 <div className="w-12 h-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-[#1abc60] shadow-sm">
                   <Settings className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-0.5">{booking.sport}</p>
-                  <p className="text-sm font-black text-gray-900 uppercase">{booking.courts.join(', ')}</p>
+                  <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-0.5">
+                    {isTournament ? 'Sport' : booking?.sport}
+                  </p>
+                  <p className="text-sm font-black text-gray-900 uppercase">
+                    {isTournament ? tournament?.sport : booking?.courts.join(', ')}
+                  </p>
                 </div>
               </div>
 
@@ -185,7 +244,9 @@ export default function PaymentSuccessPage() {
                 </div>
                 <div>
                   <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-0.5">Amount Paid</p>
-                  <p className="text-sm font-black text-gray-900 uppercase">₹{booking.paidAmount.toLocaleString()} via {booking.paymentMethod?.toUpperCase() || 'UPI'}</p>
+                  <p className="text-sm font-black text-gray-900 uppercase">
+                    ₹{(isTournament ? tournament?.entryFee : booking?.paidAmount)?.toLocaleString()} via {(isTournament ? 'UPI' : booking?.paymentMethod?.toUpperCase()) || 'UPI'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -193,10 +254,10 @@ export default function PaymentSuccessPage() {
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-4 pt-6">
               <Link 
-                href="/bookings"
+                href={isTournament ? "/admin/tournaments/registrations" : "/bookings"}
                 className="flex-1 py-5 bg-[#1abc60] text-white rounded-[24px] font-black text-xs uppercase tracking-widest shadow-xl shadow-green-100 hover:scale-[1.02] transition-all flex items-center justify-center"
               >
-                View My Bookings
+                {isTournament ? "View My Registrations" : "View My Bookings"}
               </Link>
               <button className="flex-1 py-5 bg-[#e5e7eb] text-gray-600 rounded-[24px] font-black text-xs uppercase tracking-widest hover:bg-gray-300 transition-all flex items-center justify-center gap-2">
                 <Download className="w-4 h-4" />
@@ -213,7 +274,16 @@ export default function PaymentSuccessPage() {
             <h4 className="text-sm font-black uppercase tracking-widest">Important Information</h4>
           </div>
           <ul className="space-y-3">
-            {[
+            {isTournament ? [
+              'Please reach the venue 30 minutes before your first match.',
+              'Bring original ID proofs of all team members for verification.',
+              'Tournament rules and fixtures will be shared via email/phone.'
+            ].map((text, i) => (
+              <li key={i} className="flex gap-3 text-xs font-bold text-gray-600">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#1abc60] mt-1.5 shrink-0" />
+                {text}
+              </li>
+            )) : [
               'Please arrive at least 15 minutes prior to your scheduled slot for registration.',
               'Valid Government ID proof of at least one player is mandatory for entry.',
               'Cancellations are allowed up to 4 hours before the slot for a 50% refund.'

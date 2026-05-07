@@ -47,6 +47,7 @@ const baseMenuItems = [
     children: [
       { href: '/admin/tournaments', label: 'List Tournaments', permission: 'manage_tournaments' },
       { href: '/admin/tournaments/add', label: 'Add Tournament', permission: 'manage_tournaments' },
+      { href: '/admin/tournaments/registrations', label: 'Tournament Registration', permission: 'manage_tournaments' },
     ],
   },
   { href: '/admin/settings', label: 'Settings', icon: Settings, permission: 'manage_settings' },

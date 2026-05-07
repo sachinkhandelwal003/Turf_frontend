@@ -22,7 +22,7 @@ export const apiRequest = async (endpoint, method = "GET", body = null) => {
   const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(data.message || "API Error");
+    throw new Error(data.msg || data.message || "API Error");
   }
 
   return data;

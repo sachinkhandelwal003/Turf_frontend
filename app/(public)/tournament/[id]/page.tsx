@@ -149,6 +149,21 @@ export default function TournamentDetailsPage() {
   const [mobile, setMobile] = useState("");
   const [altMobile, setAltMobile] = useState("");
   const [address, setAddress] = useState("");
+  const [members, setMembers] = useState<{ name: string; role: string }[]>([]);
+
+  const addMember = () => {
+    setMembers([...members, { name: "", role: "" }]);
+  };
+
+  const removeMember = (index: number) => {
+    setMembers(members.filter((_, i) => i !== index));
+  };
+
+  const updateMember = (index: number, field: "name" | "role", value: string) => {
+    const updatedMembers = [...members];
+    updatedMembers[index][field] = value;
+    setMembers(updatedMembers);
+  };
 
   const isRegistrationClosed = () => {
     if (!tournament) return true;
@@ -211,6 +226,7 @@ export default function TournamentDetailsPage() {
           phone: mobile,
           altPhone: altMobile,
           address,
+          members,
           tournamentId: id,
           entryFee: tournament.entryFee,
           tournamentTitle: tournament.title
@@ -226,7 +242,8 @@ export default function TournamentDetailsPage() {
         email,
         phone: mobile,
         altPhone: altMobile,
-        address
+        address,
+        members
       });
 
       if (res.data.success) {
@@ -239,6 +256,7 @@ export default function TournamentDetailsPage() {
         setMobile("");
         setAltMobile("");
         setAddress("");
+        setMembers([]);
         router.push(`/payment-success/tournament_${id}`);
       }
     } catch (error: any) {
@@ -394,6 +412,58 @@ export default function TournamentDetailsPage() {
                           onChange={(e) => setAddress(e.target.value)}
                           className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300 min-h-[100px] resize-none"
                         />
+                      </div>
+                    </div>
+
+                    {/* Team Members */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between ml-1">
+                        <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em]">Team Members</label>
+                        <button 
+                          type="button"
+                          onClick={addMember}
+                          className="flex items-center gap-1.5 text-[11px] font-black text-[#1abc60] uppercase tracking-wider hover:bg-[#1abc60]/10 px-3 py-1.5 rounded-lg transition-all"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Add Member
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                        {members.map((member, idx) => (
+                          <div key={idx} className="flex gap-3 items-start animate-in slide-in-from-left-5 duration-300">
+                            <div className="flex-1 grid grid-cols-2 gap-2">
+                              <input 
+                                required
+                                type="text" 
+                                placeholder="Member Name" 
+                                value={member.name}
+                                onChange={(e) => updateMember(idx, "name", e.target.value)}
+                                className="w-full bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all"
+                              />
+                              <input 
+                                required
+                                type="text" 
+                                placeholder="Role (e.g. Striker)" 
+                                value={member.role}
+                                onChange={(e) => updateMember(idx, "role", e.target.value)}
+                                className="w-full bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all"
+                              />
+                            </div>
+                            <button 
+                              type="button"
+                              onClick={() => removeMember(idx)}
+                              className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                        {members.length === 0 && (
+                          <p className="text-center py-6 text-xs text-gray-400 font-bold italic border-2 border-dashed border-gray-100 rounded-2xl">
+                            Click &quot;Add Member&quot; to build your squad
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

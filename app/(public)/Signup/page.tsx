@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Eye, EyeOff, ChevronDown, CheckCircle, Loader2 } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, ChevronDown, Loader2 } from 'lucide-react';
 import { apiRequest } from '@/app/api'; 
 import { useAuth } from '@/app/context/AuthContext';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 // Example: import gameOnLogo from '../../public/image_b83177.png';
 
@@ -20,8 +21,6 @@ export default function SignUp() {
   const [showPass, setShowPass] = useState(false);
   const [showConfPass, setShowConfPass] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -47,26 +46,23 @@ export default function SignUp() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (errorMsg) setErrorMsg(""); 
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg("");
-    setSuccessMsg("");
 
     if (formData.password !== formData.confirmPassword) {
-      return setErrorMsg("Passwords do not match.");
+      return toast.error("Passwords do not match.");
     }
     if (!formData.name || !formData.email || !formData.phone || !formData.password) {
-      return setErrorMsg("Please fill in all fields.");
+      return toast.error("Please fill in all fields.");
     }
 
     setIsLoading(true);
 
     try {
       const response = await apiRequest('/auth/register', 'POST', formData as any);
-      setSuccessMsg("Signed up successfully!");
+      toast.success("Signed up successfully!");
       
       if (response.token) {
         localStorage.setItem("token", response.token);
@@ -76,11 +72,10 @@ export default function SignUp() {
       }
 
       setTimeout(() => {
-        setSuccessMsg("");
         window.location.href = '/profile'; // Force reload to pick up context
       }, 1500);
     } catch (error: any) {
-      setErrorMsg(error?.message || "Failed to create account. Please try again.");
+      toast.error(error?.message || "Failed to create account. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -89,16 +84,6 @@ export default function SignUp() {
   return (
     <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
       
-      {/* SUCCESS TOAST NOTIFICATION */}
-      {successMsg && (
-        <div className="fixed top-6 right-6 sm:top-10 sm:right-10 z-[100] flex items-center gap-3 bg-white border-l-4 border-[#1abc60] shadow-[0_8px_30px_rgba(0,0,0,0.12)] px-5 py-4 rounded-xl animate-in slide-in-from-top-5 fade-in duration-300">
-          <div className="bg-green-100 rounded-full p-1">
-            <CheckCircle className="w-5 h-5 text-[#1abc60]" />
-          </div>
-          <span className="text-[#2d3748] font-bold text-[14px]">{successMsg}</span>
-        </div>
-      )}
-
       <div className="bg-white w-full max-w-[420px] p-6 sm:p-10 rounded-2xl shadow-sm">
         
         {/* LOGO */}
@@ -114,8 +99,6 @@ export default function SignUp() {
           <h1 className="text-[28px] font-extrabold text-[#2d3748] mb-1 tracking-tight">Create Your Account</h1>
           <p className="text-gray-500 text-[13px]">Sign up to manage your bookings and leagues.</p>
         </div>
-
-        {errorMsg && <div className="mb-4 p-3 text-[13px] text-red-600 bg-red-50 rounded-lg text-center font-medium">{errorMsg}</div>}
 
         <form onSubmit={handleSubmit}>
           {/* Full Name */}

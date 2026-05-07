@@ -48,6 +48,11 @@ interface TournamentRegistration {
   };
   image?: string;
   entryFee: number;
+  registeredTeams?: {
+    name: string;
+    captain: string;
+    members?: { name: string; role: string }[];
+  }[];
 }
 
 export default function PaymentSuccessPage() {
@@ -250,6 +255,21 @@ export default function PaymentSuccessPage() {
                 </div>
               </div>
             </div>
+
+            {/* Team Members Section */}
+            {isTournament && tournament?.registeredTeams && (
+              <div className="pt-6 border-t border-gray-100">
+                <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mb-4">Squad Registered</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {tournament.registeredTeams.flatMap(t => t.members || []).map((member, i) => (
+                    <div key={i} className="bg-white p-3 rounded-2xl border border-gray-50 flex flex-col gap-1">
+                      <span className="text-xs font-black text-gray-900 truncate">{member.name}</span>
+                      <span className="text-[10px] font-bold text-[#1abc60] uppercase tracking-tighter">{member.role}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-4 pt-6">

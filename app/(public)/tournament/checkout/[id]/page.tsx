@@ -20,6 +20,7 @@ interface RegistrationData {
   phone: string;
   altPhone?: string;
   address: string;
+  members: { name: string; role: string }[];
   tournamentId: string;
   entryFee: number;
   tournamentTitle: string;
@@ -74,6 +75,7 @@ export default function TournamentCheckoutPage() {
         phone: regData.phone,
         altPhone: regData.altPhone,
         address: regData.address,
+        members: regData.members,
         paymentId: `PAY_TRN_${Date.now()}`,
         paymentMethod
       });

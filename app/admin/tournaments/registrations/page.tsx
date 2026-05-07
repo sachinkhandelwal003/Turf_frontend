@@ -37,6 +37,7 @@ interface Registration {
   registeredAt: string;
   tournamentTitle: string;
   tournamentId: string;
+  members?: { name: string; role: string }[];
   paymentDetails?: {
     paymentId: string;
     paymentMethod: string;
@@ -288,7 +289,7 @@ export default function TournamentRegistrationsPage() {
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-10" />
 
                 {/* Details Grid */}
-                <div className="grid grid-cols-2 gap-12 mb-12">
+                <div className="grid grid-cols-2 gap-12 mb-10">
                   <div>
                     <h3 className="text-[10px] font-black text-[#1abc60] uppercase tracking-[0.2em] mb-4">Registered Team</h3>
                     <div className="space-y-3">
@@ -316,6 +317,21 @@ export default function TournamentRegistrationsPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Team Members List */}
+                {selectedReg.members && selectedReg.members.length > 0 && (
+                  <div className="mb-10">
+                    <h3 className="text-[10px] font-black text-[#1abc60] uppercase tracking-[0.2em] mb-4">Squad Details</h3>
+                    <div className="grid grid-cols-2 gap-x-12 gap-y-2">
+                      {selectedReg.members.map((m, i) => (
+                        <div key={i} className="flex justify-between items-center py-2 border-b border-gray-50">
+                          <span className="text-sm font-bold text-gray-800">{m.name}</span>
+                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{m.role}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Summary Table */}
                 <div className="rounded-2xl border border-gray-100 overflow-hidden mb-10">

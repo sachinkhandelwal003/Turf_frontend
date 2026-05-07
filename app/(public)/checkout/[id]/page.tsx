@@ -108,7 +108,7 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
       </div>
     );
@@ -128,96 +128,89 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white pt-24 pb-20 font-sans text-gray-900 overflow-x-hidden">
-      <div className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 pt-24 pb-20 font-sans text-gray-900 overflow-x-hidden">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* --- HEADER --- */}
-        <div className="mb-10 md:mb-14">
-          <h1 className="text-3xl md:text-4xl lg:text-[42px] font-black tracking-tight leading-none mb-3">
-            <span className="text-[#1abc60]">SECURE</span> <span className="text-gray-900 uppercase">Checkout</span>
+        <div className="mb-8 md:mb-10 text-center md:text-left">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-2">
+            Secure Checkout
           </h1>
-          <p className="text-gray-400 font-bold text-xs md:text-sm tracking-tight">Finalize your booking details and gear up for the game.</p>
+          <p className="text-gray-500 text-sm md:text-base font-medium">Finalize your booking details and gear up for the game.</p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
           
           {/* --- LEFT CONTENT: FORM SECTIONS --- */}
-          <div className="flex-1 space-y-10 w-full">
+          <div className="flex-1 space-y-8 w-full">
             
             {/* 1. PAYMENT STRATEGY */}
-            <div className="space-y-6">
-              <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-gray-900">Payment Strategy</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800 border-b border-gray-100 pb-3">Payment Strategy</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Full Amount */}
                 <div 
                   onClick={() => setStrategy('full')}
-                  className={`relative p-6 md:p-10 rounded-[32px] bg-[#f3f4f1] cursor-pointer border-2 transition-all ${
-                    strategy === 'full' ? 'border-[#1abc60]' : 'border-transparent'
+                  className={`relative p-5 rounded-lg border-2 cursor-pointer transition-all hover:bg-green-50/30 ${
+                    strategy === 'full' ? 'border-[#1abc60] bg-green-50/20' : 'border-gray-200 bg-white'
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-6 md:mb-8">
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white flex items-center justify-center text-[#1abc60] shadow-sm">
-                      <CreditCard className="w-5 h-5 md:w-6 md:h-6" />
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                      <CreditCard className="w-5 h-5" />
                     </div>
-                    <div className={`w-6 h-6 md:w-7 md:h-7 rounded-full border-2 flex items-center justify-center ${strategy === 'full' ? 'border-[#1abc60]' : 'border-gray-300'}`}>
-                      {strategy === 'full' && <div className="w-3 h-3 md:w-3.5 md:h-3.5 rounded-full bg-[#1abc60]" />}
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${strategy === 'full' ? 'border-[#1abc60]' : 'border-gray-300'}`}>
+                      {strategy === 'full' && <div className="w-2.5 h-2.5 rounded-full bg-[#1abc60]" />}
                     </div>
                   </div>
-                  <h3 className="text-base md:text-[18px] font-black text-gray-900 mb-1">Pay Full Amount</h3>
-                  <p className="text-2xl md:text-[32px] font-black text-[#1abc60] mb-3 leading-none">₹{booking.totalAmount.toLocaleString()}</p>
-                  <p className="text-[10px] md:text-[11px] text-gray-400 font-bold">Zero worries, full access guaranteed.</p>
+                  <h3 className="text-base font-bold text-gray-900 mb-1">Pay Full Amount</h3>
+                  <p className="text-2xl font-bold text-gray-900 mb-2">₹{booking.totalAmount.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 font-medium">Zero worries, full access guaranteed.</p>
                 </div>
 
                 {/* Partial Amount */}
                 <div 
                   onClick={() => setStrategy('partial')}
-                  className={`relative p-6 md:p-10 rounded-[32px] bg-[#f3f4f1] cursor-pointer border-2 transition-all ${
-                    strategy === 'partial' ? 'border-[#1abc60]' : 'border-transparent'
+                  className={`relative p-5 rounded-lg border-2 cursor-pointer transition-all hover:bg-green-50/30 ${
+                    strategy === 'partial' ? 'border-[#1abc60] bg-green-50/20' : 'border-gray-200 bg-white'
                   }`}
                 >
-                  <div className="absolute -top-3 right-8 md:right-10 px-4 py-1.5 bg-[#0081c9] text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">
-                    Popular Choice
+                  <div className="absolute -top-3 right-4 px-3 py-1 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm">
+                    Popular
                   </div>
-                  <div className="flex justify-between items-start mb-6 md:mb-8">
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white flex items-center justify-center text-[#1abc60] shadow-sm">
-                      <Wallet className="w-5 h-5 md:w-6 md:h-6" />
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                      <Wallet className="w-5 h-5" />
                     </div>
-                    <div className={`w-6 h-6 md:w-7 md:h-7 rounded-full border-2 flex items-center justify-center ${strategy === 'partial' ? 'border-[#1abc60]' : 'border-gray-300'}`}>
-                      {strategy === 'partial' && <div className="w-3 h-3 md:w-3.5 md:h-3.5 rounded-full bg-[#1abc60]" />}
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${strategy === 'partial' ? 'border-[#1abc60]' : 'border-gray-300'}`}>
+                      {strategy === 'partial' && <div className="w-2.5 h-2.5 rounded-full bg-[#1abc60]" />}
                     </div>
                   </div>
-                  <h3 className="text-base md:text-[18px] font-black text-gray-900 mb-1">Pay 25% Now</h3>
-                  <p className="text-2xl md:text-[32px] font-black text-[#1abc60] mb-3 leading-none">₹{Math.round(booking.totalAmount * 0.25).toLocaleString()}</p>
-                  <p className="text-[10px] md:text-[11px] text-gray-400 font-bold leading-relaxed">Balance ₹{Math.round(booking.totalAmount * 0.75).toLocaleString()} to be paid at the ground desk.</p>
+                  <h3 className="text-base font-bold text-gray-900 mb-1">Pay 25% Now</h3>
+                  <p className="text-2xl font-bold text-gray-900 mb-2">₹{Math.round(booking.totalAmount * 0.25).toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 font-medium">Balance ₹{Math.round(booking.totalAmount * 0.75).toLocaleString()} due at ground.</p>
                 </div>
               </div>
             </div>
 
             {/* 2. SPLIT WITH SQUAD */}
-            <div className="bg-[#f3f4f1] rounded-[40px] p-6 md:p-10 space-y-8 md:space-y-10">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white flex items-center justify-center text-[#1abc60] shadow-sm">
-                    <UsersIcon className="w-5 h-5 md:w-6 md:h-6" />
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-green-50 flex items-center justify-center text-[#1abc60]">
+                    <UsersIcon className="w-4 h-4" />
                   </div>
-                  <h3 className="text-xl md:text-[22px] font-black text-gray-900 uppercase tracking-tight">Split with Squad</h3>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800">Split with Squad</h2>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span 
-                    style={{ color: splitWithSquad ? '#1abc60' : '#9ca3af' }}
-                    className="text-[11px] font-black uppercase tracking-widest"
-                  >
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-semibold uppercase tracking-wider ${splitWithSquad ? 'text-[#1abc60]' : 'text-gray-400'}`}>
                     {splitWithSquad ? 'Enabled' : 'Disabled'}
                   </span>
                   <button 
                     onClick={() => setSplitWithSquad(!splitWithSquad)}
-                    style={{ backgroundColor: splitWithSquad ? '#1abc60' : '#d1d5db' }}
-                    className="w-12 h-6 rounded-full relative transition-all shadow-inner"
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1abc60] focus:ring-offset-2 ${splitWithSquad ? 'bg-[#1abc60]' : 'bg-gray-300'}`}
                   >
-                    <motion.div 
-                      animate={{ x: splitWithSquad ? 26 : 2 }}
-                      className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-md border border-gray-100" 
-                    />
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${splitWithSquad ? 'translate-x-6' : 'translate-x-1'}`}></span>
                   </button>
                 </div>
               </div>
@@ -228,41 +221,40 @@ export default function CheckoutPage() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="flex flex-col md:flex-row gap-6 items-center"
+                    className="flex flex-col sm:flex-row gap-6 items-center bg-gray-50 rounded-lg p-5 border border-gray-100 overflow-hidden"
                   >
-                    <div className="flex-1 w-full space-y-3">
-                      <label className="text-[10px] md:text-[11px] text-gray-400 font-black uppercase tracking-widest pl-1">Number of Players</label>
-                      <div className="flex items-center gap-3 bg-white rounded-2xl p-2 border border-gray-50">
+                    <div className="flex-1 w-full space-y-2">
+                      <label className="text-xs text-gray-600 font-semibold uppercase tracking-wider block">Number of Players</label>
+                      <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 focus-within:ring-2 focus-within:ring-[#1abc60]/20 focus-within:border-[#1abc60] transition-all p-1">
                         <input 
                           type="number" 
                           value={numPlayers}
                           onChange={(e) => setNumPlayers(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="flex-1 bg-transparent px-3 py-1.5 text-lg md:text-xl font-black text-gray-900 outline-none"
+                          className="!flex-1 !bg-transparent !px-3 !py-2 !text-lg !font-bold !text-gray-900 !outline-none !border-none !w-full"
                         />
-                        <div className="px-4 py-1.5 bg-gray-50 rounded-xl text-gray-400 font-black text-[10px] md:text-xs uppercase tracking-widest whitespace-nowrap">Players</div>
+                        <div className="px-3 py-1.5 bg-gray-100 rounded text-gray-600 font-semibold text-xs uppercase tracking-wider">Players</div>
                       </div>
                     </div>
-                    <div className="w-full md:w-[240px] lg:w-[280px] bg-white rounded-[24px] md:rounded-[32px] p-6 md:p-8 text-center border border-gray-100 shadow-sm">
-                      <p className="text-[9px] md:text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1 md:mb-2">Each Player Pays</p>
-                      <p className="text-2xl md:text-[28px] lg:text-[32px] font-black text-[#1abc60] leading-none">₹{perPlayer.toFixed(2)}</p>
+                    <div className="w-full sm:w-[200px] bg-white rounded-lg p-4 text-center border border-gray-200 shadow-sm shrink-0">
+                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Each Player Pays</p>
+                      <p className="text-2xl font-bold text-[#1abc60]">₹{perPlayer.toFixed(2)}</p>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
               
               <button 
-                style={{ backgroundColor: '#1abc60' }}
-                className="w-full py-5 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-green-100/50 hover:scale-[1.01] transition-all flex items-center justify-center gap-3"
+                className="!w-full !py-3 !bg-gray-50 hover:!bg-gray-100 !text-gray-700 !rounded-lg !font-semibold !text-sm !transition-colors !flex !items-center !justify-center !gap-2 !border !border-gray-200 !cursor-pointer"
               >
-                <Plus className="w-5 h-5" strokeWidth={4} />
+                <Plus className="w-4 h-4" />
                 Add Participant Manually
               </button>
             </div>
 
             {/* 3. CHOOSE PAYMENT METHOD */}
-            <div className="space-y-6">
-              <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-gray-900">Choose Payment Method</h2>
-              <div className="space-y-4">
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-5">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800 border-b border-gray-100 pb-3">Payment Method</h2>
+              <div className="space-y-3">
                 {[
                   { id: 'upi', name: 'UPI Payment', icon: Smartphone, desc: 'Google Pay, PhonePe, Paytm' },
                   { id: 'card', name: 'Credit / Debit Card', icon: CreditCard, desc: 'Visa, Mastercard, RuPay' },
@@ -270,33 +262,26 @@ export default function CheckoutPage() {
                 ].map((method) => (
                   <div 
                     key={method.id}
-                    style={{ backgroundColor: '#f3f4f1' }}
-                    className={`rounded-[24px] border-2 transition-all overflow-hidden ${
-                      paymentMethod === method.id ? 'border-[#1abc60]' : 'border-transparent'
+                    className={`rounded-lg border transition-all overflow-hidden bg-white ${
+                      paymentMethod === method.id ? 'border-[#1abc60] ring-1 ring-[#1abc60]' : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <button
                       onClick={() => setPaymentMethod(method.id)}
-                      className="w-full flex items-center gap-4 md:gap-5 p-4 md:p-6"
+                      className="!w-full !flex !items-center !gap-4 !p-4 !bg-transparent !border-none !cursor-pointer"
                     >
-                      <div 
-                        style={{ backgroundColor: '#ffffff' }}
-                        className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shadow-sm"
-                      >
-                        <method.icon className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#1abc60' }} />
+                      <div className="w-10 h-10 rounded-md bg-gray-50 flex items-center justify-center border border-gray-100 shrink-0">
+                        <method.icon className="w-5 h-5 text-gray-600" />
                       </div>
                       <div className="flex-1 text-left">
-                        <h4 className="text-sm md:text-[17px] font-black text-gray-900 uppercase tracking-tight">{method.name}</h4>
-                        {method.desc && <p className="text-[9px] md:text-[11px] text-gray-400 font-bold">{method.desc}</p>}
+                        <h4 className="text-sm font-bold text-gray-900">{method.name}</h4>
+                        {method.desc && <p className="text-xs text-gray-500 font-medium mt-0.5">{method.desc}</p>}
                       </div>
-                      <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
                         paymentMethod === method.id ? 'border-[#1abc60]' : 'border-gray-300'
                       }`}>
                         {paymentMethod === method.id && (
-                          <div 
-                            style={{ backgroundColor: '#1abc60' }}
-                            className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full" 
-                          />
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#1abc60]" />
                         )}
                       </div>
                     </button>
@@ -307,26 +292,23 @@ export default function CheckoutPage() {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          className="px-4 md:px-6 pb-6 space-y-4"
+                          className="px-4 pb-4 space-y-3 overflow-hidden bg-gray-50/50 pt-2 border-t border-gray-100"
                         >
                           <input 
                             type="text" 
                             placeholder="Card Number" 
-                            style={{ backgroundColor: '#ffffff' }}
-                            className="w-full p-3 md:p-4 rounded-xl text-sm outline-none border border-transparent focus:border-gray-100 shadow-sm" 
+                            className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm" 
                           />
                           <div className="flex gap-3">
                             <input 
                               type="text" 
                               placeholder="MM/YY" 
-                              style={{ backgroundColor: '#ffffff' }}
-                              className="flex-1 p-3 md:p-4 rounded-xl text-sm outline-none border border-transparent focus:border-gray-100 shadow-sm" 
+                              className="!flex-1 !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm" 
                             />
                             <input 
                               type="text" 
                               placeholder="CVV" 
-                              style={{ backgroundColor: '#ffffff' }}
-                              className="flex-1 p-3 md:p-4 rounded-xl text-sm outline-none border border-transparent focus:border-gray-100 shadow-sm" 
+                              className="!flex-1 !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm" 
                             />
                           </div>
                         </motion.div>
@@ -337,71 +319,61 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* --- IMPORTANT INFO --- */}
-            <div className="bg-[#fef2f2] rounded-[32px] p-6 md:p-8 border border-[#fee2e2] flex gap-4">
-              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center text-red-500 shrink-0 shadow-sm">
-                <AlertCircle className="w-4 h-4 md:w-5 md:h-5" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-[10px] md:text-[11px] font-black text-red-600 uppercase tracking-widest">Important Information</h4>
-                <p className="text-[10px] md:text-[11px] text-gray-500 font-bold leading-relaxed">
-                  Booking will be cancelled if remaining amount is not paid before match time. Please ensure the squad arrives 15 minutes early.
-                </p>
-              </div>
-            </div>
           </div>
 
           {/* --- RIGHT SIDEBAR SUMMARY --- */}
-          <div className="w-full lg:w-[400px] lg:shrink-0 lg:sticky lg:top-24">
-            <div className="bg-[#f6f7f5] rounded-[48px] overflow-hidden border border-transparent flex flex-col">
-              <div className="p-8 md:p-10 lg:p-12 space-y-10">
+          <div className="w-full lg:w-[380px] shrink-0 lg:sticky lg:top-24 space-y-6">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+              <div className="p-6 space-y-6">
+                
+                <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">Booking Summary</h3>
                 
                 {/* Info Items */}
-                <div className="space-y-8 md:space-y-10">
-                  <div className="flex items-start gap-5">
-                    <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-white flex items-center justify-center text-[#1abc60] shrink-0 shadow-sm border border-gray-50">
-                      <Settings className="w-5 h-5 md:w-6 md:h-6" />
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-md bg-gray-50 flex items-center justify-center text-gray-500 shrink-0 border border-gray-100">
+                      <Settings className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[9px] md:text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Sport & Court</p>
-                      <h4 className="text-sm md:text-[15px] font-black text-gray-900">
+                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Sport & Court</p>
+                      <h4 className="text-sm font-bold text-gray-900">
                         {booking.sport} ({booking.courts.join(', ')})
                       </h4>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-5">
-                    <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-white flex items-center justify-center text-[#1abc60] shrink-0 shadow-sm border border-gray-50">
-                      <Calendar className="w-5 h-5 md:w-6 md:h-6" />
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-md bg-gray-50 flex items-center justify-center text-gray-500 shrink-0 border border-gray-100">
+                      <Calendar className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[9px] md:text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Date</p>
-                      <h4 className="text-sm md:text-[15px] font-black text-gray-900">{booking.date}</h4>
+                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Date</p>
+                      <h4 className="text-sm font-bold text-gray-900">{booking.date}</h4>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-5">
-                    <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-white flex items-center justify-center text-[#1abc60] shrink-0 shadow-sm border border-gray-100">
-                      <Clock className="w-5 h-5 md:w-6 md:h-6" />
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-md bg-gray-50 flex items-center justify-center text-gray-500 shrink-0 border border-gray-100">
+                      <Clock className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[9px] md:text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">
+                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">
                         Time Slot{booking.isMultiple ? 's' : ''}
                       </p>
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         {booking.isMultiple && booking.slots ? (
                           booking.slots.map((slot, i) => (
-                            <h4 key={i} className="text-sm md:text-[15px] font-black text-gray-900 uppercase">
+                            <h4 key={i} className="text-sm font-bold text-gray-900 uppercase">
                               {slot}
                             </h4>
                           ))
                         ) : (
-                          <h4 className="text-sm md:text-[15px] font-black text-gray-900 uppercase">
-                            {booking.startTime} - {booking.endTime} ({getDurationLabel()})
+                          <h4 className="text-sm font-bold text-gray-900 uppercase">
+                            {booking.startTime} - {booking.endTime} <span className="text-gray-500 font-medium normal-case">({getDurationLabel()})</span>
                           </h4>
                         )}
                         {booking.isMultiple && (
-                          <p className="text-[10px] font-bold text-[#1abc60] uppercase tracking-widest mt-1">
+                          <p className="text-xs font-semibold text-[#1abc60] mt-1">
                             Total Duration: {getDurationLabel()}
                           </p>
                         )}
@@ -411,8 +383,8 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* Bill Details */}
-                <div className="space-y-4 pt-10 border-t border-gray-200/50">
-                  <div className="flex justify-between text-[11px] md:text-[13px] font-bold text-gray-400 tracking-tight">
+                <div className="space-y-3 pt-5 border-t border-gray-100">
+                  <div className="flex justify-between text-sm font-medium text-gray-600">
                     <span>
                       Venue Charges 
                       {booking.isMultiple && ` (${booking.bookingCount} slots × ${booking.courts.length} courts)`}
@@ -420,47 +392,48 @@ export default function CheckoutPage() {
                     </span>
                     <span className="text-gray-900">₹{booking.price.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-[11px] md:text-[13px] font-bold text-gray-400 tracking-tight">
+                  <div className="flex justify-between text-sm font-medium text-gray-600">
                     <span>Convenience Fee</span>
                     <span className="text-gray-900">₹{booking.convenienceFee.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center pt-6">
-                    <span className="text-[13px] md:text-[14px] font-bold text-gray-400 tracking-tight">Payable Today</span>
-                    <span className="text-lg md:text-[22px] font-black text-gray-900">₹{payableToday.toFixed(2)}</span>
+                  <div className="flex justify-between items-center pt-4 pb-2 border-b border-dashed border-gray-200">
+                    <span className="text-sm font-bold text-gray-800">Payable Today</span>
+                    <span className="text-xl font-bold text-gray-900">₹{payableToday.toFixed(2)}</span>
                   </div>
                 </div>
 
                 {/* Balance Due Section */}
-                <div className="pt-10 border-t border-dashed border-gray-200 flex justify-between items-center">
-                  <span className="text-[16px] md:text-[18px] font-black text-[#1abc60] uppercase tracking-widest">Balance Due</span>
-                  <span className="text-2xl md:text-[32px] font-black text-[#1abc60]">₹{balanceDue.toFixed(0)}</span>
+                <div className="flex justify-between items-center bg-green-50 p-4 rounded-lg border border-green-100">
+                  <span className="text-sm font-bold text-[#1abc60] uppercase tracking-wide">Balance Due</span>
+                  <span className="text-xl font-bold text-[#1abc60]">₹{balanceDue.toFixed(0)}</span>
                 </div>
               </div>
 
               {/* Action Button */}
-              <button
-                onClick={handlePayment}
-                disabled={processing}
-                style={{ backgroundColor: '#1abc60' }}
-                className="w-full py-7 md:py-8 text-white font-black text-base md:text-[18px] uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3 disabled:opacity-70 active:scale-95 shadow-lg shadow-green-100/50"
-              >
-                {processing ? (
-                  <Loader2 className="w-7 h-7 animate-spin" />
-                ) : (
-                  <>
-                    Confirm & Pay ₹{payableToday.toFixed(0)}
-                    <ChevronRight className="w-6 h-6 md:w-7 md:h-7" strokeWidth={3} />
-                  </>
-                )}
-              </button>
+              <div className="p-4 bg-gray-50 border-t border-gray-200">
+                <button
+                  onClick={handlePayment}
+                  disabled={processing}
+                  className="!w-full !py-3.5 !bg-[#1abc60] hover:!bg-[#17a554] !text-white !font-bold !text-sm !uppercase !tracking-wide !rounded-lg !transition-colors !flex !items-center !justify-center !gap-2 disabled:!opacity-70 !shadow-sm !border-none !cursor-pointer"
+                >
+                  {processing ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      Confirm & Pay ₹{payableToday.toFixed(0)}
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Warning Box */}
-            <div className="mt-6 bg-[#f6f7f5] rounded-[32px] p-6 flex gap-4 border border-transparent">
-              <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-red-500 shrink-0 shadow-sm border border-gray-50">
+            <div className="bg-red-50 rounded-xl p-4 flex gap-3 border border-red-100">
+              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-red-500 shrink-0 shadow-sm border border-red-100">
                 <AlertCircle className="w-4 h-4" />
               </div>
-              <p className="text-[11px] text-gray-600 font-bold leading-relaxed">
+              <p className="text-xs text-red-800 font-medium leading-relaxed pt-0.5">
                 Booking will be cancelled if remaining amount is not paid before match time. Please ensure the squad arrives 15 minutes early.
               </p>
             </div>

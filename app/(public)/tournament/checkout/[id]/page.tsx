@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CreditCard, Wallet, Landmark, 
   Smartphone, ChevronRight, Loader2, 
@@ -94,7 +94,7 @@ export default function TournamentCheckoutPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
       </div>
     );
@@ -106,148 +106,194 @@ export default function TournamentCheckoutPage() {
   const totalAmount = regData.entryFee + convenienceFee;
 
   return (
-    <div className="min-h-screen bg-white pt-24 pb-20 font-sans text-gray-900 overflow-x-hidden">
-      <div className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 pt-24 pb-20 font-sans text-gray-900 overflow-x-hidden">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* --- HEADER --- */}
-        <div className="mb-10 md:mb-14">
-          <h1 className="text-3xl md:text-4xl lg:text-[42px] font-black tracking-tight leading-none mb-3">
-            <span className="text-[#1abc60]">SECURE</span> <span className="text-gray-900 uppercase">Tournament Checkout</span>
+        <div className="mb-8 md:mb-10 text-center md:text-left">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-2">
+            Secure Checkout
           </h1>
-          <p className="text-gray-400 font-bold text-xs md:text-sm tracking-tight">Confirm your entry for {regData.tournamentTitle}</p>
+          <p className="text-gray-500 text-sm md:text-base font-medium">Confirm your entry for <span className="font-semibold text-gray-700">{regData.tournamentTitle}</span></p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
           
           {/* --- LEFT CONTENT: FORM SECTIONS --- */}
-          <div className="flex-1 space-y-10 w-full">
+          <div className="flex-1 space-y-8 w-full">
             
             {/* 1. REGISTRATION SUMMARY */}
-            <div className="space-y-6">
-              <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-gray-900">Registration Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="bg-[#f3f4f1] p-6 rounded-[32px] flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-[#1abc60] shadow-sm">
-                    <Users className="w-6 h-6" />
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800 border-b border-gray-100 pb-3">Registration Details</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-md bg-white border border-gray-100 flex items-center justify-center text-gray-500 shadow-sm shrink-0">
+                    <Users className="w-5 h-5" />
                   </div>
-                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Name</p>
-                    <p className="text-lg font-black text-gray-900">{regData.teamName}</p>
-                  </div>
-                </div>
-                <div className="bg-[#f3f4f1] p-6 rounded-[32px] flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-[#1abc60] shadow-sm">
-                    <User className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Captain</p>
-                    <p className="text-lg font-black text-gray-900">{regData.captainName}</p>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Team Name</p>
+                    <p className="text-sm font-bold text-gray-900 truncate">{regData.teamName}</p>
                   </div>
                 </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-md bg-white border border-gray-100 flex items-center justify-center text-gray-500 shadow-sm shrink-0">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Captain</p>
+                    <p className="text-sm font-bold text-gray-900 truncate">{regData.captainName}</p>
+                  </div>
+                </div>
+
               </div>
             </div>
 
             {/* 2. PAYMENT METHOD */}
-            <div className="space-y-6">
-              <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-gray-900">Select Payment Method</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-5">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800 border-b border-gray-100 pb-3">Payment Method</h2>
+              <div className="space-y-3">
                 {[
-                  { id: 'upi', name: 'UPI Payment', icon: Smartphone, desc: 'GPay, PhonePe, Paytm' },
+                  { id: 'upi', name: 'UPI Payment', icon: Smartphone, desc: 'Google Pay, PhonePe, Paytm' },
                   { id: 'card', name: 'Credit/Debit Card', icon: CreditCard, desc: 'Visa, Mastercard, RuPay' },
                   { id: 'netbanking', name: 'Net Banking', icon: Landmark, desc: 'All major Indian banks' },
                   { id: 'wallet', name: 'Digital Wallets', icon: Wallet, desc: 'Amazon Pay, Mobikwik' }
                 ].map((method) => (
                   <div 
                     key={method.id}
-                    onClick={() => setPaymentMethod(method.id)}
-                    className={`p-6 rounded-[32px] bg-[#f3f4f1] cursor-pointer border-2 transition-all flex items-center gap-5 ${
-                      paymentMethod === method.id ? 'border-[#1abc60]' : 'border-transparent hover:bg-gray-100'
+                    className={`rounded-lg border transition-all overflow-hidden bg-white ${
+                      paymentMethod === method.id ? 'border-[#1abc60] ring-1 ring-[#1abc60]' : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className={`w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm ${paymentMethod === method.id ? 'text-[#1abc60]' : 'text-gray-400'}`}>
-                      <method.icon className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-[15px] font-black text-gray-900">{method.name}</h3>
-                      <p className="text-[11px] text-gray-400 font-bold">{method.desc}</p>
-                    </div>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === method.id ? 'border-[#1abc60]' : 'border-gray-300'}`}>
-                      {paymentMethod === method.id && <div className="w-3 h-3 rounded-full bg-[#1abc60]" />}
-                    </div>
+                    <button
+                      onClick={() => setPaymentMethod(method.id)}
+                      className="!w-full !flex !items-center !gap-4 !p-4 !bg-transparent !border-none !cursor-pointer"
+                    >
+                      <div className="w-10 h-10 rounded-md bg-gray-50 flex items-center justify-center border border-gray-100 shrink-0">
+                        <method.icon className="w-5 h-5 text-gray-600" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <h4 className="text-sm font-bold text-gray-900">{method.name}</h4>
+                        {method.desc && <p className="text-xs text-gray-500 font-medium mt-0.5">{method.desc}</p>}
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
+                        paymentMethod === method.id ? 'border-[#1abc60]' : 'border-gray-300'
+                      }`}>
+                        {paymentMethod === method.id && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#1abc60]" />
+                        )}
+                      </div>
+                    </button>
+
+                    <AnimatePresence>
+                      {method.id === 'card' && paymentMethod === 'card' && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="px-4 pb-4 space-y-3 overflow-hidden bg-gray-50/50 pt-2 border-t border-gray-100"
+                        >
+                          <input 
+                            type="text" 
+                            placeholder="Card Number" 
+                            className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm" 
+                          />
+                          <div className="flex gap-3">
+                            <input 
+                              type="text" 
+                              placeholder="MM/YY" 
+                              className="!flex-1 !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm" 
+                            />
+                            <input 
+                              type="text" 
+                              placeholder="CVV" 
+                              className="!flex-1 !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm" 
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 ))}
               </div>
             </div>
+
           </div>
 
           {/* --- RIGHT CONTENT: ORDER SUMMARY --- */}
-          <div className="w-full lg:w-[420px] shrink-0 sticky top-28">
-            <div className="bg-gray-900 rounded-[48px] p-8 md:p-10 text-white shadow-2xl overflow-hidden relative">
-              {/* Decorative Trophy Background */}
-              <Trophy className="absolute -right-12 -bottom-12 w-64 h-64 text-white/5 rotate-12 pointer-events-none" />
+          <div className="w-full lg:w-[380px] shrink-0 lg:sticky lg:top-24 space-y-6">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
               
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-10">
-                  <div className="w-10 h-10 rounded-xl bg-[#1abc60] flex items-center justify-center text-white">
-                    <Trophy className="w-5 h-5" />
+              <div className="bg-[#1abc60] p-6 relative overflow-hidden text-white">
+                <Trophy className="absolute -right-6 -bottom-6 w-32 h-32 text-white opacity-10 pointer-events-none rotate-12" />
+                <div className="relative z-10 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-md bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/10 shrink-0">
+                    <Trophy className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#1abc60]">Order Summary</span>
-                </div>
-
-                <div className="space-y-6 mb-10">
-                  <div className="flex justify-between items-center group">
-                    <span className="text-gray-400 font-bold text-sm">Tournament Fee</span>
-                    <span className="font-black text-lg">₹{regData.entryFee.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center group">
-                    <span className="text-gray-400 font-bold text-sm">Convenience Fee</span>
-                    <span className="font-black text-lg">₹{convenienceFee.toLocaleString()}</span>
-                  </div>
-                  <div className="h-px bg-white/10 my-6" />
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <span className="block text-[#1abc60] font-black text-[10px] uppercase tracking-widest mb-1">Total Payable</span>
-                      <span className="text-gray-400 text-xs font-bold">Incl. all taxes</span>
-                    </div>
-                    <span className="text-4xl font-black text-white leading-none">₹{totalAmount.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <button 
-                    onClick={handlePayment}
-                    disabled={processing}
-                    className="w-full bg-[#1abc60] hover:bg-[#17a554] text-white py-6 rounded-[24px] font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-[#1abc60]/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
-                  >
-                    {processing ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        Pay & Confirm Entry
-                        <ChevronRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                  
-                  <div className="flex items-center justify-center gap-2 py-4">
-                    <ShieldCheck className="w-4 h-4 text-[#1abc60]" />
-                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">SSL Secured Checkout</span>
-                  </div>
-                </div>
-
-                <div className="mt-8 p-6 bg-white/5 rounded-3xl border border-white/10">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
-                      <Phone className="w-5 h-5 text-gray-300" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-black text-white/40 uppercase tracking-widest mb-1">Need Help?</p>
-                      <p className="text-sm font-bold text-white/80">Support: +91 800-TURF-NOW</p>
-                    </div>
+                  <div>
+                    <p className="text-xs font-semibold text-white/80 uppercase tracking-wider mb-0.5">Order Summary</p>
+                    <h3 className="text-base font-bold text-white leading-tight">Tournament Entry</h3>
                   </div>
                 </div>
               </div>
+
+              <div className="p-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm font-medium text-gray-600">
+                    <span>Tournament Fee</span>
+                    <span className="text-gray-900 font-semibold">₹{regData.entryFee.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-medium text-gray-600">
+                    <span>Convenience Fee</span>
+                    <span className="text-gray-900 font-semibold">₹{convenienceFee.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-end pt-4 pb-2 border-t border-gray-100">
+                    <div>
+                      <span className="block text-sm font-bold text-gray-800 mb-0.5">Total Payable</span>
+                      <span className="text-xs font-medium text-gray-500">Incl. all taxes</span>
+                    </div>
+                    <span className="text-2xl font-bold text-[#1abc60]">₹{totalAmount.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <div className="p-5 bg-gray-50 border-t border-gray-200 space-y-4">
+                <button
+                  onClick={handlePayment}
+                  disabled={processing}
+                  className="!w-full !py-3.5 !bg-[#1abc60] hover:!bg-[#17a554] !text-white !font-bold !text-sm !uppercase !tracking-wide !rounded-lg !transition-colors !flex !items-center !justify-center !gap-2 disabled:!opacity-70 !shadow-sm !border-none !cursor-pointer"
+                >
+                  {processing ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      Pay & Confirm Entry
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+                
+                <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-[#1abc60]" />
+                  SSL Secured Checkout
+                </div>
+              </div>
+
             </div>
+
+            {/* Support Box */}
+            <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
+                <Phone className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Need Help?</p>
+                <p className="text-sm font-bold text-gray-900">Support: +91 800-TURF-NOW</p>
+              </div>
+            </div>
+            
           </div>
 
         </div>

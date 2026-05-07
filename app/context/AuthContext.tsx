@@ -68,17 +68,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Check if user is logged in
-    const storedUser = localStorage.getItem('adminUser');
-    const token = localStorage.getItem('token');
-    if (storedUser && token) {
-      try {
-        setUser(JSON.parse(storedUser));
-        // Always refresh from server to get latest photos/data
-        refreshUser();
-      } catch (error) {
-        localStorage.removeItem('adminUser');
-        localStorage.removeItem('token');
+    // Check if user is logged in (only on client side)
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('adminUser');
+      const token = localStorage.getItem('token');
+      if (storedUser && token) {
+        try {
+          setUser(JSON.parse(storedUser));
+          // Always refresh from server to get latest photos/data
+          refreshUser();
+        } catch (error) {
+          localStorage.removeItem('adminUser');
+          localStorage.removeItem('token');
+        }
       }
     }
     setIsLoading(false);
@@ -135,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasPermission = (permission: string) => {
     if (!user) return false;
     if (user.role === 'superadmin') return true;
-    return user.permissions.includes(permission);
+    return user.permissions.includes(permission) || user.permissions.includes('all');
   };
 
   const value: AuthContextType = {

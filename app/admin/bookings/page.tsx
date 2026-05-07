@@ -39,12 +39,23 @@ interface Booking {
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
 }
 
+interface Turf {
+  _id: string;
+  name: string;
+}
+
 export default function AdminBookingsPage() {
   const { isSuperadmin, isLoading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [turfIdFilter, setTurfIdFilter] = useState('');
+  const [availableTurfs, setAvailableTurfs] = useState<Turf[]>([]);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,8 +66,16 @@ export default function AdminBookingsPage() {
   useEffect(() => {
     if (!authLoading) {
       fetchBookings();
+      fetchTurfs();
     }
-  }, [authLoading, isSuperadmin, currentPage, statusFilter]);
+  }, [authLoading, isSuperadmin]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      setCurrentPage(1);
+      fetchBookings();
+    }
+  }, [statusFilter, startDate, endDate, startTime, endTime, turfIdFilter]);
 
   // Debounced search
   useEffect(() => {
@@ -73,22 +92,44 @@ export default function AdminBookingsPage() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
+  const fetchTurfs = async () => {
+    try {
+      const res = await api.get('/turfs/my/all');
+      if (res.data.success) {
+        setAvailableTurfs(res.data.turfs || []);
+      }
+    } catch (error) {
+      console.error('Error fetching turfs:', error);
+    }
+  };
+
   const fetchBookings = async () => {
     try {
       setLoading(true);
       const endpoint = isSuperadmin ? '/bookings/all' : '/bookings/admin/my-turfs'; 
-      const res = await api.get(endpoint, {
-        params: {
-          page: currentPage,
-          limit: itemsPerPage,
-          search: searchTerm,
-          status: statusFilter
-        }
-      });
+      const params: any = {
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm,
+        status: statusFilter
+      };
+      
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (startTime) params.startTime = startTime;
+      if (endTime) params.endTime = endTime;
+      if (turfIdFilter) params.turfId = turfIdFilter;
+      
+      const res = await api.get(endpoint, { params });
       if (res.data.success) {
         setBookings(res.data.bookings || []);
         setTotalPages(res.data.pages || 1);
         setTotalBookings(res.data.total || 0);
+        
+        // If admin endpoint returns myTurfs, use it
+        if (res.data.myTurfs && res.data.myTurfs.length > 0) {
+          setAvailableTurfs(res.data.myTurfs);
+        }
       }
     } catch (error: any) {
       console.error('Error fetching bookings:', error.response?.data || error.message);
@@ -96,6 +137,17 @@ export default function AdminBookingsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setStartDate('');
+    setEndDate('');
+    setStartTime('');
+    setEndTime('');
+    setTurfIdFilter('');
+    setCurrentPage(1);
   };
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
@@ -154,40 +206,129 @@ export default function AdminBookingsPage() {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-        <div className="md:col-span-8 group flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:bg-white focus-within:ring-2 focus-within:ring-green-100 focus-within:border-[#1abc60] transition-all">
-          <div className="pl-4 pr-3 text-gray-400">
-            <Search className="w-4 h-4" />
+      <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="md:col-span-5 group flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:bg-white focus-within:ring-2 focus-within:ring-green-100 focus-within:border-[#1abc60] transition-all">
+            <div className="pl-4 pr-3 text-gray-400">
+              <Search className="w-4 h-4" />
+            </div>
+            <input 
+              type="text" 
+              placeholder="Search by ID, User Name, Email, or Venue..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="!w-full !px-2 !py-2.5 !bg-transparent !outline-none !text-sm !text-gray-700 placeholder:!text-gray-400 !border-none focus:!ring-0"
+            />
           </div>
-          <input 
-            type="text" 
-            placeholder="Search by ID, User, or Venue..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="!w-full !px-2 !py-2.5 !bg-transparent !outline-none !text-sm !text-gray-700 placeholder:!text-gray-400 !border-none focus:!ring-0"
-          />
+
+          <div className="md:col-span-3 relative group flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:bg-white focus-within:ring-2 focus-within:ring-green-100 focus-within:border-[#1abc60] transition-all">
+            <div className="pl-4 pr-3 text-gray-400">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <select 
+              value={turfIdFilter}
+              onChange={(e) => {
+                setTurfIdFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="!w-full !px-2 !py-2.5 !bg-transparent !outline-none !text-sm !text-gray-700 !appearance-none !cursor-pointer !border-none focus:!ring-0"
+            >
+              <option value="">All Venues</option>
+              {availableTurfs.map((turf) => (
+                <option key={turf._id} value={turf._id}>{turf.name}</option>
+              ))}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+              <ChevronLeft className="w-4 h-4 -rotate-90" />
+            </div>
+          </div>
+
+          <div className="md:col-span-2 relative group flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:bg-white focus-within:ring-2 focus-within:ring-green-100 focus-within:border-[#1abc60] transition-all">
+            <div className="pl-4 pr-3 text-gray-400">
+              <Filter className="w-4 h-4" />
+            </div>
+            <select 
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="!w-full !px-2 !py-2.5 !bg-transparent !outline-none !text-sm !text-gray-700 !appearance-none !cursor-pointer !border-none focus:!ring-0"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="completed">Completed</option>
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+              <ChevronLeft className="w-4 h-4 -rotate-90" />
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <button 
+              onClick={clearFilters}
+              className="!w-full !flex !items-center !justify-center !gap-2 !bg-white !text-gray-600 !border !border-gray-200 !py-2.5 !px-4 !rounded-lg !text-sm !font-medium hover:!bg-gray-50 !transition-all !cursor-pointer"
+            >
+              <XCircle className="w-4 h-4" />
+              Clear Filters
+            </button>
+          </div>
         </div>
 
-        <div className="md:col-span-4 relative group flex items-center bg-gray-50 border border-gray-200 rounded-lg focus-within:bg-white focus-within:ring-2 focus-within:ring-green-100 focus-within:border-[#1abc60] transition-all">
-          <div className="pl-4 pr-3 text-gray-400">
-            <Filter className="w-4 h-4" />
+        {/* Date and Time Range Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="md:col-span-3 space-y-1.5">
+            <label className="text-xs font-medium text-gray-600">Start Date</label>
+            <input 
+              type="date" 
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="!w-full !px-3 !py-2.5 !bg-gray-50 !border !border-gray-200 !rounded-lg !text-sm focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-green-100 focus:!border-[#1abc60] transition-all"
+            />
           </div>
-          <select 
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="!w-full !px-2 !py-2.5 !bg-transparent !outline-none !text-sm !text-gray-700 !appearance-none !cursor-pointer !border-none focus:!ring-0"
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="completed">Completed</option>
-          </select>
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-            <ChevronLeft className="w-4 h-4 -rotate-90" />
+
+          <div className="md:col-span-3 space-y-1.5">
+            <label className="text-xs font-medium text-gray-600">End Date</label>
+            <input 
+              type="date" 
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="!w-full !px-3 !py-2.5 !bg-gray-50 !border !border-gray-200 !rounded-lg !text-sm focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-green-100 focus:!border-[#1abc60] transition-all"
+            />
+          </div>
+
+          <div className="md:col-span-3 space-y-1.5">
+            <label className="text-xs font-medium text-gray-600">Start Time</label>
+            <input 
+              type="time" 
+              value={startTime}
+              onChange={(e) => {
+                setStartTime(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="!w-full !px-3 !py-2.5 !bg-gray-50 !border !border-gray-200 !rounded-lg !text-sm focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-green-100 focus:!border-[#1abc60] transition-all"
+            />
+          </div>
+
+          <div className="md:col-span-3 space-y-1.5">
+            <label className="text-xs font-medium text-gray-600">End Time</label>
+            <input 
+              type="time" 
+              value={endTime}
+              onChange={(e) => {
+                setEndTime(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="!w-full !px-3 !py-2.5 !bg-gray-50 !border !border-gray-200 !rounded-lg !text-sm focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-green-100 focus:!border-[#1abc60] transition-all"
+            />
           </div>
         </div>
       </div>

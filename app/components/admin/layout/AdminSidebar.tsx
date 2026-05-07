@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
+import type { ComponentType } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -16,14 +17,30 @@ import {
   Square,
   Trophy,
   Calendar,
+  Star,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/app/services/api';
 
-const baseMenuItems = [
+type MenuChild = {
+  href: string;
+  label: string;
+  permission: string;
+};
+
+type MenuItem = {
+  href: string;
+  label: string;
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+  permission: string;
+  children?: MenuChild[];
+};
+
+const baseMenuItems: MenuItem[] = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'view_dashboard' },
   { href: '/admin/bookings', label: 'Bookings', icon: Calendar, permission: 'view_bookings' },
+  { href: '/admin/reviews', label: 'Reviews', icon: Star, permission: 'view_reviews' },
   {
     href: '/admin/venues',
     label: 'Venues',
@@ -53,7 +70,7 @@ const baseMenuItems = [
   { href: '/admin/settings', label: 'Settings', icon: Settings, permission: 'manage_settings' },
 ];
 
-const superadminMenuItems: any[] = [];
+const superadminMenuItems: MenuItem[] = [];
 
 interface AdminSidebarProps {
   sidebarOpen?: boolean;
@@ -64,7 +81,7 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [venueMenuOpen, setVenueMenuOpen] = useState(true);
-  const { isSuperadmin, isAuthenticated, user } = useAuth();
+  const { isSuperadmin, isAuthenticated, user, hasPermission } = useAuth();
   const [logo, setLogo] = useState<string>('/mainlogo.png');
 
   useEffect(() => {
@@ -100,33 +117,18 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
     return `${baseUrl}${path}`;
   };
 
+  const canAccess = (permission: string) => isSuperadmin || hasPermission(permission);
+
   const menuItems = (isSuperadmin ? [...baseMenuItems, ...superadminMenuItems] : baseMenuItems)
       .filter(item => {
-        // If superadmin, show everything
-        if (isSuperadmin) return true;
-        
-        // Check if user has permission for this item
-        const userPermissions = user?.permissions || [];
-        
-        if (item.permission && !userPermissions.includes(item.permission) && !userPermissions.includes('all')) {
-          return false;
-        }
-        
-        return true;
+        return canAccess(item.permission);
       })
       .map(item => {
         // Filter children based on permissions if they exist
         if (item.children) {
           return {
             ...item,
-            children: item.children.filter((child: any) => {
-              if (isSuperadmin) return true;
-              const userPermissions = user?.permissions || [];
-              if (child.permission && !userPermissions.includes(child.permission) && !userPermissions.includes('all')) {
-                return false;
-              }
-              return true;
-            })
+            children: item.children.filter((child) => canAccess(child.permission))
           };
         }
         return item;
@@ -181,7 +183,7 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const hasChildren = Array.isArray((item as any).children) && (item as any).children.length > 0;
+            const hasChildren = Array.isArray(item.children) && item.children.length > 0;
             
             return (
               <div key={item.href}>
@@ -226,15 +228,15 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                 )}
                 {hasChildren && venueMenuOpen && !collapsed && (
                   <div className="mt-1 ml-4 space-y-1 border-l border-gray-200 pl-4">
-                    {(item as any).children.map((child: any) => {
+                    {item.children?.map((child) => {
                       // FIXED LOGIC: Stricter checking to prevent both sub-menus from highlighting
                       const isExactMatch = pathname === child.href;
                       const isSubPathMatch = pathname.startsWith(`${child.href}/`);
-                      const hasBetterMatch = (item as any).children.some((c: any) => 
+                      const hasBetterMatch = item.children?.some((c) => 
                         c.href !== child.href && 
                         (pathname === c.href || pathname.startsWith(`${c.href}/`)) && 
                         c.href.length > child.href.length
-                      );
+                      ) || false;
                       const childActive = isExactMatch || (isSubPathMatch && !hasBetterMatch);
 
                       return (
@@ -316,7 +318,7 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                 {menuItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                  const hasChildren = Array.isArray((item as any).children) && (item as any).children.length > 0;
+                  const hasChildren = Array.isArray(item.children) && item.children.length > 0;
                   
                   return (
                     <div key={item.href}>
@@ -356,15 +358,15 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
                       )}
                       {hasChildren && venueMenuOpen && (
                         <div className="mt-1 ml-4 space-y-1 border-l border-gray-200 pl-4">
-                          {(item as any).children.map((child: any) => {
+                          {item.children?.map((child) => {
                             // FIXED LOGIC FOR MOBILE TOO
                             const isExactMatch = pathname === child.href;
                             const isSubPathMatch = pathname.startsWith(`${child.href}/`);
-                            const hasBetterMatch = (item as any).children.some((c: any) => 
+                            const hasBetterMatch = item.children?.some((c) => 
                               c.href !== child.href && 
                               (pathname === c.href || pathname.startsWith(`${c.href}/`)) && 
                               c.href.length > child.href.length
-                            );
+                            ) || false;
                             const childActive = isExactMatch || (isSubPathMatch && !hasBetterMatch);
 
                             return (

@@ -154,7 +154,7 @@ export default function UserAccessMatrixPage() {
               placeholder="Search users..."
               value={userSearch}
               onChange={(e) => setUserSearch(e.target.value)}
-              className="flex-1 px-3 py-2 bg-transparent border-none outline-none text-sm text-gray-700 placeholder:text-gray-400"
+              className="flex-1 px-3 py-2 bg-transparent border-none outline-none  text-sm text-gray-700 placeholder:text-gray-400"
             />
           </div>
 

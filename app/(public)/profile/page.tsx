@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { 
   Mail, Phone, Loader2, LogOut, 
   Calendar, MapPin, Clock, Camera, Settings, History, 
   CreditCard, ChevronRight, Activity, Bell, Award, CheckCircle2,
-  X, ExternalLink, Ticket
+  X, ExternalLink, Ticket, Star, Send
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,10 +36,11 @@ interface Booking {
   courts: string[];
   createdAt: string;
   updatedAt: string;
+  hasReviewed?: boolean;
 }
 
 interface ActivityItem {
-  icon: any;
+  icon: LucideIcon;
   title: string;
   desc: string;
   time: string;
@@ -47,14 +49,29 @@ interface ActivityItem {
   timestamp: Date;
 }
 
+interface ApiError {
+  response?: {
+    data?: {
+      error?: string;
+      msg?: string;
+    };
+  };
+}
+
+const getApiError = (error: unknown) => error as ApiError;
+
 export default function ProfilePage() {
   const { user, isLoading, logout, isAuthenticated, refreshUser } = useAuth();
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [activeTab, setActiveTab] = useState<'bookings' | 'settings' | 'activity'>('bookings');
-  const [bookingFilter, setBookingFilter] = useState<'all' | 'upcoming'>('all');
+  const [bookingFilter, setBookingFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [reviewModal, setReviewModal] = useState<{ open: boolean; booking: Booking | null }>({ open: false, booking: null });
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   // Refs for file inputs
   const profileInputRef = useRef<HTMLInputElement>(null);
@@ -89,8 +106,9 @@ export default function ProfilePage() {
       if (res.data.success) {
         toast.success('Profile updated successfully');
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.msg || 'Failed to update profile');
+    } catch (error: unknown) {
+      const apiError = getApiError(error);
+      toast.error(apiError.response?.data?.msg || 'Failed to update profile');
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -114,9 +132,10 @@ export default function ProfilePage() {
         // Use context refresh instead of page reload
         await refreshUser();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = getApiError(error);
       toast.dismiss(loadingToast);
-      toast.error(error.response?.data?.msg || 'Upload failed');
+      toast.error(apiError.response?.data?.msg || 'Upload failed');
     }
   };
 
@@ -140,39 +159,88 @@ export default function ProfilePage() {
         setNewPassword('');
         setConfirmPassword('');
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.msg || 'Failed to update password');
+    } catch (error: unknown) {
+      const apiError = getApiError(error);
+      toast.error(apiError.response?.data?.msg || 'Failed to update password');
     } finally {
       setIsUpdatingPassword(false);
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchBookings();
-    }
-  }, [isAuthenticated]);
-
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
+    setLoadingBookings(true);
     try {
-      const res = await api.get('/bookings/my');
+      const params: Record<string, string> = {};
+      if (bookingFilter !== 'all') {
+        params.filter = bookingFilter;
+      }
+      
+      const res = await api.get('/bookings/my', { params });
       if (res.data.success) {
         setBookings(res.data.bookings);
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to load bookings');
     } finally {
       setLoadingBookings(false);
     }
+  }, [bookingFilter]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchBookings();
+    }
+  }, [isAuthenticated, fetchBookings]);
+
+  const handleOpenReviewModal = (booking: Booking) => {
+    setReviewModal({ open: true, booking });
+    setReviewRating(0);
+    setReviewComment('');
   };
 
-  const filteredBookings = bookings.filter(b => {
-    if (bookingFilter === 'all') return true;
-    const bookingDate = new Date(b.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return bookingDate >= today;
-  });
+  const handleSubmitReview = async () => {
+    if (!reviewModal.booking || reviewRating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const res = await api.post('/reviews', {
+        bookingId: reviewModal.booking._id,
+        rating: reviewRating,
+        comment: reviewComment,
+      });
+      
+      if (res.data.success) {
+        toast.success('Review submitted successfully!');
+        setReviewModal({ open: false, booking: null });
+        setSelectedBooking(null);
+        setBookings(bookings.map(b => 
+          b._id === reviewModal.booking?._id ? { ...b, hasReviewed: true } : b
+        ));
+      }
+    } catch (error: unknown) {
+      const apiError = getApiError(error);
+      toast.error(apiError.response?.data?.error || 'Failed to submit review');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const isBookingCompleted = (booking: Booking) => {
+    if (booking.status === 'completed') return true;
+    if (booking.status !== 'confirmed') return false;
+    const bookingEnd = new Date(`${booking.date}T${booking.endTime || '23:59'}:00`);
+    return !Number.isNaN(bookingEnd.getTime()) && bookingEnd <= new Date();
+  };
+
+  const getDisplayStatus = (booking: Booking) => {
+    if (isBookingCompleted(booking)) return 'completed';
+    return booking.status;
+  };
+
+  const filteredBookings = bookings;
 
   if (isLoading) {
     return (
@@ -433,6 +501,18 @@ export default function ProfilePage() {
                       >
                         Upcoming
                       </button>
+                      <button 
+                        onClick={() => setBookingFilter('completed')}
+                        className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${bookingFilter === 'completed' ? 'bg-[#1abc60] text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                        Completed
+                      </button>
+                      <button 
+                        onClick={() => setBookingFilter('cancelled')}
+                        className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${bookingFilter === 'cancelled' ? 'bg-[#1abc60] text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                        Cancelled
+                      </button>
                     </div>
                   </div>
 
@@ -473,13 +553,15 @@ export default function ProfilePage() {
                             />
                             <div className="absolute top-3 left-3">
                               <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest backdrop-blur-md shadow-lg border ${
-                                booking.status === 'confirmed' 
+                                getDisplayStatus(booking) === 'completed'
+                                  ? 'bg-blue-500/80 text-white border-blue-400'
+                                  : booking.status === 'confirmed' 
                                   ? 'bg-emerald-500/80 text-white border-emerald-400' 
                                   : booking.status === 'pending' 
                                     ? 'bg-amber-500/80 text-white border-amber-400' 
                                     : 'bg-red-500/80 text-white border-red-400'
                               }`}>
-                                {booking.status}
+                                {getDisplayStatus(booking)}
                               </span>
                             </div>
                           </div>
@@ -528,6 +610,20 @@ export default function ProfilePage() {
                                 View <ChevronRight className="w-3 h-3" />
                               </button>
                             </div>
+                            {isBookingCompleted(booking) && (
+                              <button
+                                onClick={() => handleOpenReviewModal(booking)}
+                                disabled={booking.hasReviewed}
+                                className={`mt-4 w-full py-3 rounded-2xl font-black uppercase tracking-widest text-[9px] transition-all flex items-center justify-center gap-2 ${
+                                  booking.hasReviewed
+                                    ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                                    : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+                                }`}
+                              >
+                                <Star className="w-3.5 h-3.5" />
+                                {booking.hasReviewed ? 'Reviewed' : 'Write a Review'}
+                              </button>
+                            )}
                           </div>
                         </motion.div>
                       ))}
@@ -768,9 +864,15 @@ export default function ProfilePage() {
                       <span className="text-[9px] font-black uppercase tracking-widest">Status</span>
                     </div>
                     <span className={`inline-flex px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                      selectedBooking.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
+                      getDisplayStatus(selectedBooking) === 'completed'
+                        ? 'bg-blue-50 text-blue-600 border border-blue-100'
+                        : selectedBooking.status === 'confirmed'
+                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                          : selectedBooking.status === 'cancelled'
+                            ? 'bg-red-50 text-red-600 border border-red-100'
+                            : 'bg-amber-50 text-amber-600 border border-amber-100'
                     }`}>
-                      {selectedBooking.status}
+                      {getDisplayStatus(selectedBooking)}
                     </span>
                   </div>
                 </div>
@@ -802,7 +904,93 @@ export default function ProfilePage() {
                     Download Invoice
                   </button>
                 </div>
+                {isBookingCompleted(selectedBooking) && (
+                  <button
+                    onClick={() => handleOpenReviewModal(selectedBooking)}
+                    disabled={selectedBooking.hasReviewed}
+                    className={`w-full py-4 rounded-3xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${
+                      selectedBooking.hasReviewed
+                        ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                        : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+                    }`}
+                  >
+                    <Star className="w-4 h-4" />
+                    {selectedBooking.hasReviewed ? 'Review Submitted' : 'Write a Review'}
+                  </button>
+                )}
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Review Modal */}
+      <AnimatePresence>
+        {reviewModal.open && reviewModal.booking && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setReviewModal({ open: false, booking: null })}
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl p-8 space-y-8"
+            >
+              <button
+                onClick={() => setReviewModal({ open: false, booking: null })}
+                className="absolute top-6 right-6 p-2 bg-gray-50 hover:bg-gray-100 text-gray-400 rounded-2xl transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="space-y-2 pr-12">
+                <p className="text-[10px] font-black text-[#1abc60] uppercase tracking-[0.2em]">{reviewModal.booking.sport}</p>
+                <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Review {reviewModal.booking.turf.name}</h3>
+                <p className="text-xs font-bold text-gray-400">{reviewModal.booking.date} at {reviewModal.booking.startTime}</p>
+              </div>
+
+              <div className="flex items-center justify-center gap-3">
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <button
+                    key={rating}
+                    onClick={() => setReviewRating(rating)}
+                    className="p-2 rounded-2xl hover:bg-amber-50 transition-all"
+                  >
+                    <Star
+                      className={`w-9 h-9 ${
+                        rating <= reviewRating
+                          ? 'fill-amber-400 text-amber-400'
+                          : 'text-gray-200'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Your Review</label>
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  rows={5}
+                  placeholder="Share your experience..."
+                  className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-[24px] font-bold text-gray-900 outline-none focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all resize-none"
+                />
+              </div>
+
+              <button
+                onClick={handleSubmitReview}
+                disabled={submittingReview}
+                className="w-full bg-[#1abc60] text-white py-4 rounded-3xl font-black uppercase tracking-widest text-xs shadow-xl shadow-green-100 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:hover:scale-100"
+              >
+                {submittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Submit Review
+              </button>
             </motion.div>
           </div>
         )}

@@ -47,7 +47,8 @@ export default function PaymentSuccessPage() {
 
   const fetchBooking = async () => {
     try {
-      const res = await api.get(`/bookings/${id}`);
+      const bookingId = String(id).split(',')[0];
+      const res = await api.get(`/bookings/${bookingId}`);
       if (res.data.success) {
         setBooking(res.data.booking);
       }

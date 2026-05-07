@@ -3,7 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { 
   Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2,
-  Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash
+  Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash, Calendar, Trash2, Plus, Info
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -68,6 +68,8 @@ const fallbackSports = ['Football', 'Cricket', 'Tennis', 'Basketball'];
 const fallbackSurfaceOptions = ['Artificial Turf (A-Grade)', 'Hybrid Grass', 'Hard Court'];
 const fallbackAmenities = ['Floodlights', 'Changing Rooms', 'Shower', 'Parking', 'Water Station', 'Medical Kit'];
 
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 export default function VenueForm({ mode, turfId }: VenueFormProps) {
   const router = useRouter();
   const [form, setForm] = useState<FormShape>(defaultForm);
@@ -78,7 +80,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
   const [amenitiesOptions, setAmenitiesOptions] = useState<string[]>(fallbackAmenities);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [apiCarryForward, setApiCarryForward] = useState<ApiCarryForwardShape>({
-    rates: [],
+    rates: days.map(day => ({ day, price: 0, isPeak: false })),
     availableSlots: [],
     courts: [{ name: 'Court 1', courtType: 'Synthetic' }],
     unavailableDates: [],
@@ -86,9 +88,14 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [heroImage, setHeroImage] = useState<File | null>(null);
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
+  const [rating, setRating] = useState(0);
+  const [reviewsCount, setReviewsCount] = useState(0);
   const logoRef = useRef<HTMLInputElement | null>(null);
   const heroRef = useRef<HTMLInputElement | null>(null);
   const galleryRef = useRef<HTMLInputElement | null>(null);
+
+  const [selectedBlockedDate, setSelectedBlockedDate] = useState('');
+  const [specialPrice, setSpecialPrice] = useState('');
 
   useEffect(() => {
     const loadMasters = async () => {
@@ -164,6 +171,8 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           weekendClose: weekendHours?.close || '22:00',
           termsAccepted: true,
         });
+        setRating(target.rating || 0);
+        setReviewsCount(target.reviewsCount || 0);
         setExistingImages(Array.isArray(target.images) ? target.images : []);
         setApiCarryForward({
           rates: Array.isArray(target.rates) ? target.rates : [],
@@ -326,6 +335,43 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
     return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
   };
 
+  const addBlockedDate = () => {
+    if (!selectedBlockedDate) {
+      toast.error('Please select a date');
+      return;
+    }
+
+    const alreadyExists = apiCarryForward.unavailableDates.some(
+      (item: any) => item.date === selectedBlockedDate
+    );
+
+    if (alreadyExists) {
+      toast.error('This date is already in the list');
+      return;
+    }
+
+    setApiCarryForward((prev) => ({
+      ...prev,
+      unavailableDates: [
+        ...prev.unavailableDates,
+        { 
+          date: selectedBlockedDate, 
+          reason: specialPrice ? `Special Price: ₹${specialPrice}` : 'Blocked' 
+        },
+      ],
+    }));
+    setSelectedBlockedDate('');
+    setSpecialPrice('');
+    toast.success('Date rule added');
+  };
+
+  const removeBlockedDate = (date: string) => {
+    setApiCarryForward((prev) => ({
+      ...prev,
+      unavailableDates: prev.unavailableDates.filter((item: any) => item.date !== date),
+    }));
+  };
+
   const submitVenue = async (event: FormEvent) => {
     event.preventDefault();
     if (!form.termsAccepted) {
@@ -371,8 +417,17 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           )
         )
       );
-      payload.append('unavailableDates', JSON.stringify(apiCarryForward.unavailableDates));
+
+      // Clean unavailableDates to match expected backend format (date and reason only)
+      const cleanUnavailableDates = apiCarryForward.unavailableDates.map((item: any) => ({
+        date: item.date,
+        reason: item.reason || 'Blocked'
+      }));
+      payload.append('unavailableDates', JSON.stringify(cleanUnavailableDates));
+      
       payload.append('existingImages', JSON.stringify(existingImages));
+      payload.append('rating', String(rating));
+      payload.append('reviewsCount', String(reviewsCount));
 
       if (logoFile) {
         payload.append('logo', logoFile);
@@ -546,6 +601,102 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                     {item}
                   </label>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Date-Specific Rules (Calendar) */}
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="h-4 w-4 text-[#1abc60]" />
+              <h3 className="text-sm font-semibold text-gray-900">Date-Specific Pricing & Availability</h3>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-4">
+                <p className="text-xs text-gray-500">
+                  Select a date to set a special price or block it completely for bookings.
+                </p>
+                
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-gray-700 uppercase">Select Date</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-20" />
+                      <input 
+                        type="date" 
+                        min={new Date().toISOString().split('T')[0]}
+                        value={selectedBlockedDate}
+                        onChange={(e) => setSelectedBlockedDate(e.target.value)}
+                        className="!w-full !pl-10 !pr-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !relative !z-10"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-gray-700 uppercase">Custom Price (Optional)</label>
+                    <div className="relative">
+                      <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input 
+                        type="number"
+                        value={specialPrice}
+                        onChange={(e) => setSpecialPrice(e.target.value)}
+                        placeholder="e.g. 1500"
+                        className="!w-full !pl-9 !pr-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addBlockedDate}
+                  className="!flex !w-full !items-center !justify-center !gap-2 !rounded-lg !bg-[#1abc60] !px-4 !py-2.5 !text-sm !font-semibold !text-white hover:!bg-[#17a554] !transition-colors !cursor-pointer !border-none !shadow-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Date Rule
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Active Rules</h4>
+                <div className="bg-gray-50 rounded-xl border border-gray-200 min-h-[140px] max-h-[240px] overflow-y-auto">
+                  {apiCarryForward.unavailableDates.length > 0 ? (
+                    <div className="divide-y divide-gray-200">
+                      {apiCarryForward.unavailableDates.map((item: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between p-3 hover:bg-white transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
+                              <Calendar className="h-3.5 w-3.5 text-gray-500" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-gray-900">
+                                {new Date(item.date).toLocaleDateString('en-US', {
+                                  month: 'short', day: 'numeric', year: 'numeric'
+                                })}
+                              </p>
+                              <p className="text-[11px] text-gray-500">{item.reason}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeBlockedDate(item.date)}
+                            className="!p-1.5 !text-gray-400 hover:!text-red-500 hover:!bg-red-50 !rounded-lg !transition-colors !cursor-pointer !bg-transparent !border-none"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center mb-2 border border-gray-100 shadow-sm">
+                        <Info className="h-4 w-4 text-gray-300" />
+                      </div>
+                      <p className="text-[10px] font-medium text-gray-400">No special date rules added yet.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

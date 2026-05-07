@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
+import { useAuth } from '@/app/context/AuthContext';
 
 interface Booking {
   _id: string;
@@ -37,6 +38,7 @@ interface Booking {
 export default function CheckoutPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -48,12 +50,21 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState('upi');
 
   useEffect(() => {
-    fetchBooking();
-  }, [id]);
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        toast.error("Please login to access checkout");
+        router.push(`/login?redirect=/checkout/${id}`);
+      } else {
+        fetchBooking();
+      }
+    }
+  }, [id, isAuthenticated, authLoading]);
 
   const fetchBooking = async () => {
     try {
-      const res = await api.get(`/bookings/${id}`);
+      // Handle potential multiple IDs by taking the first one if the backend doesn't support bulk
+      const bookingId = String(id).split(',')[0];
+      const res = await api.get(`/bookings/${bookingId}`);
       if (res.data.success) {
         setBooking(res.data.booking);
       }

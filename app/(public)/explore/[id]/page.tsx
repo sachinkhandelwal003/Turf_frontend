@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/app/services/api";
 import { toast } from "sonner";
+import { useAuth } from "@/app/context/AuthContext";
 
 interface Turf {
   _id: string;
@@ -41,6 +42,7 @@ interface Turf {
 export default function TurfDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [turf, setTurf] = useState<Turf | null>(null);
   const [loading, setLoading] = useState(true);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -125,6 +127,14 @@ export default function TurfDetailsPage() {
   };
 
   const handleBooking = async () => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      toast.error("Please login to book a venue");
+      router.push(`/login?redirect=/explore/${id}`);
+      return;
+    }
+
     if (selectedSlots.length === 0 || selectedCourts.length === 0 || !turf) {
       if (selectedCourts.length === 0) toast.error("Please select at least one court");
       if (selectedSlots.length === 0) toast.error("Please select at least one time slot");
@@ -132,22 +142,22 @@ export default function TurfDetailsPage() {
     }
 
     try {
-      // Send the first slot to create the initial booking
-      // Note: We'll update the backend to handle multiple slots later, 
-      // but for now, we'll send them as a comma-separated string or an array if the backend supports it.
       const res = await api.post("/bookings", {
         turfId: turf._id,
         sport: selectedSport,
         date: selectedDate,
-        slots: selectedSlots, // Changed from slot: selectedSlot
-        courts: selectedCourts, // Added courts
-        price: turf.pricePerHour * selectedSlots.length * selectedCourts.length, // Total price
+        slots: selectedSlots,
+        courts: selectedCourts,
+        price: turf.pricePerHour * selectedSlots.length * selectedCourts.length,
       });
 
       if (res.data.success) {
         toast.success("Booking created successfully!");
         setShowBookingModal(false);
-        router.push("/profile");
+        const bookingIds = res.data.bookings?.map((b: any) => b._id) || [res.data.booking?._id];
+        if (bookingIds.length > 0) {
+          router.push(`/checkout/${bookingIds.join(',')}`);
+        }
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to create booking");

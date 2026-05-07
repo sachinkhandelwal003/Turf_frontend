@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { 
   Save, Loader2, Globe, Lock, Shield, 
   Image as ImageIcon, Apple, 
-  Check, Info, Upload
+  Check, Info
 } from "lucide-react";
 import { motion } from "framer-motion";
 import api from "@/app/services/api";
@@ -12,13 +12,59 @@ import { toast } from "sonner";
 import MediaUpload from "@/components/MediaUpload";
 import { useAuth } from "@/app/context/AuthContext";
 
+type SettingsTab = "general" | "hero" | "auth" | "security";
+
+interface UploadedFile {
+  id: string;
+  name: string;
+  url: string;
+  type: "image" | "video";
+  size: number;
+  originalFile?: File;
+}
+
+interface SettingsState {
+  frontendLogo: string;
+  backendLogo: string;
+  googleLogin: {
+    enabled: boolean;
+    clientId: string;
+    clientSecret: string;
+  };
+  appleLogin: {
+    enabled: boolean;
+    clientId: string;
+    teamId: string;
+    keyId: string;
+  };
+  siteName: string;
+  contactEmail: string;
+  maintenanceMode: boolean;
+  heroBanner: {
+    title: string;
+    subtitle: string;
+    image: string;
+  };
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      msg?: string;
+    };
+  };
+  message?: string;
+}
+
+const getApiError = (error: unknown) => error as ApiError;
+
 export default function AdminSettingsPage() {
   const { isSuperadmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"general" | "auth" | "security">("general");
+  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
 
-  const [settings, setSettings] = useState<any>({
+  const [settings, setSettings] = useState<SettingsState>({
     frontendLogo: "",
     backendLogo: "",
     googleLogin: {
@@ -43,9 +89,9 @@ export default function AdminSettingsPage() {
   });
 
   const [logoFiles, setLogoFiles] = useState<{
-    frontend?: any;
-    backend?: any;
-    hero?: any;
+    frontend?: UploadedFile | null;
+    backend?: UploadedFile | null;
+    hero?: UploadedFile | null;
   }>({});
 
   useEffect(() => {
@@ -58,8 +104,11 @@ export default function AdminSettingsPage() {
       if (res.data.success) {
         setSettings(res.data.settings);
       }
-    } catch (error) {
-      console.error("Failed to fetch settings");
+    } catch (error: unknown) {
+      const apiError = getApiError(error);
+      const message = apiError.response?.data?.msg || apiError.message || "Failed to fetch settings";
+      console.error("Failed to fetch settings:", message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -114,8 +163,9 @@ export default function AdminSettingsPage() {
         setSettings(res.data.settings);
         toast.success("Settings updated successfully");
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.msg || "Failed to save settings");
+    } catch (error: unknown) {
+      const apiError = getApiError(error);
+      toast.error(apiError.response?.data?.msg || "Failed to save settings");
     } finally {
       setIsSaving(false);
     }
@@ -140,16 +190,16 @@ export default function AdminSettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Sidebar Tabs */}
         <div className="lg:col-span-1 space-y-1.5">
-          {[
+          {([
             {id: "general", label: "Branding & General", icon: Globe },
             { id: "hero", label: "Hero Banner", icon: ImageIcon },
             { id: "auth", label: "Authentication", icon: Lock },
             { id: "security", label: "Security & Access", icon: Shield },
-          ].map((tab) => (
+          ] as const).map((tab) => (
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === tab.id 
                   ? "bg-green-50 text-[#1abc60] shadow-sm border border-green-100" 

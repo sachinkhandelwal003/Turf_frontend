@@ -1,7 +1,18 @@
 import axios from 'axios';
 
+const getApiUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.rkinteriorstudio.in/api';
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://localhost:5001/api';
+  }
+
+  return 'https://api.rkinteriorstudio.in/api';
+};
+
+const API_URL = getApiUrl();
 
 
 const api = axios.create({

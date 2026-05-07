@@ -111,19 +111,19 @@ export default function AdminDashboard() {
   const overviewData = useMemo(() => {
     if (!stats) return [];
     return [
-      { name: 'Users', total: stats.users.total },
-      { name: 'Venues', total: stats.turfs.total },
-      { name: 'Bookings', total: stats.bookings.total },
-      { name: 'Events', total: stats.tournaments.total },
+      { name: 'Users', total: stats.users?.total || 0 },
+      { name: 'Venues', total: stats.turfs?.total || 0 },
+      { name: 'Bookings', total: stats.bookings?.total || 0 },
+      { name: 'Events', total: stats.tournaments?.total || 0 },
     ];
   }, [stats]);
 
   const bookingStatusData = useMemo(() => {
     if (!stats) return [];
     return [
-      { name: 'Confirmed', value: stats.bookings.confirmed },
-      { name: 'Pending', value: stats.bookings.pending },
-      { name: 'Cancelled', value: stats.bookings.cancelled },
+      { name: 'Confirmed', value: stats.bookings?.confirmed || 0 },
+      { name: 'Pending', value: stats.bookings?.pending || 0 },
+      { name: 'Cancelled', value: stats.bookings?.cancelled || 0 },
     ];
   }, [stats]);
 

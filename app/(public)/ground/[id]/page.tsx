@@ -25,7 +25,7 @@ export default function VenueDetailsPage() {
 
   useEffect(() => {
     const fetchVenue = async () => {
-      if (!id) return;
+      if (!id || id === 'undefined' || id.length < 10) return;
       try {
         const res = await api.get(`/turfs/${id}`);
         if (res.data.success) {
@@ -67,7 +67,7 @@ export default function VenueDetailsPage() {
           setVenue(mappedVenue);
         }
       } catch (error) {
-        console.error("Failed to fetch venue details:", error);
+        console.warn("Failed to fetch venue details:", id);
       } finally {
         setLoading(false);
       }

@@ -3,7 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { 
   Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2,
-  Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash
+  Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash, Calendar, Trash2, Plus, Info
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -68,6 +68,8 @@ const fallbackSports = ['Football', 'Cricket', 'Tennis', 'Basketball'];
 const fallbackSurfaceOptions = ['Artificial Turf (A-Grade)', 'Hybrid Grass', 'Hard Court'];
 const fallbackAmenities = ['Floodlights', 'Changing Rooms', 'Shower', 'Parking', 'Water Station', 'Medical Kit'];
 
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 export default function VenueForm({ mode, turfId }: VenueFormProps) {
   const router = useRouter();
   const [form, setForm] = useState<FormShape>(defaultForm);
@@ -78,7 +80,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
   const [amenitiesOptions, setAmenitiesOptions] = useState<string[]>(fallbackAmenities);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [apiCarryForward, setApiCarryForward] = useState<ApiCarryForwardShape>({
-    rates: [],
+    rates: days.map(day => ({ day, price: 0, isPeak: false })),
     availableSlots: [],
     courts: [{ name: 'Court 1', courtType: 'Synthetic' }],
     unavailableDates: [],
@@ -86,9 +88,14 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [heroImage, setHeroImage] = useState<File | null>(null);
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
+  const [rating, setRating] = useState(0);
+  const [reviewsCount, setReviewsCount] = useState(0);
   const logoRef = useRef<HTMLInputElement | null>(null);
   const heroRef = useRef<HTMLInputElement | null>(null);
   const galleryRef = useRef<HTMLInputElement | null>(null);
+
+  const [selectedBlockedDate, setSelectedBlockedDate] = useState('');
+  const [specialPrice, setSpecialPrice] = useState('');
 
   useEffect(() => {
     const loadMasters = async () => {
@@ -164,6 +171,8 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           weekendClose: weekendHours?.close || '22:00',
           termsAccepted: true,
         });
+        setRating(target.rating || 0);
+        setReviewsCount(target.reviewsCount || 0);
         setExistingImages(Array.isArray(target.images) ? target.images : []);
         setApiCarryForward({
           rates: Array.isArray(target.rates) ? target.rates : [],
@@ -236,7 +245,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
               headers: {
                 'User-Agent': 'TurfApp/1.0',
               },
-            },
+            }
           );
           const reverseData = await reverseRes.json();
           
@@ -275,7 +284,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         }
         toast.error('Unable to fetch current location. Please try again.');
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -326,6 +335,43 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
     return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
   };
 
+  const addBlockedDate = () => {
+    if (!selectedBlockedDate) {
+      toast.error('Please select a date');
+      return;
+    }
+
+    const alreadyExists = apiCarryForward.unavailableDates.some(
+      (item: any) => item.date === selectedBlockedDate
+    );
+
+    if (alreadyExists) {
+      toast.error('This date is already in the list');
+      return;
+    }
+
+    setApiCarryForward((prev) => ({
+      ...prev,
+      unavailableDates: [
+        ...prev.unavailableDates,
+        { 
+          date: selectedBlockedDate, 
+          reason: specialPrice ? `Special Price: ₹${specialPrice}` : 'Blocked' 
+        },
+      ],
+    }));
+    setSelectedBlockedDate('');
+    setSpecialPrice('');
+    toast.success('Date rule added');
+  };
+
+  const removeBlockedDate = (date: string) => {
+    setApiCarryForward((prev) => ({
+      ...prev,
+      unavailableDates: prev.unavailableDates.filter((item: any) => item.date !== date),
+    }));
+  };
+
   const submitVenue = async (event: FormEvent) => {
     event.preventDefault();
     if (!form.termsAccepted) {
@@ -355,7 +401,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           landmark: form.landmark,
           postcode: form.postcode,
           mapUrl: form.mapUrl,
-        }),
+        })
       );
       payload.append('operatingHours', JSON.stringify(buildOperatingHours()));
       payload.append('availableSlots', JSON.stringify(apiCarryForward.availableSlots));
@@ -367,12 +413,21 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
             (court: any) => ({
               name: court.name || 'Court 1',
               courtType: court.courtType || court.type || form.surfaceType,
-            }),
-          ),
-        ),
+            })
+          )
+        )
       );
-      payload.append('unavailableDates', JSON.stringify(apiCarryForward.unavailableDates));
+
+      // Clean unavailableDates to match expected backend format (date and reason only)
+      const cleanUnavailableDates = apiCarryForward.unavailableDates.map((item: any) => ({
+        date: item.date,
+        reason: item.reason || 'Blocked'
+      }));
+      payload.append('unavailableDates', JSON.stringify(cleanUnavailableDates));
+      
       payload.append('existingImages', JSON.stringify(existingImages));
+      payload.append('rating', String(rating));
+      payload.append('reviewsCount', String(reviewsCount));
 
       if (logoFile) {
         payload.append('logo', logoFile);
@@ -391,7 +446,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         title: mode === 'edit' ? 'Venue Updated' : 'Venue Submitted',
         text: mode === 'edit' ? 'Your venue details were updated successfully.' : 'Your venue was submitted for review successfully.',
         icon: 'success',
-        confirmButtonColor: '#1ab35b',
+        confirmButtonColor: '#1abc60',
       });
       toast.success(mode === 'edit' ? 'Venue updated successfully.' : 'Venue submitted for review.');
       router.push('/admin/venues/list');
@@ -410,114 +465,138 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-[#1ab35b]" />
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1abc60]" />
       </div>
     );
   }
 
   return (
-    <form onSubmit={submitVenue} className="mx-auto w-full max-w-5xl space-y-6 text-[#2a2a2a]">
-      <div>
-        <h1 className="text-3xl font-bold leading-tight text-[#2f3337] md:text-4xl">{mode === 'edit' ? 'Edit Venue' : 'Add Venue'}</h1>
-        <p className="mt-1 text-sm text-[#6f757c] md:text-base">Manage your athlete credentials and contact information.</p>
+    <form onSubmit={submitVenue} className="mx-auto w-full max-w-5xl space-y-6 text-gray-800 p-4 sm:p-6 lg:p-8">
+      
+      {/* Page Header */}
+      <div className="border-b border-gray-200 pb-5 mb-2">
+        <h1 className="text-2xl font-bold text-gray-900 md:text-3xl tracking-tight">
+          {mode === 'edit' ? 'Edit Venue' : 'Add Venue'}
+        </h1>
+        <p className="mt-1.5 text-sm text-gray-500">
+          Provide detailed information about your facility to attract more bookings.
+        </p>
       </div>
 
-      <section className="space-y-4">
-        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">01 Venue Identity</h2>
-        <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
-          <div className="grid gap-4 md:grid-cols-2">
+      {/* Section 1: Venue Identity */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">1</span>
+          <h2 className="text-base font-semibold text-gray-900">Venue Identity</h2>
+        </div>
+        
+        <div className="p-6">
+          <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
-                VENUE NAME
+              <label className="text-sm font-medium text-gray-700">
+                Venue Name <span className="text-red-500">*</span>
               </label>
-              <div className="relative group flex items-center bg-[#eff1f0] border border-[#e6e8e7] rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus-within:border-[#1abc60] transition-all">
-                <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
-                  <Building className="w-5 h-5" />
-                </div>
-                <div className="w-px h-6 bg-gray-300/50" />
+              <div className="relative">
+                <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   value={form.name}
                   onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g. The Kinetic Arena South"
-                  className="flex-1 px-5 py-4 bg-transparent text-sm font-bold outline-none text-gray-700"
+                  className="!w-full !pl-9 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400"
+                  required
                 />
               </div>
             </div>
+            
             <div className="space-y-2">
-              <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
-                OFFICIAL BRAND LOGO
-              </p>
+              <label className="text-sm font-medium text-gray-700">Official Brand Logo</label>
               <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={onLogoSelected} />
-              <button type="button" onClick={() => logoRef.current?.click()} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#d6dad7] bg-[#f2f4f3] text-sm font-bold text-[#5f656b] hover:border-[#1abc60] hover:bg-white transition-all">
-                <Upload className="h-5 w-5" />
-                {logoFile ? logoFile.name : 'Select Logo'}
+              <button 
+                type="button" 
+                onClick={() => logoRef.current?.click()} 
+                className="!flex !w-full !items-center !justify-center !gap-2 !rounded-lg !border !border-dashed !border-gray-300 !bg-gray-50 !px-4 !py-2.5 !text-sm !font-medium !text-gray-600 hover:!border-[#1abc60] hover:!bg-green-50 hover:!text-[#1abc60] !transition-colors !cursor-pointer"
+              >
+                <Upload className="h-4 w-4" />
+                {logoFile ? logoFile.name : 'Upload Logo Image'}
               </button>
             </div>
           </div>
-          <div className="mt-4 space-y-2">
-            <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
-              VENUE DESCRIPTION
-            </label>
+          
+          <div className="mt-6 space-y-2">
+            <label className="text-sm font-medium text-gray-700">Venue Description</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder="Tell owners about your facility's history, vibe, and unique features..."
-              className="h-32 w-full rounded-2xl border border-[#e6e8e7] bg-[#eff1f0] px-5 py-4 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all resize-none"
+              placeholder="Tell customers about your facility's history, vibe, and unique features..."
+              className="!h-32 !w-full !rounded-lg !border !border-gray-300 !bg-white !p-3 !text-sm !text-gray-900 !outline-none focus:!border-[#1abc60] focus:!ring-2 focus:!ring-[#1abc60]/20 !transition-colors !resize-none placeholder:!text-gray-400"
             />
           </div>
         </div>
-      </section>
+      </div>
 
-      <section className="space-y-4">
-        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">02 Sports & Facilities</h2>
-        <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
-          <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">SUPPORTED SPORTS</p>
-          <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {sportsOptions.map((sport) => (
-              <button
-                key={sport}
-                type="button"
-                onClick={() => toggleListValue('sports', sport)}
-                className={`flex items-center gap-3 rounded-2xl border-2 px-5 py-3 text-xs font-black uppercase tracking-widest transition-all active:scale-95 ${
-                  form.sports.includes(sport)
-                    ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-lg shadow-green-100'
-                    : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200'
-                }`}
-              >
-                {sport}
-                {form.sports.includes(sport) && <CheckCircle2 className="h-4 w-4 fill-[#1abc60] text-white" />}
-              </button>
-            ))}
+      {/* Section 2: Sports & Facilities */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">2</span>
+          <h2 className="text-base font-semibold text-gray-900">Sports & Facilities</h2>
+        </div>
+        
+        <div className="p-6">
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-gray-700">Supported Sports</label>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {sportsOptions.map((sport) => (
+                <button
+                  key={sport}
+                  type="button"
+                  onClick={() => toggleListValue('sports', sport)}
+                  className={`!flex !items-center !justify-between !rounded-lg !border !px-4 !py-2.5 !text-sm !font-medium !transition-colors !cursor-pointer ${
+                    form.sports.includes(sport)
+                      ? '!border-[#1abc60] !bg-green-50 !text-[#1abc60]'
+                      : '!border-gray-200 !bg-white !text-gray-600 hover:!border-gray-300 hover:!bg-gray-50'
+                  }`}
+                >
+                  {sport}
+                  {form.sports.includes(sport) && <CheckCircle2 className="h-4 w-4" />}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="mt-5 grid gap-5 lg:grid-cols-2">
-            <div>
-              <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">SURFACE TYPE</p>
-              <div className="mt-3 space-y-2">
+          
+          <div className="mt-8 grid gap-8 lg:grid-cols-2">
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-gray-700">Surface Type</label>
+              <div className="space-y-2 rounded-lg border border-gray-200 p-4 bg-gray-50/50">
                 {surfaceOptions.map((surface) => (
-                  <label key={surface} className="flex h-12 items-center gap-3 rounded-md bg-[#eef0ef] px-3 text-sm text-[#34383c]">
+                  <label key={surface} className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
                     <input
                       type="radio"
                       checked={form.surfaceType === surface}
                       onChange={() => setForm((prev) => ({ ...prev, surfaceType: surface }))}
                       className="hidden"
                     />
-                    {form.surfaceType === surface ? <Circle className="h-4 w-4 fill-[#1ab35b] text-[#1ab35b]" /> : <Circle className="h-4 w-4 text-[#6c7379]" />}
+                    {form.surfaceType === surface ? (
+                      <Circle className="h-4 w-4 fill-[#1abc60] text-[#1abc60]" />
+                    ) : (
+                      <Circle className="h-4 w-4 text-gray-400" />
+                    )}
                     {surface}
                   </label>
                 ))}
               </div>
             </div>
-            <div>
-              <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f]">AMENITIES</p>
-              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-gray-700">Amenities</label>
+              <div className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-4 bg-gray-50/50 sm:grid-cols-2">
                 {amenitiesOptions.map((item) => (
-                  <label key={item} className="flex items-center gap-2 text-sm text-[#3a3f43]">
+                  <label key={item} className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
                     <input
                       type="checkbox"
                       checked={form.amenities.includes(item)}
                       onChange={() => toggleListValue('amenities', item)}
-                      className="h-4 w-4 rounded accent-[#1ab35b]"
+                      className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60] !cursor-pointer"
                     />
                     {item}
                   </label>
@@ -525,253 +604,404 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className="space-y-4">
-        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">03 Location Details</h2>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5 space-y-4">
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
-                STREET ADDRESS
-              </label>
-              <div className="relative group flex items-center bg-[#eff1f0] border border-[#e6e8e7] rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
-                <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
-                  <MapPin className="w-5 h-5" />
+          {/* Date-Specific Rules (Calendar) */}
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="h-4 w-4 text-[#1abc60]" />
+              <h3 className="text-sm font-semibold text-gray-900">Date-Specific Pricing & Availability</h3>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-4">
+                <p className="text-xs text-gray-500">
+                  Select a date to set a special price or block it completely for bookings.
+                </p>
+                
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-gray-700 uppercase">Select Date</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-20" />
+                      <input 
+                        type="date" 
+                        min={new Date().toISOString().split('T')[0]}
+                        value={selectedBlockedDate}
+                        onChange={(e) => setSelectedBlockedDate(e.target.value)}
+                        className="!w-full !pl-10 !pr-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !relative !z-10"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-gray-700 uppercase">Custom Price (Optional)</label>
+                    <div className="relative">
+                      <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input 
+                        type="number"
+                        value={specialPrice}
+                        onChange={(e) => setSpecialPrice(e.target.value)}
+                        placeholder="e.g. 1500"
+                        className="!w-full !pl-9 !pr-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="w-px h-6 bg-gray-300/50" />
+
+                <button
+                  type="button"
+                  onClick={addBlockedDate}
+                  className="!flex !w-full !items-center !justify-center !gap-2 !rounded-lg !bg-[#1abc60] !px-4 !py-2.5 !text-sm !font-semibold !text-white hover:!bg-[#17a554] !transition-colors !cursor-pointer !border-none !shadow-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Date Rule
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Active Rules</h4>
+                <div className="bg-gray-50 rounded-xl border border-gray-200 min-h-[140px] max-h-[240px] overflow-y-auto">
+                  {apiCarryForward.unavailableDates.length > 0 ? (
+                    <div className="divide-y divide-gray-200">
+                      {apiCarryForward.unavailableDates.map((item: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between p-3 hover:bg-white transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
+                              <Calendar className="h-3.5 w-3.5 text-gray-500" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-gray-900">
+                                {new Date(item.date).toLocaleDateString('en-US', {
+                                  month: 'short', day: 'numeric', year: 'numeric'
+                                })}
+                              </p>
+                              <p className="text-[11px] text-gray-500">{item.reason}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeBlockedDate(item.date)}
+                            className="!p-1.5 !text-gray-400 hover:!text-red-500 hover:!bg-red-50 !rounded-lg !transition-colors !cursor-pointer !bg-transparent !border-none"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center mb-2 border border-gray-100 shadow-sm">
+                        <Info className="h-4 w-4 text-gray-300" />
+                      </div>
+                      <p className="text-[10px] font-medium text-gray-400">No special date rules added yet.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 3: Location Details */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">3</span>
+          <h2 className="text-base font-semibold text-gray-900">Location Details</h2>
+        </div>
+        
+        <div className="p-6 grid gap-8 lg:grid-cols-2">
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Street Address <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input 
                   value={form.address} 
                   onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))} 
                   placeholder="Street Name, Area"
-                  className="flex-1 px-5 py-4 bg-transparent text-sm font-bold outline-none text-gray-700" 
+                  className="!w-full !pl-9 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400" 
+                  required
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
-                  CITY
-                </label>
+                <label className="text-sm font-medium text-gray-700">City <span className="text-red-500">*</span></label>
                 <input 
                   value={form.city} 
                   onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))} 
                   placeholder="City"
-                  className="h-14 w-full rounded-2xl border border-[#e6e8e7] bg-[#eff1f0] px-5 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all" 
+                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400" 
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
-                  LANDMARK
-                </label>
+                <label className="text-sm font-medium text-gray-700">Landmark</label>
                 <input 
                   value={form.landmark} 
                   onChange={(e) => setForm((prev) => ({ ...prev, landmark: e.target.value }))} 
                   placeholder="Nearby landmark"
-                  className="h-14 w-full rounded-2xl border border-[#e6e8e7] bg-[#eff1f0] px-5 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all" 
+                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400" 
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
-                POSTCODE
-              </label>
+              <label className="text-sm font-medium text-gray-700">Postcode</label>
               <input 
                 value={form.postcode} 
                 onChange={(e) => setForm((prev) => ({ ...prev, postcode: e.target.value }))} 
                 placeholder="PIN Code"
-                className="h-14 w-full rounded-2xl border border-[#e6e8e7] bg-[#eff1f0] px-5 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all" 
+                className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400" 
               />
             </div>
 
-            <button type="button" onClick={detectCurrentLocation} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#d7dbd8] bg-white text-sm font-bold text-[#3f4348] hover:bg-gray-50 transition-all shadow-sm">
-              <MapPin className="h-5 w-5 text-red-500" />
-              Detect Current Location
+            <button 
+              type="button" 
+              onClick={detectCurrentLocation} 
+              className="!flex !w-full !items-center !justify-center !gap-2 !rounded-lg !border !border-gray-300 !bg-white !px-4 !py-2.5 !text-sm !font-medium !text-gray-700 hover:!bg-gray-50 !transition-colors !shadow-sm !cursor-pointer"
+            >
+              <MapPin className="h-4 w-4 text-red-500" />
+              Auto-Detect Location
             </button>
 
-            <div className="space-y-2">
-              <label className="block text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
-                MAP LINK (OPTIONAL)
-              </label>
+            <div className="space-y-2 pt-4 border-t border-gray-100">
+              <label className="text-sm font-medium text-gray-700">Google Maps Link (Optional)</label>
               <input
                 value={form.mapUrl}
                 onChange={(e) => setForm((prev) => ({ ...prev, mapUrl: e.target.value }))}
-                placeholder="Paste Google Maps link"
-                className="h-14 w-full rounded-2xl border border-[#e6e8e7] bg-[#eff1f0] px-5 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all"
+                placeholder="Paste Google Maps URL"
+                className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400"
               />
+              {form.mapUrl && (
+                <a
+                  href={form.mapUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block text-xs font-medium text-[#1abc60] hover:underline mt-1"
+                >
+                  Verify Map Link
+                </a>
+              )}
             </div>
-            {form.mapUrl ? (
-              <a
-                href={form.mapUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-flex text-xs font-semibold text-[#1ab35b] underline"
-              >
-                Open map link
-              </a>
-            ) : null}
           </div>
-          <div className="overflow-hidden rounded-2xl border border-[#dde1df] bg-[#ecefee]">
+          
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-sm flex items-center justify-center min-h-[300px]">
             {effectiveMapPreviewUrl() ? (
               <iframe
                 title="Venue Map Preview"
                 src={effectiveMapPreviewUrl()}
-                className="h-[320px] w-full border-0"
+                className="h-[420px] w-full border-0"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               />
             ) : (
-              <div className="flex h-[320px] w-full items-center justify-center bg-[radial-gradient(circle_at_15%_20%,#dfe7e3_8%,transparent_8%),radial-gradient(circle_at_80%_35%,#d5dfda_8%,transparent_8%),linear-gradient(120deg,#dbe3df,#eff3f1)]">
-                <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-[#485057] shadow">
-                  <MapPin className="h-4 w-4 text-red-500" />
-                  Paste map link for preview
-                </div>
+              <div className="flex flex-col items-center justify-center text-gray-400 p-6 text-center">
+                <MapPin className="mb-2 h-8 w-8 text-gray-300" />
+                <p className="text-sm font-medium">Map preview will appear here</p>
+                <p className="text-xs mt-1">Enter an address or paste a Google Maps link</p>
               </div>
             )}
           </div>
         </div>
-      </section>
+      </div>
 
-      <section className="space-y-4">
-        <h2 className="inline-block border-b-4 border-[#1ab35b] pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">04 Pricing & Availability</h2>
-        <div className="rounded-2xl bg-[#f4f5f5] p-4 sm:p-5">
-          <div className="grid gap-4 md:grid-cols-2">
+      {/* Section 4: Pricing & Availability */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">4</span>
+          <h2 className="text-base font-semibold text-gray-900">Pricing & Hours</h2>
+        </div>
+        
+        <div className="p-6">
+          <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
-                BASE RATE (PER HOUR)
-              </label>
-              <div className="relative group flex items-center bg-[#eff1f0] border border-[#e6e8e7] rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
-                <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
-                  <IndianRupee className="w-5 h-5" />
-                </div>
-                <div className="w-px h-6 bg-gray-300/50" />
+              <label className="text-sm font-medium text-gray-700">Base Rate (Per Hour)</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input 
+                  type="number"
                   value={form.pricePerHour} 
                   onChange={(e) => setForm((prev) => ({ ...prev, pricePerHour: e.target.value }))} 
-                  placeholder="₹ 4500.00" 
-                  className="flex-1 px-5 py-4 bg-transparent text-sm font-bold outline-none text-gray-700" 
+                  placeholder="e.g. 1200" 
+                  className="!w-full !pl-9 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400" 
                 />
               </div>
-              <p className="mt-1 text-xs font-medium text-[#8d9399]">Average rate for similar venues in your area is ₹ 3500 - ₹ 5000.</p>
+              <p className="text-xs text-gray-500">Standard rate applied to regular slots.</p>
             </div>
             <div className="space-y-2">
-              <label className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">
-                PEAK HOUR SURCHARGE
-              </label>
-              <div className="relative group flex items-center bg-[#eff1f0] border border-[#e6e8e7] rounded-2xl focus-within:bg-white focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all">
-                <div className="pl-6 pr-3 text-gray-400 group-focus-within:text-[#1abc60]">
-                  <IndianRupee className="w-5 h-5" />
-                </div>
-                <div className="w-px h-6 bg-gray-300/50" />
+              <label className="text-sm font-medium text-gray-700">Peak Hour Surcharge</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input 
+                  type="number"
                   value={form.peakHourSurcharge} 
                   onChange={(e) => setForm((prev) => ({ ...prev, peakHourSurcharge: e.target.value }))} 
-                  placeholder="₹ 1500.00" 
-                  className="flex-1 px-5 py-4 bg-transparent text-sm font-bold outline-none text-gray-700" 
+                  placeholder="e.g. 300" 
+                  className="!w-full !pl-9 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400" 
                 />
               </div>
-              <p className="mt-1 text-xs font-medium text-[#8d9399]">Applied weekdays 6 PM - 10 PM.</p>
+              <p className="text-xs text-gray-500">Additional amount added during evening/weekend peak hours.</p>
             </div>
           </div>
-          <div className="mt-6">
-            <p className="text-[11px] font-bold tracking-[0.14em] text-[#3f3f3f] uppercase">OPERATING HOURS</p>
-            <div className="mt-4 space-y-4 text-sm">
-              <div className="grid gap-3 sm:grid-cols-[120px_1fr_20px_1fr] sm:items-center">
-                <span className="font-bold text-[#3a3f43] uppercase tracking-wider text-[11px]">Weekdays</span>
-                <input type="time" value={form.weekdayOpen} onChange={(e) => setForm((prev) => ({ ...prev, weekdayOpen: e.target.value }))} className="h-12 w-full rounded-xl border border-[#e6e8e7] bg-[#eff1f0] px-5 outline-none focus:bg-white focus:border-[#1abc60] transition-all font-bold" />
-                <span className="text-left text-xs font-black text-gray-400 sm:text-center">TO</span>
-                <input type="time" value={form.weekdayClose} onChange={(e) => setForm((prev) => ({ ...prev, weekdayClose: e.target.value }))} className="h-12 w-full rounded-xl border border-[#e6e8e7] bg-[#eff1f0] px-5 outline-none focus:bg-white focus:border-[#1abc60] transition-all font-bold" />
+          
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">Operating Hours</h3>
+            <div className="space-y-4 max-w-2xl">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <span className="w-24 text-sm font-medium text-gray-600">Weekdays</span>
+                <div className="flex items-center gap-2 flex-1">
+                  <input 
+                    type="time" 
+                    value={form.weekdayOpen} 
+                    onChange={(e) => setForm((prev) => ({ ...prev, weekdayOpen: e.target.value }))} 
+                    className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors" 
+                  />
+                  <span className="text-sm text-gray-400">to</span>
+                  <input 
+                    type="time" 
+                    value={form.weekdayClose} 
+                    onChange={(e) => setForm((prev) => ({ ...prev, weekdayClose: e.target.value }))} 
+                    className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors" 
+                  />
+                </div>
               </div>
-              <div className="grid gap-3 sm:grid-cols-[120px_1fr_20px_1fr] sm:items-center">
-                <span className="font-bold text-[#3a3f43] uppercase tracking-wider text-[11px]">Weekends</span>
-                <input type="time" value={form.weekendOpen} onChange={(e) => setForm((prev) => ({ ...prev, weekendOpen: e.target.value }))} className="h-12 w-full rounded-xl border border-[#e6e8e7] bg-[#eff1f0] px-5 outline-none focus:bg-white focus:border-[#1abc60] transition-all font-bold" />
-                <span className="text-left text-xs font-black text-gray-400 sm:text-center">TO</span>
-                <input type="time" value={form.weekendClose} onChange={(e) => setForm((prev) => ({ ...prev, weekendClose: e.target.value }))} className="h-12 w-full rounded-xl border border-[#e6e8e7] bg-[#eff1f0] px-5 outline-none focus:bg-white focus:border-[#1abc60] transition-all font-bold" />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <span className="w-24 text-sm font-medium text-gray-600">Weekends</span>
+                <div className="flex items-center gap-2 flex-1">
+                  <input 
+                    type="time" 
+                    value={form.weekendOpen} 
+                    onChange={(e) => setForm((prev) => ({ ...prev, weekendOpen: e.target.value }))} 
+                    className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors" 
+                  />
+                  <span className="text-sm text-gray-400">to</span>
+                  <input 
+                    type="time" 
+                    value={form.weekendClose} 
+                    onChange={(e) => setForm((prev) => ({ ...prev, weekendClose: e.target.value }))} 
+                    className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors" 
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section className="space-y-4">
-        <h2 className="inline-block border-b-4 border-gray-100 pb-1 text-2xl font-bold leading-none text-[#353a3f] md:text-3xl">05 Photo Gallery</h2>
-        <div className="space-y-3 rounded-2xl bg-white border border-gray-100 p-4 sm:p-5 shadow-sm">
-          <div className="grid gap-3 md:grid-cols-3">
-            <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={onHeroSelected} />
-            <button type="button" onClick={() => heroRef.current?.click()} className="col-span-2 flex h-56 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50/50 text-gray-400 overflow-hidden hover:border-[#1abc60] hover:bg-white transition-all group">
-              {heroImage ? (
-                <img src={URL.createObjectURL(heroImage)} alt="Hero" className="w-full h-full object-cover" />
-              ) : (
-                <>
-                  <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <Camera className="h-6 w-6 text-gray-300 group-hover:text-[#1abc60]" />
-                  </div>
-                  <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Upload Hero Image</span>
-                  <span className="text-[10px] font-bold text-gray-300 mt-1 uppercase tracking-tighter">Recommended: 1920x1080</span>
-                </>
-              )}
-            </button>
-            <div className="grid gap-3">
-              <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={onGallerySelected} />
-              <button type="button" onClick={() => galleryRef.current?.click()} className="flex h-[108px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50/50 text-gray-400 overflow-hidden hover:border-[#1abc60] hover:bg-white transition-all group">
-                {galleryImages.length > 0 ? (
-                  <div className="grid grid-cols-2 w-full h-full">
-                    {galleryImages.slice(0, 4).map((file, idx) => (
-                      <img key={idx} src={URL.createObjectURL(file)} alt="Gallery" className="w-full h-full object-cover" />
-                    ))}
-                  </div>
+      {/* Section 5: Photo Gallery */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">5</span>
+          <h2 className="text-base font-semibold text-gray-900">Photo Gallery</h2>
+        </div>
+        
+        <div className="p-6 space-y-6">
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Cover Image</label>
+              <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={onHeroSelected} />
+              <button 
+                type="button" 
+                onClick={() => heroRef.current?.click()} 
+                className="!flex !h-56 !w-full !flex-col !items-center !justify-center !rounded-lg !border-2 !border-dashed !border-gray-300 !bg-gray-50 !text-gray-500 hover:!border-[#1abc60] hover:!bg-green-50 !transition-colors !overflow-hidden !relative !cursor-pointer group"
+              >
+                {heroImage ? (
+                  <img src={URL.createObjectURL(heroImage)} alt="Hero" className="h-full w-full object-cover" />
                 ) : (
                   <>
-                    <ImagePlus className="h-6 w-6 text-gray-300 group-hover:text-[#1abc60]" />
-                    <span className="text-[10px] mt-2 font-bold uppercase tracking-widest text-gray-400">Add Gallery</span>
+                    <Camera className="mb-2 h-8 w-8 text-gray-400 group-hover:text-[#1abc60] transition-colors" />
+                    <span className="text-sm font-medium group-hover:text-[#1abc60] transition-colors">Click to upload cover photo</span>
+                    <span className="text-xs mt-1 text-gray-400">Recommended size: 1920x1080px</span>
                   </>
                 )}
               </button>
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{galleryImages.length} images</span>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">Gallery Images</label>
                 {galleryImages.length > 0 && (
-                  <button type="button" onClick={() => setGalleryImages([])} className="text-[10px] font-black text-red-400 hover:text-red-500 uppercase tracking-widest underline decoration-2 underline-offset-4">Clear</button>
+                  <button 
+                    type="button" 
+                    onClick={() => setGalleryImages([])} 
+                    className="text-xs text-red-500 hover:text-red-600 font-medium cursor-pointer bg-transparent border-none p-0 m-0"
+                  >
+                    Clear All
+                  </button>
                 )}
               </div>
+              <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={onGallerySelected} />
+              <button 
+                type="button" 
+                onClick={() => galleryRef.current?.click()} 
+                className="!flex !h-56 !w-full !flex-col !items-center !justify-center !rounded-lg !border-2 !border-dashed !border-gray-300 !bg-gray-50 !text-gray-500 hover:!border-[#1abc60] hover:!bg-green-50 !transition-colors !overflow-hidden !cursor-pointer group relative"
+              >
+                {galleryImages.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-1 w-full h-full p-1">
+                    {galleryImages.slice(0, 4).map((file, idx) => (
+                      <img key={idx} src={URL.createObjectURL(file)} alt="Gallery" className="h-full w-full object-cover rounded-sm" />
+                    ))}
+                    {galleryImages.length > 4 && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-sm font-medium">
+                        +{galleryImages.length - 4} more
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <ImagePlus className="mb-2 h-8 w-8 text-gray-400 group-hover:text-[#1abc60] transition-colors" />
+                    <span className="text-sm font-medium group-hover:text-[#1abc60] transition-colors">Add more photos</span>
+                    <span className="text-xs mt-1 text-gray-400">Up to 10 images</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
-          {(existingImages.length > 0 || galleryImages.length > 0 || heroImage) && (
-            <div className="rounded-md border border-[#d7dcda] bg-white px-3 py-2 text-xs text-[#5f666d]">
-              Existing: {existingImages.length} | New: {(heroImage ? 1 : 0) + galleryImages.length} / 10
-            </div>
-          )}
-          <div className="rounded-md bg-[#eceeed] px-3 py-2 text-xs text-[#7a8288]">
-            Professional photography can increase booking rates by up to 300%. Our "Kinetic Editorial" style favors wide-angle shots of empty arenas or high-intensity action shots during peak hours.
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg bg-blue-50 p-4 text-sm text-blue-700 border border-blue-100 gap-2">
+            <p>High-quality, well-lit photos can increase booking conversion rates significantly.</p>
+            {(existingImages.length > 0 || galleryImages.length > 0 || heroImage) && (
+              <span className="font-medium whitespace-nowrap bg-white px-2.5 py-1 rounded-md shadow-sm border border-blue-100 text-blue-800">
+                Selected: {(heroImage ? 1 : 0) + galleryImages.length}
+              </span>
+            )}
           </div>
         </div>
-      </section>
+      </div>
 
-      <div className="flex flex-col gap-4 border-t border-[#e1e4e2] pt-8 sm:flex-row sm:items-center sm:justify-between">
-        <label className="flex items-center gap-2 text-sm text-[#72787e]">
-          <input type="checkbox" checked={form.termsAccepted} onChange={(e) => setForm((prev) => ({ ...prev, termsAccepted: e.target.checked }))} className="h-4 w-4 accent-[#1ab35b]" />
-          I agree to the <span className="font-semibold text-[#1ab35b]">Venue Partner Agreement</span>
+      {/* Bottom Action Bar */}
+      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-4 z-40">
+        <label className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700 font-medium">
+          <input 
+            type="checkbox" 
+            checked={form.termsAccepted} 
+            onChange={(e) => setForm((prev) => ({ ...prev, termsAccepted: e.target.checked }))} 
+            className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60] !cursor-pointer" 
+          />
+          I agree to the <span className="text-[#1abc60] hover:underline">Venue Partner Agreement</span>
         </label>
+        
         <button
-          disabled={saving}
+          disabled={saving || !form.termsAccepted}
           type="submit"
-          className="group relative flex h-16 items-center justify-center overflow-hidden rounded-[24px] bg-[#1abc60] px-12 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-2xl shadow-green-200 transition-all hover:bg-[#16a085] hover:scale-105 active:scale-95 disabled:opacity-50"
+          className="!flex !w-full sm:!w-auto !items-center !justify-center !gap-2 !rounded-lg !bg-[#1abc60] !px-8 !py-3 !text-sm !font-semibold !text-white !transition-colors hover:!bg-[#17a554] disabled:!opacity-50 disabled:!cursor-not-allowed !shadow-sm !border-none"
         >
-          <span className="relative z-10 flex items-center gap-3">
-            {saving ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-5 w-5" />
-                {mode === 'edit' ? 'Update Venue Profile' : 'Publish Venue Profile'}
-              </>
-            )}
-          </span>
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="h-4 w-4" />
+              {mode === 'edit' ? 'Update Venue Profile' : 'Publish Venue Profile'}
+            </>
+          )}
         </button>
       </div>
     </form>

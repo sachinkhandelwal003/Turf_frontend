@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/app/services/api";
 import { toast } from "sonner";
+import { useAuth } from "@/app/context/AuthContext";
 
 interface Turf {
   _id: string;
@@ -41,6 +42,7 @@ interface Turf {
 export default function TurfDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [turf, setTurf] = useState<Turf | null>(null);
   const [loading, setLoading] = useState(true);
   const [showBookingModal, setShowBookingModal] = useState(false);

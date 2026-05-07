@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
-import { useAuth } from '@/app/context/AuthContext';
 
 // === NO STATIC DATA ===
 // Dynamic data is fetched from API
@@ -19,7 +18,6 @@ import { useAuth } from '@/app/context/AuthContext';
 export default function VenueDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const id = Array.isArray(params?.id) ? params.id[0] : (params?.id || ""); 
   
   const [venue, setVenue] = useState<any>(null);
@@ -91,32 +89,19 @@ export default function VenueDetailsPage() {
 
   useEffect(() => {
     const fetchAvailability = async () => {
-      // Validate ID format (basic check for MongoDB ObjectId length or existence)
-      if (!id || id === 'undefined' || id.length < 10) return;
-      if (!selectedDate) return;
-
+      if (!id || !selectedDate) return;
       setIsAvailabilityLoading(true);
       try {
-        const res = await api.get(`/bookings/check-availability`, {
-          params: { turfId: id, date: selectedDate },
-          // Add a timeout to prevent long hanging requests
-          timeout: 5000 
-        });
-        
-        if (res && res.data && res.data.success) {
+        const res = await api.get(`/bookings/check-availability?turfId=${id}&date=${selectedDate}`);
+        if (res.data.success) {
           setBookedSlots(res.data.bookedSlots || []);
-        } else {
-          setBookedSlots([]);
         }
-      } catch (error: any) {
-        // Silently handle error to prevent dev overlay crash
-        console.warn("Availability currently unavailable for:", id);
-        setBookedSlots([]); 
+      } catch (error) {
+        console.error("Failed to fetch availability:", error);
       } finally {
         setIsAvailabilityLoading(false);
       }
     };
-    
     fetchAvailability();
   }, [id, selectedDate]);
 
@@ -190,14 +175,6 @@ export default function VenueDetailsPage() {
   const currentCourts = getCourts();
 
   const handleBooking = async () => {
-    if (authLoading) return;
-    
-    if (!isAuthenticated) {
-      toast.error("Please login to book a venue");
-      router.push(`/login?redirect=/ground/${id}`);
-      return;
-    }
-
     if (!id || selectedTimes.length === 0 || selectedCourts.length === 0) {
       if (selectedCourts.length === 0) toast.error("Please select at least one court");
       if (selectedTimes.length === 0) toast.error("Please select at least one time slot");
@@ -220,7 +197,6 @@ export default function VenueDetailsPage() {
         // Navigate to checkout with all booking IDs joined by comma
         const bookingIds = res.data.bookings?.map((b: any) => b._id) || [res.data.booking?._id];
         if (bookingIds.length > 0) {
-          // Use the secure checkout path
           router.push(`/checkout/${bookingIds.join(',')}`);
         }
       }

@@ -78,9 +78,9 @@ export default function VenueListPage() {
         </div>
         <Link
           href="/admin/venues/add"
-          className="!inline-flex !items-center !justify-center !gap-2 !rounded-lg !bg-[#1abc60] !px-5 !py-2.5 !text-sm !font-medium !text-white hover:!bg-[#17a554] !transition-colors !shadow-sm !no-underline"
+          className="!inline-flex !items-center !justify-center !gap-2 !rounded-lg !bg-[#1abc60] !px-5 !py-2.5 !text-sm !font-semibold !text-white hover:!bg-[#17a554] !transition-colors !shadow-sm !no-underline"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="!w-4 !h-4 !block !shrink-0" />
           Add Venue
         </Link>
       </div>
@@ -89,7 +89,7 @@ export default function VenueListPage() {
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
         <div className="relative group flex items-center bg-gray-50 border border-gray-300 rounded-lg focus-within:bg-white focus-within:ring-2 focus-within:ring-[#1abc60]/20 focus-within:border-[#1abc60] transition-all">
           <div className="pl-4 pr-2 text-gray-400 group-focus-within:text-[#1abc60]">
-            <Search className="w-4 h-4" />
+            <Search className="w-4 h-4 !block !shrink-0" />
           </div>
           <input 
             type="text"
@@ -105,7 +105,7 @@ export default function VenueListPage() {
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-[#1abc60]" />
+            <Loader2 className="!h-8 !w-8 !block !shrink-0 animate-spin text-[#1abc60]" />
           </div>
         ) : (
           <>
@@ -121,7 +121,7 @@ export default function VenueListPage() {
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-500 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-200">
                 {filteredVenues.map((venue) => (
                   <tr key={venue._id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
@@ -151,34 +151,35 @@ export default function VenueListPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
+                        
                         <Link 
                           href={`/admin/venues/edit?id=${venue._id}`} 
-                          className="!inline-flex !items-center !justify-center !gap-1.5 !px-3 !py-1.5 !rounded-md !text-sm !font-medium !text-[#1abc60] hover:!bg-green-50 !bg-transparent !border !border-transparent hover:!border-green-100 !transition-colors !no-underline"
+                          className="!inline-flex !items-center !justify-center !gap-1.5 !px-4 !py-1.5 !bg-white !border !border-gray-300 !text-gray-700 !rounded-lg !text-sm !font-semibold hover:!bg-gray-50 hover:!text-[#1abc60] hover:!border-[#1abc60]/30 !transition-all !shadow-sm !no-underline"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
-                          Edit
+                          <Pencil className="!w-4 !h-4 !block !shrink-0 !opacity-100" />
+                          <span className="!block">Edit</span>
                         </Link>
                         
                         {user?.role === 'superadmin' && (
-                          <div className="flex items-center gap-1 border-l border-gray-200 pl-2">
+                          <div className="flex items-center gap-1.5 border-l border-gray-200 pl-3 ml-1">
                             {venue.status !== 'approved' && (
                               <button
                                 onClick={() => handleStatusUpdate(venue._id, 'approved')}
                                 disabled={actionLoading === venue._id}
-                                className="!inline-flex !items-center !justify-center !w-8 !h-8 !bg-green-50 !text-green-600 hover:!bg-green-100 !rounded-md !transition-colors !border-none !cursor-pointer disabled:!opacity-50"
+                                className="!inline-flex !items-center !justify-center !w-9 !h-9 !bg-white !border !border-green-200 !text-green-600 hover:!bg-green-50 !rounded-lg !transition-all !cursor-pointer disabled:!opacity-50 !shadow-sm"
                                 title="Approve Venue"
                               >
-                                {actionLoading === venue._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                {actionLoading === venue._id ? <Loader2 className="!w-4 !h-4 !block !shrink-0 animate-spin" /> : <Check className="!w-4 !h-4 !block !shrink-0 !opacity-100" />}
                               </button>
                             )}
                             {venue.status !== 'rejected' && (
                               <button
                                 onClick={() => handleStatusUpdate(venue._id, 'rejected')}
                                 disabled={actionLoading === venue._id}
-                                className="!inline-flex !items-center !justify-center !w-8 !h-8 !bg-red-50 !text-red-600 hover:!bg-red-100 !rounded-md !transition-colors !border-none !cursor-pointer disabled:!opacity-50"
+                                className="!inline-flex !items-center !justify-center !w-9 !h-9 !bg-white !border !border-red-200 !text-red-600 hover:!bg-red-50 !rounded-lg !transition-all !cursor-pointer disabled:!opacity-50 !shadow-sm"
                                 title="Reject Venue"
                               >
-                                {actionLoading === venue._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                                {actionLoading === venue._id ? <Loader2 className="!w-4 !h-4 !block !shrink-0 animate-spin" /> : <X className="!w-4 !h-4 !block !shrink-0 !opacity-100" />}
                               </button>
                             )}
                           </div>
@@ -198,7 +199,7 @@ export default function VenueListPage() {
             </table>
 
             {/* Mobile List View */}
-            <div className="divide-y divide-gray-100 md:hidden">
+            <div className="divide-y divide-gray-200 md:hidden">
               {filteredVenues.map((venue) => (
                 <div key={venue._id} className="p-4 hover:bg-gray-50/50 transition-colors">
                   <div className="flex items-start justify-between gap-3 mb-3">
@@ -233,35 +234,35 @@ export default function VenueListPage() {
                       <p className="text-sm font-bold text-gray-900">₹{venue.pricePerHour || 0} <span className="text-xs font-normal text-gray-500">/ hr</span></p>
                       <p className="text-xs text-gray-500 mt-0.5">{venue.sports?.join(', ') || '-'}</p>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       {user?.role === 'superadmin' && (
-                        <>
+                        <div className="flex items-center gap-1.5 mr-2 pr-3 border-r border-gray-200">
                           {venue.status !== 'approved' && (
                             <button
                               onClick={() => handleStatusUpdate(venue._id, 'approved')}
                               disabled={actionLoading === venue._id}
-                              className="!inline-flex !items-center !justify-center !w-8 !h-8 !bg-green-50 !text-green-600 hover:!bg-green-100 !rounded-md !transition-colors !border-none !cursor-pointer disabled:!opacity-50"
+                              className="!inline-flex !items-center !justify-center !w-8 !h-8 !bg-white !border !border-green-200 !text-green-600 hover:!bg-green-50 !rounded-lg !transition-all !cursor-pointer disabled:!opacity-50 !shadow-sm"
                             >
-                              {actionLoading === venue._id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                              {actionLoading === venue._id ? <Loader2 className="!w-4 !h-4 !block !shrink-0 animate-spin" /> : <Check className="!w-4 !h-4 !block !shrink-0 !opacity-100" />}
                             </button>
                           )}
                           {venue.status !== 'rejected' && (
                             <button
                               onClick={() => handleStatusUpdate(venue._id, 'rejected')}
                               disabled={actionLoading === venue._id}
-                              className="!inline-flex !items-center !justify-center !w-8 !h-8 !bg-red-50 !text-red-600 hover:!bg-red-100 !rounded-md !transition-colors !border-none !cursor-pointer disabled:!opacity-50"
+                              className="!inline-flex !items-center !justify-center !w-8 !h-8 !bg-white !border !border-red-200 !text-red-600 hover:!bg-red-50 !rounded-lg !transition-all !cursor-pointer disabled:!opacity-50 !shadow-sm"
                             >
-                              {actionLoading === venue._id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                              {actionLoading === venue._id ? <Loader2 className="!w-4 !h-4 !block !shrink-0 animate-spin" /> : <X className="!w-4 !h-4 !block !shrink-0 !opacity-100" />}
                             </button>
                           )}
-                        </>
+                        </div>
                       )}
                       <Link 
                         href={`/admin/venues/edit?id=${venue._id}`} 
-                        className="!inline-flex !items-center !justify-center !gap-1.5 !px-3 !py-1.5 !bg-gray-50 !text-gray-700 hover:!bg-gray-100 hover:!text-gray-900 !rounded-md !text-xs !font-medium !border !border-gray-200 !transition-colors !no-underline ml-1"
+                        className="!inline-flex !items-center !justify-center !gap-1.5 !px-3 !py-1.5 !bg-white !border !border-gray-300 !text-gray-700 !rounded-lg !text-xs !font-semibold hover:!bg-gray-50 hover:!text-[#1abc60] hover:!border-[#1abc60]/30 !transition-all !shadow-sm !no-underline"
                       >
-                        <Pencil className="h-3 w-3" />
-                        Edit
+                        <Pencil className="!w-3.5 !h-3.5 !block !shrink-0 !opacity-100" />
+                        <span className="!block">Edit</span>
                       </Link>
                     </div>
                   </div>
@@ -279,5 +280,3 @@ export default function VenueListPage() {
     </div>
   );
 }
-
-// uioesagfbweqoifghwuioeqh

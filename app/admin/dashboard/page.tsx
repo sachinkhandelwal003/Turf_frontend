@@ -3,17 +3,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Users, Shield, Activity, 
+  Users, Shield, 
   ArrowUpRight, Loader2, AlertCircle, RefreshCw,
-  MapPin, Clock, Calendar, Trophy, PieChart as PieChartIcon, BarChart3,
-  IndianRupee, TrendingUp, DollarSign
+  MapPin, Clock, Calendar, Trophy, BarChart3, PlusCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/app/services/api';
 import { useAuth } from '@/app/context/AuthContext';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  ResponsiveContainer, PieChart, Pie, Cell, Legend 
+  ResponsiveContainer 
 } from 'recharts';
 
 interface DashboardStats {
@@ -70,9 +69,6 @@ interface RecentTurf {
   createdAt: string;
 }
 
-// Chart Colors
-const STATUS_COLORS = ['#10b981', '#f59e0b', '#ef4444']; // Green, Amber, Red
-
 export default function AdminDashboard() {
   const { user: currentUser } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -124,15 +120,6 @@ export default function AdminDashboard() {
     ];
   }, [stats]);
 
-  const bookingStatusData = useMemo(() => {
-    if (!stats) return [];
-    return [
-      { name: 'Confirmed', value: stats.bookings?.confirmed || 0 },
-      { name: 'Pending', value: stats.bookings?.pending || 0 },
-      { name: 'Cancelled', value: stats.bookings?.cancelled || 0 },
-    ];
-  }, [stats]);
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh]">
@@ -179,11 +166,10 @@ export default function AdminDashboard() {
       </div>
 
       {/* --- REVENUE KPIs --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {[
-          { title: 'Total Revenue', value: stats.revenue?.total || 0, sub: 'Total earnings', icon: Activity, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100 hover:border-green-300' },
-          { title: 'Booking Revenue', value: stats.revenue?.bookings || 0, sub: 'From turf bookings', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100 hover:border-blue-300' },
           { title: 'Tournament Revenue', value: stats.revenue?.tournaments || 0, sub: 'From tournament entries', icon: Trophy, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100 hover:border-amber-300' },
+          { title: 'Booking Head Count', value: stats.bookings?.total || 0, sub: 'Total bookings placed', icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100 hover:border-purple-300', isCount: true },
         ].map((stat, i) => (
           <motion.div 
             key={i} 
@@ -197,7 +183,9 @@ export default function AdminDashboard() {
             </div>
             <div>
               <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{stat.title}</p>
-              <h3 className="text-2xl font-black text-gray-900 leading-none tracking-tight">₹{stat.value.toLocaleString()}</h3>
+              <h3 className="text-2xl font-black text-gray-900 leading-none tracking-tight">
+                {stat.isCount ? stat.value.toLocaleString() : `₹${stat.value.toLocaleString()}`}
+              </h3>
               <p className="text-[10px] text-gray-500 font-bold mt-2 uppercase tracking-tight opacity-0 group-hover:opacity-100 transition-opacity">{stat.sub}</p>
             </div>
           </motion.div>
@@ -205,11 +193,10 @@ export default function AdminDashboard() {
       </div>
 
       {/* --- TOP KPIs --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
         {[
           { title: 'Total Users', value: stats.users?.total || 0, sub: 'Registered Accounts', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'hover:border-blue-200' },
           { title: 'Total Venues', value: stats.turfs?.total || 0, sub: 'All listed turfs', icon: MapPin, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'hover:border-emerald-200' },
-          { title: 'Total Bookings', value: stats.bookings?.total || 0, sub: 'Bookings placed', icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50', border: 'hover:border-purple-200' },
           { title: 'Tournaments', value: stats.tournaments?.total || 0, sub: 'Active events', icon: Trophy, color: 'text-rose-600', bg: 'bg-rose-50', border: 'hover:border-rose-200' },
           { title: 'Pending Items', value: (stats.turfs?.pending || 0) + (stats.tournaments?.pending || 0), sub: 'Needs Review', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'hover:border-amber-200' },
           { title: 'System Roles', value: stats.roles || 0, sub: 'Defined RBAC Roles', icon: Shield, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'hover:border-indigo-200' },
@@ -236,14 +223,14 @@ export default function AdminDashboard() {
       </div>
 
       {/* --- CHARTS SECTION --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         
         {/* System Overview Bar Chart */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }} 
           animate={{ opacity: 1, y: 0 }} 
           transition={{ delay: 0.2 }} 
-          className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:col-span-2"
+          className="bg-white rounded-xl border border-gray-200 shadow-sm p-6"
         >
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-5 h-5 text-gray-500" />
@@ -264,46 +251,6 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </div>
         </motion.div>
-
-        {/* Bookings Status Donut Chart */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ delay: 0.3 }} 
-          className="bg-white rounded-xl border border-gray-200 shadow-sm p-6"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <PieChartIcon className="w-5 h-5 text-gray-500" />
-            <h2 className="text-base font-semibold text-gray-900">Booking Status</h2>
-          </div>
-          <p className="text-xs text-gray-500 mb-2">Current distribution of all bookings</p>
-          
-          <div className="w-full mt-4">
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={bookingStatusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {bookingStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
-                  ))}
-                </Pie>
-                <RechartsTooltip 
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ color: '#374151', fontSize: '14px', fontWeight: 500 }}
-                />
-                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
       </div>
 
       {/* --- RECENT ACTIVITY --- */}
@@ -318,20 +265,20 @@ export default function AdminDashboard() {
         >
           <div className="px-5 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
             <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-emerald-600" /> Recent Venues
+              <MapPin className="w-4 h-4 text-emerald-600" /> All Venues
             </h2>
             <Link href="/admin/venues/list" className="text-blue-600 text-xs font-semibold hover:text-blue-700 transition-colors">
-              View All
+              Manage
             </Link>
           </div>
-          <div className="divide-y divide-gray-100 flex-1">
+          <div className="divide-y divide-gray-100 flex-1 max-h-[600px] overflow-y-auto scrollbar-hide">
             {recentTurfs.length === 0 ? (
               <div className="px-6 py-8 text-center text-gray-500 text-sm">No venues found</div>
             ) : (
               recentTurfs.map((t) => (
                 <div key={t._id} className="px-5 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center overflow-hidden shrink-0 border border-emerald-100">
+                    <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center overflow-hidden shrink-0 border border-emerald-100">
                       {t.images && t.images.length > 0 ? (
                         <img src={getImageUrl(t.images[0])} alt={t.name} className="w-full h-full object-cover" />
                       ) : (
@@ -339,8 +286,16 @@ export default function AdminDashboard() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{t.name}</p>
-                      <p className="text-xs text-gray-500 truncate">Owner: {t.owner?.name || 'Unknown'}</p>
+                      <p className="text-sm font-bold text-gray-900 truncate">{t.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-gray-500 flex items-center gap-0.5">
+                          <MapPin className="w-2.5 h-2.5" /> {(t as any).location?.city || 'N/A'}
+                        </span>
+                        <span className="text-[10px] text-emerald-600 font-bold">
+                          ₹{(t as any).pricePerHour || 0}/hr
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-0.5 truncate">Owner: {t.owner?.name || 'Unknown'}</p>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1.5 shrink-0 ml-4">
@@ -350,7 +305,12 @@ export default function AdminDashboard() {
                     }`}>
                       {t.status}
                     </span>
-                    <p className="text-[10px] text-gray-400">{new Date(t.createdAt).toLocaleDateString()}</p>
+                    <Link
+                      href={`/admin/bookings?turfId=${t._id}&action=offline`}
+                      className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 mt-1 flex items-center gap-0.5"
+                    >
+                      <PlusCircle className="w-3 h-3" /> Book Offline
+                    </Link>
                   </div>
                 </div>
               ))
@@ -367,13 +327,13 @@ export default function AdminDashboard() {
         >
           <div className="px-5 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
             <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-              <Users className="w-4 h-4 text-blue-600" /> Recent Users
+              <Users className="w-4 h-4 text-blue-600" /> All Users
             </h2>
             <Link href="/admin/users" className="text-blue-600 text-xs font-semibold hover:text-blue-700 transition-colors">
-              View All
+              Manage
             </Link>
           </div>
-          <div className="divide-y divide-gray-100 flex-1">
+          <div className="divide-y divide-gray-100 flex-1 max-h-[600px] overflow-y-auto scrollbar-hide">
             {recentUsers.length === 0 ? (
               <div className="px-6 py-8 text-center text-gray-500 text-sm">No users found</div>
             ) : (
@@ -388,8 +348,9 @@ export default function AdminDashboard() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{u.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                      <p className="text-sm font-bold text-gray-900 truncate">{u.name}</p>
+                      <p className="text-[10px] text-gray-500 truncate">{u.email}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">Joined: {new Date(u.createdAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1.5 shrink-0 ml-4">
@@ -399,7 +360,6 @@ export default function AdminDashboard() {
                     }`}>
                       {u.role}
                     </span>
-                    <p className="text-[10px] text-gray-400">{new Date(u.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
               ))

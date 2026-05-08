@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Calendar, MapPin, Search, Loader2, 
   CheckCircle2, XCircle, Clock4, Filter, User as UserIcon,
-  ChevronLeft, ChevronRight, Hash
+  ChevronLeft, ChevronRight, Hash, Plus, X, Star, Save, Trash2,
+  Trophy, Settings
 } from 'lucide-react';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
@@ -45,7 +47,17 @@ interface Turf {
 }
 
 export default function AdminBookingsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" /></div>}>
+      <AdminBookingsContent />
+    </Suspense>
+  );
+}
+
+function AdminBookingsContent() {
   const { isSuperadmin, isLoading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,6 +74,108 @@ export default function AdminBookingsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalBookings, setTotalBookings] = useState(0);
   const itemsPerPage = 10;
+
+  // Offline Booking Modal States
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [offlineData, setOfflineData] = useState({
+    turfId: '',
+    sport: '',
+    date: new Date().toISOString().split('T')[0],
+    slots: [] as string[],
+    courts: [] as string[],
+    userName: '',
+    userPhone: '',
+    price: 0
+  });
+  const [bookedSlotsForOffline, setBookedSlotsForOffline] = useState<any[]>([]);
+  const [isCreatingOffline, setIsCreatingOffline] = useState(false);
+
+  useEffect(() => {
+    if (showOfflineModal && offlineData.turfId && offlineData.date) {
+      fetchAvailability(offlineData.turfId, offlineData.date);
+    }
+  }, [showOfflineModal, offlineData.turfId, offlineData.date]);
+
+  const fetchAvailability = async (turfId: string, date: string) => {
+    try {
+      const res = await api.get(`/bookings/check-availability?turfId=${turfId}&date=${date}`);
+      if (res.data.success) {
+        setBookedSlotsForOffline(res.data.bookedSlots || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch availability:", error);
+    }
+  };
+
+  const handleCreateOffline = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!offlineData.turfId || !offlineData.slots.length || !offlineData.courts.length) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    setIsCreatingOffline(true);
+    try {
+      const res = await api.post("/bookings", {
+        ...offlineData,
+        isOffline: true,
+        sport: offlineData.sport || 'General',
+        // Backend expects price for all slots/courts
+        price: offlineData.price || 0
+      });
+
+      if (res.data.success) {
+        toast.success("Offline booking recorded!");
+        setShowOfflineModal(false);
+        fetchBookings();
+        // Reset form
+        setOfflineData({
+          turfId: '',
+          sport: '',
+          date: new Date().toISOString().split('T')[0],
+          slots: [],
+          courts: [],
+          userName: '',
+          userPhone: '',
+          price: 0
+        });
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to create offline booking");
+    } finally {
+      setIsCreatingOffline(false);
+    }
+  };
+
+  const getTurfSlots = (turfId: string) => {
+    const turf = availableTurfs.find(t => t._id === turfId) as any;
+    return turf?.availableSlots || [];
+  };
+
+  const getTurfCourts = (turfId: string) => {
+    const turf = availableTurfs.find(t => t._id === turfId) as any;
+    return turf?.courts || [];
+  };
+
+  // Handle query params for offline booking
+  useEffect(() => {
+    const turfId = searchParams.get('turfId');
+    const action = searchParams.get('action');
+
+    if (action === 'offline' && turfId && availableTurfs.length > 0) {
+      const turf = availableTurfs.find(t => t._id === turfId) as any;
+      if (turf) {
+        setOfflineData(prev => ({
+          ...prev,
+          turfId: turfId,
+          sport: turf.sports?.[0] || ''
+        }));
+        setShowOfflineModal(true);
+        // Clear params without refresh
+        router.replace('/admin/bookings', { scroll: false });
+      }
+    }
+  }, [searchParams, availableTurfs, router]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -199,9 +313,17 @@ export default function AdminBookingsPage() {
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Manage Bookings</h1>
           <p className="text-gray-500 text-sm mt-1">Monitor and moderate venue reservations</p>
         </div>
-        <div className="bg-white px-5 py-3 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center min-w-[120px]">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total</p>
-          <p className="text-2xl font-semibold text-[#1abc60]">{totalBookings}</p>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setShowOfflineModal(true)}
+            className="flex items-center gap-2 bg-[#1abc60] text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-[#16a085] transition-all"
+          >
+            <Plus className="w-4 h-4" /> New Offline Booking
+          </button>
+          <div className="bg-white px-5 py-3 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center min-w-[120px]">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total</p>
+            <p className="text-2xl font-semibold text-[#1abc60]">{totalBookings}</p>
+          </div>
         </div>
       </div>
 
@@ -560,6 +682,179 @@ export default function AdminBookingsPage() {
           </div>
         </div>
       )}
+
+      {/* --- OFFLINE BOOKING MODAL --- */}
+      <AnimatePresence>
+        {showOfflineModal && (
+          <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white rounded-[40px] w-full max-w-2xl overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900">New Offline Booking</h2>
+                  <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Record a walk-in reservation</p>
+                </div>
+                <button onClick={() => setShowOfflineModal(false)} className="p-2 hover:bg-white rounded-2xl transition-colors shadow-sm"><X className="text-gray-400" /></button>
+              </div>
+
+              <form onSubmit={handleCreateOffline} className="p-8 space-y-8 max-h-[75vh] overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Turf Selection */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Select Venue</label>
+                    <select 
+                      required
+                      value={offlineData.turfId} 
+                      onChange={(e) => setOfflineData({...offlineData, turfId: e.target.value, slots: [], courts: []})}
+                      className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl font-bold text-sm outline-none focus:bg-white focus:border-[#1abc60] transition-all"
+                    >
+                      <option value="">Select a Venue</option>
+                      {availableTurfs.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Sport Selection */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Select Sport</label>
+                    <input 
+                      type="text"
+                      placeholder="e.g. Football"
+                      value={offlineData.sport}
+                      onChange={(e) => setOfflineData({...offlineData, sport: e.target.value})}
+                      className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl font-bold text-sm outline-none focus:bg-white focus:border-[#1abc60] transition-all"
+                    />
+                  </div>
+
+                  {/* Date Selection */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Date</label>
+                    <input 
+                      type="date"
+                      required
+                      value={offlineData.date}
+                      onChange={(e) => setOfflineData({...offlineData, date: e.target.value})}
+                      className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl font-bold text-sm outline-none focus:bg-white focus:border-[#1abc60] transition-all"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Total Price (₹)</label>
+                    <input 
+                      type="number"
+                      placeholder="0"
+                      value={offlineData.price}
+                      onChange={(e) => setOfflineData({...offlineData, price: Number(e.target.value)})}
+                      className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl font-bold text-sm outline-none focus:bg-white focus:border-[#1abc60] transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* User Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-50">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Customer Name</label>
+                    <input 
+                      type="text"
+                      placeholder="Walk-in Customer"
+                      value={offlineData.userName}
+                      onChange={(e) => setOfflineData({...offlineData, userName: e.target.value})}
+                      className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl font-bold text-sm outline-none focus:bg-white focus:border-[#1abc60] transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Phone Number</label>
+                    <input 
+                      type="text"
+                      placeholder="Optional"
+                      value={offlineData.userPhone}
+                      onChange={(e) => setOfflineData({...offlineData, userPhone: e.target.value})}
+                      className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl font-bold text-sm outline-none focus:bg-white focus:border-[#1abc60] transition-all"
+                    />
+                  </div>
+                </div>
+
+                {offlineData.turfId && (
+                  <>
+                    {/* Court Selection */}
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Select Courts</label>
+                      <div className="flex flex-wrap gap-3">
+                        {getTurfCourts(offlineData.turfId).map((court: any) => {
+                          const courtName = typeof court === 'string' ? court : (court.name || 'Court');
+                          const isSelected = offlineData.courts.includes(courtName);
+                          return (
+                            <button
+                              key={courtName}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) setOfflineData({...offlineData, courts: offlineData.courts.filter(c => c !== courtName)});
+                                else setOfflineData({...offlineData, courts: [...offlineData.courts, courtName]});
+                              }}
+                              className={`px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all ${isSelected ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100 hover:border-gray-200'}`}
+                            >
+                              {courtName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Slot Selection */}
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Available Time Slots</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {getTurfSlots(offlineData.turfId).map((slot: any) => {
+                          const timeVal = `${slot.startTime} - ${slot.endTime}`;
+                          const [start, end] = timeVal.split(" - ");
+                          
+                          // Check if fully booked
+                          const bookedCourts = bookedSlotsForOffline.filter(b => (start < b.endTime && end > b.startTime)).flatMap(b => b.courts);
+                          const isFullyBooked = bookedCourts.length >= (getTurfCourts(offlineData.turfId).length || 1);
+                          const isSelected = offlineData.slots.includes(timeVal);
+
+                          return (
+                            <button
+                              key={timeVal}
+                              type="button"
+                              disabled={isFullyBooked}
+                              onClick={() => {
+                                if (isSelected) setOfflineData({...offlineData, slots: offlineData.slots.filter(s => s !== timeVal)});
+                                else setOfflineData({...offlineData, slots: [...offlineData.slots, timeVal]});
+                              }}
+                              className={`p-3 rounded-xl border-2 font-bold text-sm transition-all ${
+                                isFullyBooked 
+                                  ? 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed' 
+                                  : isSelected 
+                                    ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-md shadow-green-50' 
+                                    : 'border-gray-50 text-gray-400 hover:border-gray-200'
+                              }`}
+                            >
+                              {timeVal}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="pt-4">
+                  <button 
+                    type="submit"
+                    disabled={isCreatingOffline || !offlineData.turfId || !offlineData.slots.length || !offlineData.courts.length}
+                    className="w-full bg-[#1abc60] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-green-100 hover:bg-[#16a085] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isCreatingOffline ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4" /> Confirm Offline Booking</>}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

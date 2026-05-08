@@ -5,7 +5,7 @@ import {
   Plus, Search, Edit2, Trash2, MapPin, IndianRupee, 
   Activity, Loader2, X, Check, Image as ImageIcon,
   Save, Filter, Calendar, Clock, Trophy, Settings,
-  ChevronRight, Globe, Layers, Zap, Info, List, LayoutGrid, ChevronLeft
+  ChevronRight, Globe, Layers, Zap, Info, List, LayoutGrid, ChevronLeft, PlusCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/app/services/api";
@@ -76,7 +76,7 @@ export default function AdminTurfPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingTurf, setEditingTurf] = useState<Turf | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"basic" | "location" | "availability" | "slots" | "pricing">("basic");
+  const [activeTab, setActiveTab] = useState<"basic" | "location" | "availability" | "slots" | "pricing" | "courts">("basic");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
   // Pagination State
@@ -91,15 +91,19 @@ export default function AdminTurfPage() {
     name: "",
     location: { address: "", city: "", landmark: "", mapUrl: "" },
     pricePerHour: 0,
+    peakHourSurcharge: 0,
+    surfaceType: "Natural Grass",
     rates: [],
     operatingHours: [],
     availableSlots: [],
     courts: [{ name: "Court 1", courtType: "Synthetic" }],
+    priceHikes: [],
     unavailableDates: [],
     sports: [],
     amenities: [],
     description: "",
     images: [],
+    logo: null,
     rating: 0,
     reviewsCount: 0
   } as any);
@@ -144,6 +148,8 @@ export default function AdminTurfPage() {
       data.append("name", formData.name);
       data.append("location", JSON.stringify(formData.location));
       data.append("pricePerHour", String(formData.pricePerHour));
+      data.append("peakHourSurcharge", String(formData.peakHourSurcharge || 0));
+      data.append("surfaceType", formData.surfaceType);
       data.append("sports", JSON.stringify(formData.sports));
       data.append("amenities", JSON.stringify(formData.amenities));
       data.append("description", formData.description);
@@ -151,6 +157,7 @@ export default function AdminTurfPage() {
       data.append("operatingHours", JSON.stringify(formData.operatingHours));
       data.append("availableSlots", JSON.stringify(formData.availableSlots));
       data.append("courts", JSON.stringify(formData.courts));
+      data.append("priceHikes", JSON.stringify(formData.priceHikes || []));
       data.append("unavailableDates", JSON.stringify(formData.unavailableDates));
       data.append("rating", String((formData as any).rating || 0));
       data.append("reviewsCount", String((formData as any).reviewsCount || 0));
@@ -171,6 +178,12 @@ export default function AdminTurfPage() {
           data.append("images", img.originalFile);
         }
       });
+
+      if (formData.logo && formData.logo.originalFile) {
+        data.append("logo", formData.logo.originalFile);
+      } else if (formData.logo && typeof formData.logo === 'string') {
+        data.append("logo", formData.logo);
+      }
 
       let res;
       if (editingTurf) {
@@ -211,15 +224,19 @@ export default function AdminTurfPage() {
       name: "",
       location: { address: "", city: "", landmark: "", mapUrl: "" },
       pricePerHour: 0,
+      peakHourSurcharge: 0,
+      surfaceType: "Natural Grass",
       rates: days.map(day => ({ day, price: 0, isPeak: false })),
       operatingHours: days.map(day => ({ day, open: "06:00", close: "22:00", isOpen: true })),
       availableSlots: [],
       courts: [{ name: "Court 1", courtType: "Synthetic" }],
+      priceHikes: [],
       unavailableDates: [],
       sports: [],
       amenities: [],
       description: "",
       images: [],
+      logo: null,
       rating: 0,
       reviewsCount: 0
     } as any);
@@ -238,15 +255,19 @@ export default function AdminTurfPage() {
         mapUrl: turf.location.mapUrl || "",
       },
       pricePerHour: turf.pricePerHour,
+      peakHourSurcharge: (turf as any).peakHourSurcharge || 0,
+      surfaceType: (turf as any).surfaceType || "Natural Grass",
       rates: turf.rates && turf.rates.length > 0 ? turf.rates : days.map(day => ({ day, price: turf.pricePerHour, isPeak: false })),
       operatingHours: turf.operatingHours || [],
       availableSlots: turf.availableSlots || [],
-      courts: turf.courts || [],
+      courts: turf.courts || [{ name: "Court 1", courtType: "Synthetic" }],
+      priceHikes: (turf as any).priceHikes || [],
       unavailableDates: turf.unavailableDates || [],
       sports: turf.sports || [],
       amenities: turf.amenities || [],
       description: turf.description || "",
       images: turf.images || [],
+      logo: (turf as any).logo || null,
       rating: (turf as any).rating || 0,
       reviewsCount: (turf as any).reviewsCount || 0
     } as any);
@@ -577,6 +598,13 @@ export default function AdminTurfPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
+                        <Link
+                          href={`/admin/bookings?turfId=${turf._id}&action=offline`}
+                          className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all"
+                          title="Book Offline"
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                        </Link>
                         <button 
                           onClick={() => handleEdit(turf)}
                           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all"
@@ -665,6 +693,7 @@ export default function AdminTurfPage() {
                       { id: "pricing", label: "Pricing & Rates", icon: IndianRupee },
                       { id: "availability", label: "Operating Hours", icon: Clock },
                       { id: "slots", label: "Booking Slots", icon: Calendar },
+                      { id: "courts", label: "Courts & Extras", icon: Settings },
                     ].map((tab) => (
                       <button
                         key={tab.id}
@@ -783,14 +812,27 @@ export default function AdminTurfPage() {
                             />
                           </div>
 
-                          <div className="space-y-1.5">
-                            <label className="block text-sm font-medium text-gray-700">Gallery</label>
-                            <div className="bg-gray-50 rounded-lg p-5 border border-dashed border-gray-300">
-                              <MediaUpload 
-                                initialFiles={editingTurf ? editingTurf.images : []}
-                                onFilesChange={(files) => setFormData({...formData, images: files})} 
-                                className="bg-transparent" 
-                              />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-1.5">
+                              <label className="block text-sm font-medium text-gray-700">Gallery</label>
+                              <div className="bg-gray-50 rounded-lg p-5 border border-dashed border-gray-300">
+                                <MediaUpload 
+                                  initialFiles={editingTurf ? editingTurf.images : []}
+                                  onFilesChange={(files) => setFormData({...formData, images: files})} 
+                                  className="bg-transparent" 
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="block text-sm font-medium text-gray-700">Venue Logo</label>
+                              <div className="bg-gray-50 rounded-lg p-5 border border-dashed border-gray-300">
+                                <MediaUpload 
+                                  maxFiles={1}
+                                  initialFiles={(formData as any).logo ? [(formData as any).logo] : []}
+                                  onFilesChange={(files) => setFormData({...formData, logo: files[0] || null})} 
+                                  className="bg-transparent" 
+                                />
+                              </div>
                             </div>
                           </div>
                         </motion.div>
@@ -822,7 +864,25 @@ export default function AdminTurfPage() {
 
                       {activeTab === "pricing" && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                           <div className="grid gap-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <div className="space-y-1.5">
+                              <label className="block text-sm font-medium text-gray-700">Peak Hour Surcharge (₹)</label>
+                              <input type="number" value={formData.peakHourSurcharge} onChange={e => setFormData({...formData, peakHourSurcharge: Number(e.target.value)})} className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] outline-none text-sm transition-all" placeholder="e.g. 200" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="block text-sm font-medium text-gray-700">Surface Type</label>
+                              <select value={formData.surfaceType} onChange={e => setFormData({...formData, surfaceType: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] outline-none text-sm transition-all">
+                                <option>Natural Grass</option>
+                                <option>Artificial Turf</option>
+                                <option>Synthetic</option>
+                                <option>Clay</option>
+                                <option>Hard Court</option>
+                              </select>
+                            </div>
+                          </div>
+                          
+                          <div className="grid gap-3">
+                            <h4 className="text-sm font-bold text-gray-900 mb-2">Day-wise Pricing</h4>
                             {formData.rates.map((rate: any, idx: number) => (
                               <div key={rate.day} className="flex items-center gap-4 p-3.5 rounded-lg border border-gray-200 bg-white shadow-sm">
                                 <span className="w-24 text-sm font-semibold text-gray-700">{rate.day}</span>
@@ -913,6 +973,140 @@ export default function AdminTurfPage() {
                                 </div>
                               </div>
                             ))}
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {activeTab === "courts" && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
+                          {/* Courts Section */}
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-sm font-bold text-gray-900">Available Courts</h4>
+                              <button type="button" onClick={() => setFormData((prev: any) => ({...prev, courts: [...prev.courts, { name: `Court ${prev.courts.length + 1}`, courtType: "Synthetic" }]}))} className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 hover:bg-gray-50 shadow-sm">
+                                <Plus className="w-3.5 h-3.5" /> Add Court
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {formData.courts.map((court: any, idx: number) => (
+                                <div key={idx} className="bg-gray-50 p-4 rounded-xl border border-gray-200 relative group">
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Court Name</label>
+                                      <input value={court.name} onChange={e => {
+                                        const newCourts = [...formData.courts];
+                                        newCourts[idx].name = e.target.value;
+                                        setFormData({...formData, courts: newCourts});
+                                      }} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm outline-none focus:border-[#1abc60]" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Type</label>
+                                      <select value={court.courtType} onChange={e => {
+                                        const newCourts = [...formData.courts];
+                                        newCourts[idx].courtType = e.target.value;
+                                        setFormData({...formData, courts: newCourts});
+                                      }} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm outline-none focus:border-[#1abc60]">
+                                        <option>Synthetic</option>
+                                        <option>Natural</option>
+                                        <option>Hard</option>
+                                        <option>Indoor</option>
+                                      </select>
+                                    </div>
+                                  </div>
+                                  <button type="button" onClick={() => setFormData((prev: any) => ({...prev, courts: prev.courts.filter((_: any, i: number) => i !== idx)}))} className="absolute -top-2 -right-2 p-1.5 bg-white border border-gray-200 text-gray-400 hover:text-red-500 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Price Hikes Section */}
+                          <div className="space-y-4 pt-6 border-t border-gray-100">
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-sm font-bold text-gray-900">Custom Price Hikes</h4>
+                              <button type="button" onClick={() => setFormData((prev: any) => ({...prev, priceHikes: [...prev.priceHikes, { day: "Monday", startTime: "18:00", endTime: "22:00", hikePercentage: 20 }]}))} className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 hover:bg-gray-50 shadow-sm">
+                                <Plus className="w-3.5 h-3.5" /> Add Hike
+                              </button>
+                            </div>
+                            <div className="space-y-3">
+                              {formData.priceHikes.map((hike: any, idx: number) => (
+                                <div key={idx} className="bg-orange-50/50 p-4 rounded-xl border border-orange-100 grid grid-cols-1 md:grid-cols-4 gap-4 relative group">
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Day</label>
+                                    <select value={hike.day} onChange={e => {
+                                      const newHikes = [...formData.priceHikes];
+                                      newHikes[idx].day = e.target.value;
+                                      setFormData({...formData, priceHikes: newHikes});
+                                    }} className="w-full px-3 py-2 bg-white border border-orange-200 rounded-md text-sm outline-none">
+                                      {days.map(d => <option key={d}>{d}</option>)}
+                                    </select>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Start Time</label>
+                                    <input type="time" value={hike.startTime} onChange={e => {
+                                      const newHikes = [...formData.priceHikes];
+                                      newHikes[idx].startTime = e.target.value;
+                                      setFormData({...formData, priceHikes: newHikes});
+                                    }} className="w-full px-3 py-2 bg-white border border-orange-200 rounded-md text-sm outline-none" />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-orange-400 uppercase tracking-widest">End Time</label>
+                                    <input type="time" value={hike.endTime} onChange={e => {
+                                      const newHikes = [...formData.priceHikes];
+                                      newHikes[idx].endTime = e.target.value;
+                                      setFormData({...formData, priceHikes: newHikes});
+                                    }} className="w-full px-3 py-2 bg-white border border-orange-200 rounded-md text-sm outline-none" />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Hike %</label>
+                                    <input type="number" value={hike.hikePercentage} onChange={e => {
+                                      const newHikes = [...formData.priceHikes];
+                                      newHikes[idx].hikePercentage = Number(e.target.value);
+                                      setFormData({...formData, priceHikes: newHikes});
+                                    }} className="w-full px-3 py-2 bg-white border border-orange-200 rounded-md text-sm outline-none" />
+                                  </div>
+                                  <button type="button" onClick={() => setFormData((prev: any) => ({...prev, priceHikes: prev.priceHikes.filter((_: any, i: number) => i !== idx)}))} className="absolute -top-2 -right-2 p-1.5 bg-white border border-orange-100 text-orange-300 hover:text-red-500 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Unavailable Dates Section */}
+                          <div className="space-y-4 pt-6 border-t border-gray-100">
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-sm font-bold text-gray-900">Closure Dates</h4>
+                              <button type="button" onClick={() => setFormData((prev: any) => ({...prev, unavailableDates: [...prev.unavailableDates, { date: new Date().toISOString().split('T')[0], reason: "Maintenance" }]}))} className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 hover:bg-gray-50 shadow-sm">
+                                <Plus className="w-3.5 h-3.5" /> Add Date
+                              </button>
+                            </div>
+                            <div className="space-y-3">
+                              {formData.unavailableDates.map((ud: any, idx: number) => (
+                                <div key={idx} className="bg-red-50/50 p-4 rounded-xl border border-red-100 grid grid-cols-1 md:grid-cols-2 gap-4 relative group">
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-red-400 uppercase tracking-widest">Date</label>
+                                    <input type="date" value={ud.date.split('T')[0]} onChange={e => {
+                                      const newDates = [...formData.unavailableDates];
+                                      newDates[idx].date = e.target.value;
+                                      setFormData({...formData, unavailableDates: newDates});
+                                    }} className="w-full px-3 py-2 bg-white border border-red-200 rounded-md text-sm outline-none" />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-red-400 uppercase tracking-widest">Reason</label>
+                                    <input value={ud.reason} onChange={e => {
+                                      const newDates = [...formData.unavailableDates];
+                                      newDates[idx].reason = e.target.value;
+                                      setFormData({...formData, unavailableDates: newDates});
+                                    }} className="w-full px-3 py-2 bg-white border border-red-200 rounded-md text-sm outline-none" placeholder="e.g. Renovation" />
+                                  </div>
+                                  <button type="button" onClick={() => setFormData((prev: any) => ({...prev, unavailableDates: prev.unavailableDates.filter((_: any, i: number) => i !== idx)}))} className="absolute -top-2 -right-2 p-1.5 bg-white border border-red-100 text-red-300 hover:text-red-500 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </motion.div>
                       )}

@@ -6,6 +6,7 @@ import { Search, Shield, User as UserIcon, Loader2, Check, AlertCircle, Save, X,
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 interface User {
   _id: string;
@@ -152,15 +153,36 @@ export default function AdminUsersPage() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-    try {
-      const res = await api.delete(`/auth/users/${userId}`);
-      if (res.data.success) {
-        setUsers(users.filter(u => u._id !== userId));
-        toast.success('User deleted successfully');
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This user account will be permanently deleted!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, delete it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await api.delete(`/auth/users/${userId}`);
+        if (res.data.success) {
+          setUsers(users.filter(u => u._id !== userId));
+          Swal.fire({
+            title: "Deleted!",
+            text: "User has been deleted.",
+            icon: "success",
+            confirmButtonColor: "#1abc60"
+          });
+        }
+      } catch (error: any) {
+        Swal.fire({
+          title: "Error!",
+          text: error.response?.data?.msg || "Failed to delete user",
+          icon: "error",
+          confirmButtonColor: "#1abc60"
+        });
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.msg || 'Failed to delete user');
     }
   };
 

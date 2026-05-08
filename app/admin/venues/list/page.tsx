@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Pencil, Plus, Check, X, Search, MapPin } from 'lucide-react';
+import { Loader2, Pencil, Plus, Check, X, Search, MapPin, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/app/services/api';
 import { useAuth } from '@/app/context/AuthContext';
+import Swal from 'sweetalert2';
 
 interface VenueItem {
   _id: string;
@@ -60,6 +61,40 @@ export default function VenueListPage() {
       toast.error(error.response?.data?.error || `Failed to update status`);
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This venue will be permanently deleted!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, delete it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await api.delete(`/turfs/${id}`);
+        if (res.data.success) {
+          setVenues(venues.filter(v => v._id !== id));
+          Swal.fire({
+            title: "Deleted!",
+            text: "Venue has been deleted.",
+            icon: "success",
+            confirmButtonColor: "#1abc60"
+          });
+        }
+      } catch (error: any) {
+        Swal.fire({
+          title: "Error!",
+          text: error.response?.data?.error || "Failed to delete venue",
+          icon: "error",
+          confirmButtonColor: "#1abc60"
+        });
+      }
     }
   };
 
@@ -182,6 +217,13 @@ export default function VenueListPage() {
                                 {actionLoading === venue._id ? <Loader2 className="!w-4 !h-4 !block !shrink-0 animate-spin" /> : <X className="!w-4 !h-4 !block !shrink-0 !opacity-100" />}
                               </button>
                             )}
+                            <button
+                              onClick={() => handleDelete(venue._id)}
+                              className="!inline-flex !items-center !justify-center !w-9 !h-9 !bg-white !border !border-gray-200 !text-gray-400 hover:!text-red-600 hover:!border-red-200 hover:!bg-red-50 !rounded-lg !transition-all !cursor-pointer !shadow-sm"
+                              title="Delete Venue"
+                            >
+                              <Trash2 className="!w-4 !h-4 !block !shrink-0 !opacity-100" />
+                            </button>
                           </div>
                         )}
                       </div>
@@ -255,6 +297,13 @@ export default function VenueListPage() {
                               {actionLoading === venue._id ? <Loader2 className="!w-4 !h-4 !block !shrink-0 animate-spin" /> : <X className="!w-4 !h-4 !block !shrink-0 !opacity-100" />}
                             </button>
                           )}
+                          <button
+                            onClick={() => handleDelete(venue._id)}
+                            className="!inline-flex !items-center !justify-center !w-8 !h-8 !bg-white !border !border-gray-200 !text-gray-400 hover:!text-red-600 hover:!border-red-200 hover:!bg-red-50 !rounded-lg !transition-all !cursor-pointer !shadow-sm"
+                            title="Delete Venue"
+                          >
+                            <Trash2 className="!w-4 !h-4 !block !shrink-0 !opacity-100" />
+                          </button>
                         </div>
                       )}
                       <Link 

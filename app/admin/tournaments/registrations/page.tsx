@@ -11,6 +11,7 @@ import {
   Download,
   Printer,
   X,
+  Trash2,
   Phone,
   Mail,
   MapPin,
@@ -24,6 +25,7 @@ import api from '@/app/services/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/context/AuthContext';
 import Image from 'next/image';
+import Swal from 'sweetalert2';
 
 interface Registration {
   _id: string;
@@ -99,6 +101,40 @@ export default function TournamentRegistrationsPage() {
       printWindow.print();
       printWindow.close();
     }, 500);
+  };
+
+  const handleDelete = async (tournamentId: string, registrationId: string) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This registration will be permanently deleted!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, delete it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await api.delete(`/tournaments/${tournamentId}/registrations/${registrationId}`);
+        if (res.data.success) {
+          setRegistrations(prev => prev.filter(reg => reg._id !== registrationId));
+          Swal.fire({
+            title: "Deleted!",
+            text: "Registration has been deleted.",
+            icon: "success",
+            confirmButtonColor: "#1abc60"
+          });
+        }
+      } catch (error: any) {
+        Swal.fire({
+          title: "Error!",
+          text: error.response?.data?.error || "Failed to delete registration",
+          icon: "error",
+          confirmButtonColor: "#1abc60"
+        });
+      }
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -212,9 +248,17 @@ export default function TournamentRegistrationsPage() {
                             setSelectedReg(reg);
                             setShowInvoice(true);
                           }}
-                          className="p-2 text-[#1abc60] hover:bg-[#1abc60]/10 rounded-lg transition-colors title='View Invoice'"
+                          className="p-2 text-[#1abc60] hover:bg-[#1abc60]/10 rounded-lg transition-colors"
+                          title="View Invoice"
                         >
                           <FileText className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(reg.tournamentId, reg._id)}
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Registration"
+                        >
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
                     </td>

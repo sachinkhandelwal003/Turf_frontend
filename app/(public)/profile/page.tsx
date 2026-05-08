@@ -7,7 +7,7 @@ import {
   Mail, Phone, Loader2, LogOut, 
   Calendar, MapPin, Clock, Camera, Settings, History, 
   CreditCard, ChevronRight, Activity, Bell, Award, CheckCircle2,
-  X, ExternalLink, Ticket, Star, Send
+  X, ExternalLink, Ticket, Star, Send, LayoutList, Trophy
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import api from '@/app/services/api';
@@ -16,7 +16,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface Booking {
   _id: string;
-  turf: {
+  type?: 'ground' | 'tournament'; // Added for filtering
+  turf?: {
     _id: string;
     name: string;
     location: {
@@ -24,6 +25,11 @@ interface Booking {
       address: string;
     };
     images: string[];
+  };
+  tournament?: {
+    _id: string;
+    title: string;
+    image?: string;
   };
   sport: string;
   date: string;
@@ -33,7 +39,7 @@ interface Booking {
   status: string;
   paymentStatus: string;
   bookingId: string;
-  courts: string[];
+  courts?: string[];
   createdAt: string;
   updatedAt: string;
   hasReviewed?: boolean;
@@ -66,7 +72,11 @@ export default function ProfilePage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [activeTab, setActiveTab] = useState<'bookings' | 'settings' | 'activity'>('bookings');
+  
+  // Filters
   const [bookingFilter, setBookingFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'ground' | 'tournament'>('all');
+
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [reviewModal, setReviewModal] = useState<{ open: boolean; booking: Booking | null }>({ open: false, booking: null });
   const [reviewRating, setReviewRating] = useState(0);
@@ -129,7 +139,6 @@ export default function ProfilePage() {
       if (res.data.success) {
         toast.dismiss(loadingToast);
         toast.success(`${type === 'profilePhoto' ? 'Profile' : 'Cover'} photo updated!`);
-        // Use context refresh instead of page reload
         await refreshUser();
       }
     } catch (error: unknown) {
@@ -240,14 +249,21 @@ export default function ProfilePage() {
     return booking.status;
   };
 
-  const filteredBookings = bookings;
+  const isTournamentBooking = (b: Booking) => b.type === 'tournament' || !!b.tournament;
+
+  // Apply frontend filters for booking type
+  const filteredBookings = bookings.filter(b => {
+    if (typeFilter === 'ground' && isTournamentBooking(b)) return false;
+    if (typeFilter === 'tournament' && !isTournamentBooking(b)) return false;
+    return true;
+  });
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
-          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest animate-pulse">Loading Profile</p>
+      <div className="!min-h-screen !flex !items-center !justify-center !bg-gray-50">
+        <div className="!flex !flex-col !items-center !gap-4">
+          <Loader2 className="!w-10 !h-10 !animate-spin !text-[#1abc60]" />
+          <p className="!text-sm !font-semibold !text-gray-500 !animate-pulse">Loading Profile...</p>
         </div>
       </div>
     );
@@ -264,219 +280,208 @@ export default function ProfilePage() {
   const getRecentActivities = (): ActivityItem[] => {
     const activities: ActivityItem[] = [];
 
-    // 1. Add Bookings Activities
     bookings.forEach(b => {
-      // Booking Created
+      const isTourn = isTournamentBooking(b);
+      const name = isTourn ? (b.tournament?.title || "Tournament") : (b.turf?.name || "Venue");
+
       activities.push({
-        icon: Ticket,
-        title: "Booking Initiated",
-        desc: `You booked ${b.turf.name} for ${b.sport}`,
+        icon: isTourn ? Trophy : Ticket,
+        title: isTourn ? "Tournament Registered" : "Booking Initiated",
+        desc: `You booked ${name} for ${b.sport}`,
         time: new Date(b.createdAt).toLocaleDateString(),
-        color: "text-blue-500",
+        color: "text-blue-600",
         bg: "bg-blue-50",
         timestamp: new Date(b.createdAt)
       });
 
-      // Payment Activity
       if (b.paymentStatus === 'paid') {
         activities.push({
           icon: CreditCard,
           title: "Payment Successful",
           desc: `Paid ₹${b.price} for booking #${b.bookingId.slice(-6)}`,
           time: new Date(b.updatedAt).toLocaleDateString(),
-          color: "text-[#1abc60]",
+          color: "text-emerald-600",
           bg: "bg-emerald-50",
           timestamp: new Date(b.updatedAt)
         });
       }
 
-      // Confirmation Activity
       if (b.status === 'confirmed') {
         activities.push({
           icon: Bell,
           title: "Booking Confirmed",
           desc: `Your slot at ${b.startTime} on ${b.date} is confirmed`,
           time: new Date(b.updatedAt).toLocaleDateString(),
-          color: "text-purple-500",
+          color: "text-purple-600",
           bg: "bg-purple-50",
           timestamp: new Date(b.updatedAt)
         });
       }
     });
 
-    // 2. Add Account Activity (Synthetic based on user data)
     if (user.createdAt) {
       activities.push({
         icon: Award,
         title: "Joined GameOn",
         desc: "Welcome to the elite community of sports enthusiasts!",
         time: new Date(user.createdAt).toLocaleDateString(),
-        color: "text-amber-500",
+        color: "text-amber-600",
         bg: "bg-amber-50",
         timestamp: new Date(user.createdAt)
       });
     }
 
-    // Sort by most recent
     return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 10);
   };
 
   const recentActivities = getRecentActivities();
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-20 pt-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="!min-h-screen !bg-gray-50 !pb-20 !pt-24 font-sans text-gray-900">
+      <div className="!max-w-6xl !mx-auto !px-4 sm:!px-6 lg:!px-8">
         
         {/* Hidden File Inputs */}
         <input type="file" ref={profileInputRef} className="hidden" onChange={(e) => handlePhotoUpload(e, 'profilePhoto')} accept="image/*" />
         <input type="file" ref={coverInputRef} className="hidden" onChange={(e) => handlePhotoUpload(e, 'coverPhoto')} accept="image/*" />
 
-        {/* Profile Header Card */}
-        <div className="bg-white rounded-[48px] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden relative mb-10">
-          <div className="h-48 bg-gradient-to-r from-[#1abc60] via-[#2ecc71] to-[#16a085] relative overflow-hidden">
-            {user.coverPhoto ? (
-              <img src={getImageUrl(user.coverPhoto)} className="w-full h-full object-cover" alt="Cover" />
-            ) : (
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2" />
-                <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-1/3 translate-y-1/3" />
-              </div>
+        {/* Profile Header Card - CLEAN UI */}
+        <div className="!bg-white !rounded-2xl !border !border-gray-200 !shadow-sm !overflow-hidden !relative !mb-8">
+          {/* Cover Photo */}
+          <div className="!h-48 sm:!h-56 !bg-gradient-to-r !from-[#1abc60] !to-[#16a085] !relative">
+            {user.coverPhoto && (
+              <img src={getImageUrl(user.coverPhoto)} className="!w-full !h-full !object-cover !opacity-80" alt="Cover" />
             )}
-            
             <button 
               onClick={() => coverInputRef.current?.click()}
-              className="absolute top-6 right-8 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white px-6 py-2.5 rounded-2xl flex items-center gap-2 transition-all font-bold text-sm border border-white/20"
+              className="!absolute !top-4 !right-4 !bg-black/40 hover:!bg-black/60 !backdrop-blur-sm !text-white !px-4 !py-2 !rounded-lg !flex !items-center !gap-2 !transition-all !text-xs !font-semibold !border !border-white/10 !cursor-pointer"
             >
-              <Camera className="w-4 h-4" /> Edit Cover
+              <Camera className="!w-4 !h-4" /> Edit Cover
             </button>
           </div>
 
-          <div className="px-10 pb-10">
-            <div className="flex flex-col md:flex-row items-end gap-8 -mt-16 relative z-10">
-              <div className="relative group">
-                <div className="bg-white p-2.5 rounded-[40px] shadow-2xl">
-                  <div className="w-40 h-40 rounded-[32px] bg-gray-100 flex items-center justify-center overflow-hidden border-4 border-white">
+          <div className="!px-6 sm:!px-10 !pb-8">
+            <div className="!flex !flex-col sm:!flex-row !items-center sm:!items-end !gap-6 !-mt-16 sm:!-mt-20 !relative !z-10">
+              
+              {/* Profile Avatar */}
+              <div className="!relative !group">
+                <div className="!w-32 !h-32 sm:!w-40 sm:!h-40 !rounded-full !bg-white !p-1.5 !shadow-md">
+                  <div className="!w-full !h-full !rounded-full !bg-gray-100 !flex !items-center !justify-center !overflow-hidden">
                     {user.profilePhoto ? (
-                      <img src={getImageUrl(user.profilePhoto)} className="w-full h-full object-cover" alt="Profile" />
+                      <img src={getImageUrl(user.profilePhoto)} className="!w-full !h-full !object-cover" alt="Profile" />
                     ) : (
                       <img 
                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} 
                         alt={user.name}
-                        className="w-full h-full object-cover"
+                        className="!w-full !h-full !object-cover"
                       />
                     )}
                   </div>
                 </div>
                 <button 
                   onClick={() => profileInputRef.current?.click()}
-                  className="absolute bottom-4 right-4 bg-[#1abc60] text-white p-3 rounded-2xl shadow-xl hover:scale-110 transition-transform border-4 border-white"
+                  className="!absolute !bottom-2 !right-2 !bg-[#1abc60] !text-white !p-2.5 !rounded-full !shadow-lg hover:!scale-105 !transition-transform !border-2 !border-white !cursor-pointer"
                 >
-                  <Camera className="w-4 h-4" />
+                  <Camera className="!w-4 !h-4" />
                 </button>
               </div>
 
-              <div className="flex-1 pb-4 text-center md:text-left">
-                <div className="flex flex-col md:flex-row md:items-center gap-4 mb-2">
-                  <h1 className="text-4xl font-black text-gray-900 tracking-tight uppercase">{user.name}</h1>
-                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-50 text-[#1abc60] rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-                    <Award className="w-3.5 h-3.5" /> Elite Member
+              {/* User Info */}
+              <div className="!flex-1 !text-center sm:!text-left !pb-2">
+                <div className="!flex !flex-col sm:!flex-row sm:!items-center !gap-3 !mb-2">
+                  <h1 className="!text-3xl !font-bold !text-gray-900 !tracking-tight !m-0">{user.name}</h1>
+                  <span className="!inline-flex !items-center !justify-center !gap-1.5 !px-3 !py-1 !bg-emerald-50 !text-[#1abc60] !rounded-md !text-xs !font-semibold !border !border-emerald-100">
+                    <Award className="!w-3.5 !h-3.5" /> Elite Member
                   </span>
                 </div>
-                <div className="flex flex-wrap justify-center md:justify-start gap-6">
-                  <div className="flex items-center gap-2 text-gray-500 font-bold text-sm">
-                    <Mail className="w-4 h-4 text-[#1abc60]" /> {user.email}
+                <div className="!flex !flex-wrap !justify-center sm:!justify-start !gap-4 !text-sm !font-medium !text-gray-500">
+                  <div className="!flex !items-center !gap-1.5">
+                    <Mail className="!w-4 !h-4 !text-gray-400" /> {user.email}
                   </div>
-                  <div className="flex items-center gap-2 text-gray-500 font-bold text-sm">
-                    <Phone className="w-4 h-4 text-[#1abc60]" /> {user.phone || '+91 98765 43210'}
+                  <div className="!flex !items-center !gap-1.5">
+                    <Phone className="!w-4 !h-4 !text-gray-400" /> {user.phone || '+91 98765 43210'}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 pb-4">
+              {/* Action Buttons */}
+              <div className="!flex !items-center !gap-3 !pb-2 !w-full sm:!w-auto !justify-center">
                 <button 
                   onClick={() => setActiveTab('settings')}
-                  className="p-4 bg-gray-50 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-3xl transition-all"
+                  className="!p-2.5 !bg-white !border !border-gray-200 !text-gray-600 hover:!text-gray-900 hover:!bg-gray-50 !rounded-lg !transition-colors !shadow-sm !cursor-pointer"
+                  title="Settings"
                 >
-                  <Settings className="w-6 h-6" />
+                  <Settings className="!w-5 !h-5" />
                 </button>
                 <button 
                   onClick={logout}
-                  className="px-8 py-4 bg-red-50 text-red-600 rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-red-100 transition-all flex items-center gap-3"
+                  className="!px-4 !py-2.5 !bg-red-50 !text-red-600 !border !border-red-100 !rounded-lg !font-semibold !text-sm hover:!bg-red-100 !transition-colors !flex !items-center !gap-2 !cursor-pointer"
                 >
-                  <LogOut className="w-5 h-5" /> Logout
+                  <LogOut className="!w-4 !h-4" /> Logout
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="!grid !grid-cols-1 lg:!grid-cols-12 !gap-8">
           
           {/* Left Sidebar: Navigation & Stats */}
-          <div className="lg:col-span-4 space-y-10">
+          <div className="lg:!col-span-4 !space-y-6">
+            
             {/* Custom Tabs */}
-            <div className="bg-white p-4 rounded-[40px] shadow-sm border border-gray-100 space-y-2">
+            <div className="!bg-white !p-2 !rounded-xl !shadow-sm !border !border-gray-200 !space-y-1">
               <button 
                 onClick={() => setActiveTab('bookings')}
-                className={`w-full flex items-center justify-between p-5 rounded-[30px] transition-all group ${activeTab === 'bookings' ? 'bg-[#1abc60] text-white shadow-lg shadow-green-100' : 'hover:bg-gray-50 text-gray-500'}`}
+                className={`!w-full !flex !items-center !justify-between !px-4 !py-3 !rounded-lg !transition-all !group !cursor-pointer !border-none ${activeTab === 'bookings' ? '!bg-[#1abc60] !text-white !shadow-sm' : 'hover:!bg-gray-50 !text-gray-600 !bg-transparent'}`}
               >
-                <div className="flex items-center gap-4">
-                  <History className={`w-5 h-5 ${activeTab === 'bookings' ? 'text-white' : 'text-gray-400 group-hover:text-[#1abc60]'}`} />
-                  <span className="font-black uppercase tracking-widest text-xs">My Bookings</span>
+                <div className="!flex !items-center !gap-3">
+                  <History className={`!w-4 !h-4 ${activeTab === 'bookings' ? '!text-white' : '!text-gray-400 group-hover:!text-[#1abc60]'}`} />
+                  <span className="!font-semibold !text-sm">My Bookings</span>
                 </div>
-                <ChevronRight className={`w-4 h-4 ${activeTab === 'bookings' ? 'text-white' : 'text-gray-300'}`} />
+                <ChevronRight className={`!w-4 !h-4 ${activeTab === 'bookings' ? '!text-white' : '!text-gray-400'}`} />
               </button>
               
               <button 
                 onClick={() => setActiveTab('activity')}
-                className={`w-full flex items-center justify-between p-5 rounded-[30px] transition-all group ${activeTab === 'activity' ? 'bg-[#1abc60] text-white shadow-lg shadow-green-100' : 'hover:bg-gray-50 text-gray-500'}`}
+                className={`!w-full !flex !items-center !justify-between !px-4 !py-3 !rounded-lg !transition-all !group !cursor-pointer !border-none ${activeTab === 'activity' ? '!bg-[#1abc60] !text-white !shadow-sm' : 'hover:!bg-gray-50 !text-gray-600 !bg-transparent'}`}
               >
-                <div className="flex items-center gap-4">
-                  <Activity className={`w-5 h-5 ${activeTab === 'activity' ? 'text-white' : 'text-gray-400 group-hover:text-[#1abc60]'}`} />
-                  <span className="font-black uppercase tracking-widest text-xs">Recent Activity</span>
+                <div className="!flex !items-center !gap-3">
+                  <Activity className={`!w-4 !h-4 ${activeTab === 'activity' ? '!text-white' : '!text-gray-400 group-hover:!text-[#1abc60]'}`} />
+                  <span className="!font-semibold !text-sm">Recent Activity</span>
                 </div>
-                <ChevronRight className={`w-4 h-4 ${activeTab === 'activity' ? 'text-white' : 'text-gray-300'}`} />
+                <ChevronRight className={`!w-4 !h-4 ${activeTab === 'activity' ? '!text-white' : '!text-gray-400'}`} />
               </button>
 
               <button 
                 onClick={() => setActiveTab('settings')}
-                className={`w-full flex items-center justify-between p-5 rounded-[30px] transition-all group ${activeTab === 'settings' ? 'bg-[#1abc60] text-white shadow-lg shadow-green-100' : 'hover:bg-gray-50 text-gray-500'}`}
+                className={`!w-full !flex !items-center !justify-between !px-4 !py-3 !rounded-lg !transition-all !group !cursor-pointer !border-none ${activeTab === 'settings' ? '!bg-[#1abc60] !text-white !shadow-sm' : 'hover:!bg-gray-50 !text-gray-600 !bg-transparent'}`}
               >
-                <div className="flex items-center gap-4">
-                  <Settings className={`w-5 h-5 ${activeTab === 'settings' ? 'text-white' : 'text-gray-400 group-hover:text-[#1abc60]'}`} />
-                  <span className="font-black uppercase tracking-widest text-xs">Account Settings</span>
+                <div className="!flex !items-center !gap-3">
+                  <Settings className={`!w-4 !h-4 ${activeTab === 'settings' ? '!text-white' : '!text-gray-400 group-hover:!text-[#1abc60]'}`} />
+                  <span className="!font-semibold !text-sm">Account Settings</span>
                 </div>
-                <ChevronRight className={`w-4 h-4 ${activeTab === 'settings' ? 'text-white' : 'text-gray-300'}`} />
+                <ChevronRight className={`!w-4 !h-4 ${activeTab === 'settings' ? '!text-white' : '!text-gray-400'}`} />
               </button>
             </div>
 
             {/* Quick Stats */}
-            <div className="bg-white p-10 rounded-[48px] shadow-sm border border-gray-100 space-y-8">
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Quick Stats</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <p className="text-3xl font-black text-gray-900">{bookings.length}</p>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Bookings</p>
+            <div className="!bg-white !p-6 !rounded-xl !shadow-sm !border !border-gray-200 !space-y-6">
+              <h3 className="!text-sm !font-bold !text-gray-900 !uppercase !tracking-wider">Quick Stats</h3>
+              <div className="!grid !grid-cols-2 !gap-4">
+                <div className="!p-4 !bg-gray-50 !rounded-lg !border !border-gray-100">
+                  <p className="!text-2xl !font-bold !text-gray-900 !mb-1">{bookings.length}</p>
+                  <p className="!text-xs !font-semibold !text-gray-500 !uppercase">Total Bookings</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-3xl font-black text-[#1abc60]">₹{bookings.reduce((sum, b) => sum + b.price, 0)}</p>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Spent</p>
-                </div>
-              </div>
-              <div className="pt-8 border-t border-gray-50 flex items-center gap-4">
-                <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500">
-                  <Award className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Rank</p>
-                  <p className="text-sm font-black text-gray-900 uppercase">Top 5% Player</p>
+                <div className="!p-4 !bg-emerald-50 !rounded-lg !border !border-emerald-100">
+                  <p className="!text-2xl !font-bold !text-[#1abc60] !mb-1">₹{bookings.reduce((sum, b) => sum + b.price, 0)}</p>
+                  <p className="!text-xs !font-semibold !text-emerald-700 !uppercase">Total Spent</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Main Content Area */}
-          <div className="lg:col-span-8">
+          <div className="lg:!col-span-8">
             <AnimatePresence mode="wait">
               {activeTab === 'bookings' && (
                 <motion.div
@@ -484,149 +489,198 @@ export default function ProfilePage() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-8"
+                  className="!space-y-6"
                 >
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-black text-gray-900 uppercase tracking-wider">My Booking History</h2>
-                    <div className="flex gap-2 p-1.5 bg-gray-100/50 rounded-2xl border border-gray-100">
+                  <div className="!flex !flex-col sm:!flex-row sm:!items-center !justify-between !gap-4">
+                    <h2 className="!text-xl !font-bold !text-gray-900">My Booking History</h2>
+                    
+                    {/* Status Filters */}
+                    <div className="!flex !gap-2 !p-1 !bg-gray-100 !rounded-lg !border !border-gray-200 !overflow-x-auto !custom-scrollbar">
                       <button 
                         onClick={() => setBookingFilter('all')}
-                        className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${bookingFilter === 'all' ? 'bg-[#1abc60] text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`!px-3 !py-1.5 !rounded-md !text-xs !font-semibold !transition-all !whitespace-nowrap !border-none !cursor-pointer ${bookingFilter === 'all' ? '!bg-white !text-gray-900 !shadow-sm' : '!text-gray-500 hover:!text-gray-700 !bg-transparent'}`}
                       >
                         All
                       </button>
                       <button 
                         onClick={() => setBookingFilter('upcoming')}
-                        className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${bookingFilter === 'upcoming' ? 'bg-[#1abc60] text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`!px-3 !py-1.5 !rounded-md !text-xs !font-semibold !transition-all !whitespace-nowrap !border-none !cursor-pointer ${bookingFilter === 'upcoming' ? '!bg-white !text-gray-900 !shadow-sm' : '!text-gray-500 hover:!text-gray-700 !bg-transparent'}`}
                       >
                         Upcoming
                       </button>
                       <button 
                         onClick={() => setBookingFilter('completed')}
-                        className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${bookingFilter === 'completed' ? 'bg-[#1abc60] text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`!px-3 !py-1.5 !rounded-md !text-xs !font-semibold !transition-all !whitespace-nowrap !border-none !cursor-pointer ${bookingFilter === 'completed' ? '!bg-white !text-gray-900 !shadow-sm' : '!text-gray-500 hover:!text-gray-700 !bg-transparent'}`}
                       >
                         Completed
                       </button>
                       <button 
                         onClick={() => setBookingFilter('cancelled')}
-                        className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${bookingFilter === 'cancelled' ? 'bg-[#1abc60] text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`!px-3 !py-1.5 !rounded-md !text-xs !font-semibold !transition-all !whitespace-nowrap !border-none !cursor-pointer ${bookingFilter === 'cancelled' ? '!bg-white !text-gray-900 !shadow-sm' : '!text-gray-500 hover:!text-gray-700 !bg-transparent'}`}
                       >
                         Cancelled
                       </button>
                     </div>
                   </div>
 
+                  {/* Booking Type Filter (Ground vs Tournament) */}
+                  <div className="!flex !gap-2">
+                    <button 
+                      onClick={() => setTypeFilter('all')}
+                      className={`!px-4 !py-2 !rounded-lg !text-sm !font-semibold !transition-all !border !cursor-pointer ${typeFilter === 'all' ? '!bg-[#1abc60] !text-white !border-[#1abc60]' : '!bg-white !text-gray-600 !border-gray-200 hover:!bg-gray-50'}`}
+                    >
+                      All Types
+                    </button>
+                    <button 
+                      onClick={() => setTypeFilter('ground')}
+                      className={`!flex !items-center !gap-2 !px-4 !py-2 !rounded-lg !text-sm !font-semibold !transition-all !border !cursor-pointer ${typeFilter === 'ground' ? '!bg-[#1abc60] !text-white !border-[#1abc60]' : '!bg-white !text-gray-600 !border-gray-200 hover:!bg-gray-50'}`}
+                    >
+                      <LayoutList className="!w-4 !h-4" /> Grounds
+                    </button>
+                    <button 
+                      onClick={() => setTypeFilter('tournament')}
+                      className={`!flex !items-center !gap-2 !px-4 !py-2 !rounded-lg !text-sm !font-semibold !transition-all !border !cursor-pointer ${typeFilter === 'tournament' ? '!bg-[#1abc60] !text-white !border-[#1abc60]' : '!bg-white !text-gray-600 !border-gray-200 hover:!bg-gray-50'}`}
+                    >
+                      <Trophy className="!w-4 !h-4" /> Tournaments
+                    </button>
+                  </div>
+
                   {loadingBookings ? (
-                    <div className="bg-white p-20 rounded-[48px] border border-gray-50 flex flex-col items-center justify-center gap-4">
-                      <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Syncing History</p>
+                    <div className="!bg-white !p-20 !rounded-2xl !border !border-gray-200 !flex !flex-col !items-center !justify-center !gap-4 !shadow-sm">
+                      <Loader2 className="!w-8 !h-8 !animate-spin !text-[#1abc60]" />
+                      <p className="!text-sm !font-semibold !text-gray-500">Syncing History...</p>
                     </div>
                   ) : filteredBookings.length === 0 ? (
-                    <div className="bg-white p-20 rounded-[48px] border border-gray-100 text-center space-y-6 shadow-sm">
-                      <div className="w-24 h-24 bg-gray-50 rounded-[32px] flex items-center justify-center mx-auto">
-                        <Calendar className="w-10 h-10 text-gray-200" />
+                    <div className="!bg-white !p-16 !rounded-2xl !border !border-gray-200 !text-center !space-y-4 !shadow-sm">
+                      <div className="!w-16 !h-16 !bg-gray-50 !rounded-full !flex !items-center !justify-center !mx-auto !border !border-gray-100">
+                        <Calendar className="!w-8 !h-8 !text-gray-400" />
                       </div>
-                      <div className="space-y-2">
-                        <h3 className="text-xl font-black text-gray-900 uppercase">No Bookings Found</h3>
-                        <p className="text-gray-400 font-bold max-w-xs mx-auto">Your upcoming games and history will appear here once you start booking.</p>
+                      <div className="!space-y-1">
+                        <h3 className="!text-lg !font-bold !text-gray-900">No Bookings Found</h3>
+                        <p className="!text-gray-500 !text-sm">Try adjusting your filters or book a new session.</p>
                       </div>
                       <button 
                         onClick={() => router.push('/ground')}
-                        className="inline-flex bg-[#1abc60] text-white px-10 py-4 rounded-3xl font-black uppercase tracking-widest text-xs shadow-xl shadow-green-100 hover:scale-105 transition-all"
+                        className="!mt-4 !inline-flex !bg-[#1abc60] !text-white !px-6 !py-2.5 !rounded-lg !font-semibold !text-sm !shadow-sm hover:!bg-[#17a554] !transition-colors !border-none !cursor-pointer"
                       >
                         Find a Ground
                       </button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {filteredBookings.map((booking) => (
-                        <motion.div 
-                          layout
-                          key={booking._id} 
-                          className="bg-white rounded-[32px] border border-gray-100 overflow-hidden flex flex-col shadow-sm hover:shadow-lg hover:border-green-100 transition-all group"
-                        >
-                          <div className="h-32 relative overflow-hidden">
-                            <img 
-                              src={getImageUrl(booking.turf.images[0])} 
-                              alt={booking.turf.name} 
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                            />
-                            <div className="absolute top-3 left-3">
-                              <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest backdrop-blur-md shadow-lg border ${
-                                getDisplayStatus(booking) === 'completed'
-                                  ? 'bg-blue-500/80 text-white border-blue-400'
-                                  : booking.status === 'confirmed' 
-                                  ? 'bg-emerald-500/80 text-white border-emerald-400' 
-                                  : booking.status === 'pending' 
-                                    ? 'bg-amber-500/80 text-white border-amber-400' 
-                                    : 'bg-red-500/80 text-white border-red-400'
-                              }`}>
-                                {getDisplayStatus(booking)}
-                              </span>
+                    <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
+                      {filteredBookings.map((booking) => {
+                        const isTourn = isTournamentBooking(booking);
+                        const itemName = isTourn ? (booking.tournament?.title || "Tournament Details") : (booking.turf?.name || "Venue Deleted");
+                        const itemImage = isTourn ? booking.tournament?.image : booking.turf?.images?.[0];
+                        const itemLocation = isTourn ? "Tournament Event" : (booking.turf?.location?.city || "Unknown Location");
+
+                        return (
+                          <motion.div 
+                            layout
+                            key={booking._id} 
+                            className="!bg-white !rounded-xl !border !border-gray-200 !overflow-hidden !flex !flex-col !shadow-sm hover:!shadow-md hover:!border-green-200 !transition-all !cursor-default"
+                          >
+                            {/* Image Header */}
+                            <div className="!h-32 !relative !overflow-hidden !bg-gray-100">
+                              {itemImage ? (
+                                <img 
+                                  src={getImageUrl(itemImage)} 
+                                  alt={itemName} 
+                                  className="!w-full !h-full !object-cover" 
+                                />
+                              ) : (
+                                <div className="!w-full !h-full !flex !items-center !justify-center">
+                                  {isTourn ? <Trophy className="!w-8 !h-8 !text-gray-300" /> : <MapPin className="!w-8 !h-8 !text-gray-300" />}
+                                </div>
+                              )}
+                              {/* Status Badge */}
+                              <div className="!absolute !top-3 !left-3">
+                                <span className={`!px-2.5 !py-1 !rounded-md !text-[10px] !font-bold !uppercase !tracking-wider !backdrop-blur-md !border ${
+                                  getDisplayStatus(booking) === 'completed'
+                                    ? '!bg-blue-500/90 !text-white !border-blue-400'
+                                    : booking.status === 'confirmed' 
+                                    ? '!bg-emerald-500/90 !text-white !border-emerald-400' 
+                                    : booking.status === 'pending' 
+                                      ? '!bg-amber-500/90 !text-white !border-amber-400' 
+                                      : '!bg-red-500/90 !text-white !border-red-400'
+                                }`}>
+                                  {getDisplayStatus(booking)}
+                                </span>
+                              </div>
+                              {/* Type Badge */}
+                              <div className="!absolute !top-3 !right-3">
+                                <span className={`!px-2.5 !py-1 !rounded-md !text-[10px] !font-bold !uppercase !tracking-wider !backdrop-blur-md !border !text-white ${isTourn ? '!bg-purple-500/90 !border-purple-400' : '!bg-gray-900/80 !border-gray-700'}`}>
+                                  {isTourn ? 'Tournament' : 'Ground'}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                          
-                          <div className="p-5 flex-1 flex flex-col justify-between">
-                            <div className="space-y-3">
-                              <div className="flex justify-between items-start">
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5 mb-1">
-                                    <Activity className="w-3 h-3 text-[#1abc60]" />
-                                    <span className="text-[8px] font-black text-[#1abc60] uppercase tracking-widest">{booking.sport}</span>
+                            
+                            {/* Card Body */}
+                            <div className="!p-5 !flex-1 !flex !flex-col !justify-between">
+                              <div className="!space-y-3">
+                                <div className="!flex !justify-between !items-start !gap-2">
+                                  <div className="!min-w-0 !flex-1">
+                                    <div className="!flex !items-center !gap-1.5 !mb-1">
+                                      {isTourn ? <Trophy className="!w-3 !h-3 !text-[#1abc60]" /> : <Activity className="!w-3 !h-3 !text-[#1abc60]" />}
+                                      <span className="!text-[10px] !font-bold !text-[#1abc60] !uppercase !tracking-wider">{booking.sport}</span>
+                                    </div>
+                                    <h3 className="!text-base !font-bold !text-gray-900 !truncate" title={itemName}>{itemName}</h3>
+                                    <div className="!flex !items-center !gap-1.5 !text-[11px] !text-gray-500 !mt-1 !font-medium">
+                                      <MapPin className="!w-3 !h-3" />
+                                      <span className="!truncate">{itemLocation}</span>
+                                    </div>
                                   </div>
-                                  <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight leading-none truncate">{booking.turf.name}</h3>
-                                  <div className="flex items-center gap-1.5 text-[10px] text-gray-400 mt-1.5 font-bold uppercase tracking-widest">
-                                    <MapPin className="w-2.5 h-2.5" />
-                                    {booking.turf.location.city}
+                                  <div className="!text-right !shrink-0">
+                                    <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-wider !mb-0.5">Paid</p>
+                                    <p className="!text-base !font-bold !text-gray-900">₹{booking.price}</p>
                                   </div>
                                 </div>
-                                <div className="text-right shrink-0">
-                                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Paid</p>
-                                  <p className="text-lg font-black text-gray-900">₹{booking.price}</p>
+
+                                <div className="!flex !items-center !gap-4 !pt-3 !border-t !border-gray-100">
+                                  <div className="!flex !items-center !gap-2">
+                                    <Calendar className="!w-4 !h-4 !text-gray-400" />
+                                    <span className="!text-xs !font-semibold !text-gray-700">{booking.date}</span>
+                                  </div>
+                                  {!isTourn && (
+                                    <div className="!flex !items-center !gap-2">
+                                      <Clock className="!w-4 !h-4 !text-gray-400" />
+                                      <span className="!text-xs !font-semibold !text-gray-700">{booking.startTime}</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-4 pt-4 border-t border-gray-50">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                                  <span className="text-[10px] font-black text-gray-900 uppercase">{booking.date}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Clock className="w-3.5 h-3.5 text-gray-400" />
-                                  <span className="text-[10px] font-black text-gray-900 uppercase">{booking.startTime}</span>
-                                </div>
+                              <div className="!mt-4 !pt-4 !border-t !border-gray-100 !flex !items-center !justify-between">
+                                <span className="!text-[10px] !font-bold !text-gray-500 !uppercase !tracking-wider !flex !items-center !gap-1.5">
+                                  <div className={`!w-2 !h-2 !rounded-full ${booking.paymentStatus === 'paid' ? '!bg-[#1abc60]' : '!bg-amber-400'}`} />
+                                  {booking.paymentStatus}
+                                </span>
+                                <button 
+                                  onClick={() => setSelectedBooking(booking)}
+                                  className="!text-[11px] !font-bold !text-[#1abc60] !uppercase !tracking-wider !flex !items-center !gap-1 hover:!gap-2 !transition-all !bg-transparent !border-none !cursor-pointer"
+                                >
+                                  Details <ChevronRight className="!w-3.5 !h-3.5" />
+                                </button>
                               </div>
+                              
+                              {isBookingCompleted(booking) && !isTourn && (
+                                <button
+                                  onClick={() => handleOpenReviewModal(booking)}
+                                  disabled={booking.hasReviewed}
+                                  className={`!mt-3 !w-full !py-2.5 !rounded-lg !font-bold !text-xs !transition-all !flex !items-center !justify-center !gap-2 !border !cursor-pointer ${
+                                    booking.hasReviewed
+                                      ? '!bg-gray-50 !text-gray-400 !border-gray-200 cursor-not-allowed'
+                                      : '!bg-amber-50 !text-amber-600 !border-amber-200 hover:!bg-amber-100'
+                                  }`}
+                                >
+                                  <Star className="!w-4 !h-4" />
+                                  {booking.hasReviewed ? 'Reviewed' : 'Write a Review'}
+                                </button>
+                              )}
                             </div>
-
-                            <div className="mt-5 flex items-center justify-between">
-                              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <div className={`w-1.5 h-1.5 rounded-full ${booking.paymentStatus === 'paid' ? 'bg-[#1abc60]' : 'bg-amber-400'}`} />
-                                {booking.paymentStatus}
-                              </span>
-                              <button 
-                                onClick={() => setSelectedBooking(booking)}
-                                className="text-[9px] font-black text-[#1abc60] uppercase tracking-widest flex items-center gap-1 hover:translate-x-1 transition-transform"
-                              >
-                                View <ChevronRight className="w-3 h-3" />
-                              </button>
-                            </div>
-                            {isBookingCompleted(booking) && (
-                              <button
-                                onClick={() => handleOpenReviewModal(booking)}
-                                disabled={booking.hasReviewed}
-                                className={`mt-4 w-full py-3 rounded-2xl font-black uppercase tracking-widest text-[9px] transition-all flex items-center justify-center gap-2 ${
-                                  booking.hasReviewed
-                                    ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
-                                    : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
-                                }`}
-                              >
-                                <Star className="w-3.5 h-3.5" />
-                                {booking.hasReviewed ? 'Reviewed' : 'Write a Review'}
-                              </button>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   )}
                 </motion.div>
@@ -638,93 +692,94 @@ export default function ProfilePage() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="bg-white p-12 rounded-[48px] border border-gray-100 shadow-sm space-y-10"
+                  className="!bg-white !p-8 sm:!p-10 !rounded-2xl !border !border-gray-200 !shadow-sm !space-y-8"
                 >
-                  <div className="space-y-2">
-                    <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Account Settings</h2>
-                    <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">Manage your personal information and security</p>
+                  <div>
+                    <h2 className="!text-xl !font-bold !text-gray-900">Account Settings</h2>
+                    <p className="!text-sm !text-gray-500 !font-medium !mt-1">Manage your personal information and security</p>
                   </div>
 
-                  <div className="space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Full Name</label>
+                  <div className="!space-y-6">
+                    <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+                      <div className="!space-y-1.5">
+                        <label className="!text-sm !font-semibold !text-gray-700">Full Name</label>
                         <input 
                           type="text" 
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-[24px] font-bold text-gray-900 outline-none focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all" 
+                          className="!w-full !px-4 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !font-medium !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all" 
                         />
                       </div>
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Phone Number</label>
+                      <div className="!space-y-1.5">
+                        <label className="!text-sm !font-semibold !text-gray-700">Phone Number</label>
                         <input 
                           type="tel" 
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
-                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-[24px] font-bold text-gray-900 outline-none focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all" 
+                          className="!w-full !px-4 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !font-medium !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all" 
                         />
                       </div>
                     </div>
                     
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Email Address</label>
+                    <div className="!space-y-1.5">
+                      <label className="!text-sm !font-semibold !text-gray-700">Email Address</label>
                       <input 
                         type="email" 
                         disabled
                         defaultValue={user.email}
-                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-[24px] font-bold text-gray-400 cursor-not-allowed" 
+                        className="!w-full !px-4 !py-2.5 !bg-gray-50 !border !border-gray-200 !rounded-lg !font-medium !text-gray-500 !cursor-not-allowed" 
                       />
                     </div>
 
-                    <div className="pt-6 border-t border-gray-50">
+                    <div className="!pt-4 !border-t !border-gray-100">
                       <button 
                         onClick={handleUpdateProfile}
                         disabled={isUpdatingProfile}
-                        className="w-full bg-[#1abc60] text-white py-4 rounded-3xl font-black uppercase tracking-widest text-xs shadow-xl shadow-green-100 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                        className="!bg-[#1abc60] !text-white !px-6 !py-2.5 !rounded-lg !font-semibold !text-sm !shadow-sm hover:!bg-[#17a554] !transition-colors !flex !items-center !gap-2 disabled:!opacity-70 !border-none !cursor-pointer"
                       >
-                        {isUpdatingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update Profile'}
+                        {isUpdatingProfile ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <CheckCircle2 className="!w-4 !h-4" />}
+                        Save Changes
                       </button>
                     </div>
 
                     {/* Password Update Section */}
-                    <div className="pt-10 space-y-8">
-                      <div className="space-y-2">
-                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Security</h4>
-                        <p className="text-sm font-black text-gray-900 uppercase">Change Password</p>
+                    <div className="!pt-8 !border-t !border-gray-100 !space-y-6">
+                      <div>
+                        <h3 className="!text-lg !font-bold !text-gray-900">Security</h3>
+                        <p className="!text-sm !text-gray-500 !font-medium !mt-1">Update your password to keep your account secure</p>
                       </div>
                       
-                      <div className="space-y-6">
-                        <div className="space-y-3">
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Current Password</label>
+                      <div className="!space-y-5">
+                        <div className="!space-y-1.5">
+                          <label className="!text-sm !font-semibold !text-gray-700">Current Password</label>
                           <input 
                             type="password" 
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
                             placeholder="••••••••"
-                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-[24px] font-bold text-gray-900 outline-none focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all" 
+                            className="!w-full !max-w-md !px-4 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !font-medium !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all" 
                           />
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <div className="space-y-3">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">New Password</label>
+                        <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-6 !max-w-3xl">
+                          <div className="!space-y-1.5">
+                            <label className="!text-sm !font-semibold !text-gray-700">New Password</label>
                             <input 
                               type="password" 
                               value={newPassword}
                               onChange={(e) => setNewPassword(e.target.value)}
                               placeholder="••••••••"
-                              className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-[24px] font-bold text-gray-900 outline-none focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all" 
+                              className="!w-full !px-4 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !font-medium !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all" 
                             />
                           </div>
-                          <div className="space-y-3">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Confirm New Password</label>
+                          <div className="!space-y-1.5">
+                            <label className="!text-sm !font-semibold !text-gray-700">Confirm New Password</label>
                             <input 
                               type="password" 
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
                               placeholder="••••••••"
-                              className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-[24px] font-bold text-gray-900 outline-none focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all" 
+                              className="!w-full !px-4 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !font-medium !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all" 
                             />
                           </div>
                         </div>
@@ -732,9 +787,10 @@ export default function ProfilePage() {
                         <button 
                           onClick={handleUpdatePassword}
                           disabled={isUpdatingPassword}
-                          className="w-full bg-gray-900 text-white py-4 rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-black transition-all flex items-center justify-center gap-2"
+                          className="!bg-gray-900 !text-white !px-6 !py-2.5 !rounded-lg !font-semibold !text-sm !shadow-sm hover:!bg-gray-800 !transition-colors !flex !items-center !gap-2 disabled:!opacity-70 !border-none !cursor-pointer"
                         >
-                          {isUpdatingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update Password'}
+                          {isUpdatingPassword ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <Lock className="!w-4 !h-4" />}
+                          Update Password
                         </button>
                       </div>
                     </div>
@@ -748,33 +804,35 @@ export default function ProfilePage() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-8"
+                  className="!space-y-6"
                 >
-                  <h2 className="text-2xl font-black text-gray-900 uppercase tracking-wider">Recent Activity</h2>
+                  <h2 className="!text-xl !font-bold !text-gray-900">Recent Activity</h2>
                   
-                  <div className="bg-white rounded-[48px] border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="!bg-white !rounded-2xl !border !border-gray-200 !shadow-sm !overflow-hidden">
                     {recentActivities.length === 0 ? (
-                      <div className="p-20 text-center space-y-4">
-                        <div className="w-20 h-20 bg-gray-50 rounded-[32px] flex items-center justify-center mx-auto">
-                          <Activity className="w-10 h-10 text-gray-200" />
+                      <div className="!p-16 !text-center !space-y-4">
+                        <div className="!w-16 !h-16 !bg-gray-50 !rounded-full !flex !items-center !justify-center !mx-auto !border !border-gray-100">
+                          <Activity className="!w-8 !h-8 !text-gray-300" />
                         </div>
-                        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No activity recorded yet</p>
+                        <p className="!text-gray-500 !font-semibold !text-sm">No activity recorded yet</p>
                       </div>
                     ) : (
-                      recentActivities.map((item, idx) => (
-                        <div key={idx} className={`p-8 flex items-center gap-6 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-all group`}>
-                          <div className={`w-14 h-14 ${item.bg} rounded-[24px] flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
-                            <item.icon className="w-6 h-6" />
+                      <div className="!divide-y !divide-gray-100">
+                        {recentActivities.map((item, idx) => (
+                          <div key={idx} className="!p-5 !flex !items-center !gap-4 hover:!bg-gray-50 !transition-colors !group">
+                            <div className={`!w-10 !h-10 ${item.bg} !rounded-lg !flex !items-center !justify-center ${item.color} !shrink-0 border border-current/10`}>
+                              <item.icon className="!w-5 !h-5" />
+                            </div>
+                            <div className="!flex-1 !min-w-0">
+                              <p className="!text-sm !font-bold !text-gray-900 !truncate">{item.title}</p>
+                              <p className="!text-xs !font-medium !text-gray-500 !truncate !mt-0.5">{item.desc}</p>
+                            </div>
+                            <div className="!text-right !shrink-0">
+                              <p className="!text-xs !font-semibold !text-gray-400">{item.time}</p>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{item.title}</p>
-                            <p className="text-xs font-bold text-gray-400 mt-1">{item.desc}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{item.time}</p>
-                          </div>
-                        </div>
-                      ))
+                        ))}
+                      </div>
                     )}
                   </div>
                 </motion.div>
@@ -787,137 +845,137 @@ export default function ProfilePage() {
       {/* Booking Details Modal */}
       <AnimatePresence>
         {selectedBooking && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="!fixed !inset-0 !z-[100] !flex !items-center !justify-center !p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedBooking(null)}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
+              className="!absolute !inset-0 !bg-gray-900/60 !backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-[48px] shadow-2xl overflow-hidden"
+              className="!relative !w-full !max-w-xl !bg-white !rounded-2xl !shadow-2xl !overflow-hidden !border !border-gray-200 !flex !flex-col !max-h-[90vh]"
             >
               {/* Header Image */}
-              <div className="h-48 relative overflow-hidden">
-                <img 
-                  src={getImageUrl(selectedBooking.turf.images[0])} 
-                  className="w-full h-full object-cover" 
-                  alt={selectedBooking.turf.name} 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="!h-48 !relative !overflow-hidden !shrink-0">
+                {selectedBooking.turf ? (
+                  <img 
+                    src={getImageUrl(selectedBooking.turf.images[0])} 
+                    className="!w-full !h-full !object-cover" 
+                    alt={selectedBooking.turf.name} 
+                  />
+                ) : (
+                  <div className="!w-full !h-full !bg-gray-100 !flex !items-center !justify-center">
+                    <Activity className="!w-10 !h-10 !text-gray-300" />
+                  </div>
+                )}
+                <div className="!absolute !inset-0 !bg-gradient-to-t !from-gray-900/80 !to-transparent" />
                 <button 
                   onClick={() => setSelectedBooking(null)}
-                  className="absolute top-6 right-6 p-2.5 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-2xl transition-all"
+                  className="!absolute !top-4 !right-4 !p-2 !bg-black/40 hover:!bg-black/60 !backdrop-blur-sm !text-white !rounded-lg !transition-all !border-none !cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="!w-5 !h-5" />
                 </button>
-                <div className="absolute bottom-6 left-10">
-                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-1">{selectedBooking.sport}</p>
-                  <h2 className="text-3xl font-black text-white uppercase tracking-tight">{selectedBooking.turf.name}</h2>
+                <div className="!absolute !bottom-4 !left-6 !right-6">
+                  <span className="!inline-flex !px-2.5 !py-1 !bg-[#1abc60] !text-white !rounded !text-[10px] !font-bold !uppercase !tracking-wider !mb-2">
+                    {selectedBooking.sport}
+                  </span>
+                  <h2 className="!text-2xl !font-bold !text-white !leading-tight !truncate">
+                    {isTournamentBooking(selectedBooking) ? (selectedBooking.tournament?.title || "Tournament") : (selectedBooking.turf?.name || "Venue Deleted")}
+                  </h2>
                 </div>
               </div>
 
-              <div className="p-10 space-y-10">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <Ticket className="w-3.5 h-3.5" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Booking ID</span>
-                    </div>
-                    <p className="text-sm font-black text-gray-900 uppercase">#{selectedBooking.bookingId}</p>
+              <div className="!p-6 !overflow-y-auto !custom-scrollbar !flex-1">
+                <div className="!grid !grid-cols-2 gap-6">
+                  <div className="!space-y-1">
+                    <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                      <Ticket className="!w-3.5 !h-3.5" /> ID
+                    </p>
+                    <p className="!text-sm !font-bold !text-gray-900">#{selectedBooking.bookingId}</p>
                   </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Date</span>
-                    </div>
-                    <p className="text-sm font-black text-gray-900 uppercase">{selectedBooking.date}</p>
+                  <div className="!space-y-1">
+                    <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                      <Calendar className="!w-3.5 !h-3.5" /> Date
+                    </p>
+                    <p className="!text-sm !font-bold !text-gray-900">{selectedBooking.date}</p>
                   </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Time Slot</span>
-                    </div>
-                    <p className="text-sm font-black text-gray-900 uppercase">{selectedBooking.startTime} - {selectedBooking.endTime}</p>
+                  {!isTournamentBooking(selectedBooking) && (
+                    <>
+                      <div className="!space-y-1">
+                        <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                          <Clock className="!w-3.5 !h-3.5" /> Time
+                        </p>
+                        <p className="!text-sm !font-bold !text-gray-900">{selectedBooking.startTime} - {selectedBooking.endTime}</p>
+                      </div>
+                      <div className="!space-y-1">
+                        <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                          <LayoutList className="!w-3.5 !h-3.5" /> Courts
+                        </p>
+                        <p className="!text-sm !font-bold !text-gray-900">{selectedBooking.courts?.join(', ') || 'N/A'}</p>
+                      </div>
+                    </>
+                  )}
+                  <div className="!space-y-1">
+                    <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                      <CreditCard className="!w-3.5 !h-3.5" /> Paid
+                    </p>
+                    <p className="!text-sm !font-bold !text-[#1abc60]">₹{selectedBooking.price}</p>
                   </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <Activity className="w-3.5 h-3.5" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Courts</span>
-                    </div>
-                    <p className="text-sm font-black text-gray-900 uppercase">{selectedBooking.courts?.join(', ') || 'N/A'}</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Amount Paid</span>
-                    </div>
-                    <p className="text-sm font-black text-[#1abc60]">₹{selectedBooking.price}</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Status</span>
-                    </div>
-                    <span className={`inline-flex px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                  <div className="!space-y-1">
+                    <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                      <CheckCircle2 className="!w-3.5 !h-3.5" /> Status
+                    </p>
+                    <span className={`!inline-flex !px-2 !py-0.5 !rounded !text-[10px] !font-bold !uppercase !tracking-wider !border ${
                       getDisplayStatus(selectedBooking) === 'completed'
-                        ? 'bg-blue-50 text-blue-600 border border-blue-100'
+                        ? '!bg-blue-50 !text-blue-600 !border-blue-200'
                         : selectedBooking.status === 'confirmed'
-                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                          ? '!bg-emerald-50 !text-emerald-600 !border-emerald-200'
                           : selectedBooking.status === 'cancelled'
-                            ? 'bg-red-50 text-red-600 border border-red-100'
-                            : 'bg-amber-50 text-amber-600 border border-amber-100'
+                            ? '!bg-red-50 !text-red-600 !border-red-200'
+                            : '!bg-amber-50 !text-amber-600 !border-amber-200'
                     }`}>
                       {getDisplayStatus(selectedBooking)}
                     </span>
                   </div>
                 </div>
 
-                <div className="pt-8 border-t border-gray-50 flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-[#1abc60]">
-                    <MapPin className="w-6 h-6" />
+                <div className="!mt-8 !pt-6 !border-t !border-gray-100 !flex !items-center !gap-4">
+                  <div className="!w-12 !h-12 !bg-gray-50 !rounded-lg !flex !items-center !justify-center !text-gray-500 !shrink-0 !border !border-gray-200">
+                    <MapPin className="!w-6 !h-6" />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Location</p>
-                    <p className="text-xs font-bold text-gray-700">{selectedBooking.turf.location.address}, {selectedBooking.turf.location.city}</p>
+                  <div className="!flex-1">
+                    <p className="!text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider !mb-0.5">Location</p>
+                    <p className="!text-sm !font-bold !text-gray-900">
+                      {selectedBooking.turf ? `${selectedBooking.turf.location.address}, ${selectedBooking.turf.location.city}` : "Location Unavailable"}
+                    </p>
                   </div>
-                  <button 
-                    onClick={() => router.push(`/ground/${selectedBooking.turf._id}`)}
-                    className="p-4 bg-[#1abc60] text-white rounded-2xl hover:bg-[#169c4e] transition-all shadow-lg shadow-green-100"
-                  >
-                    <ExternalLink className="w-5 h-5" />
-                  </button>
+                  {selectedBooking.turf && !isTournamentBooking(selectedBooking) && (
+                    <button 
+                      onClick={() => router.push(`/ground/${selectedBooking.turf?._id}`)}
+                      className="!p-3 !bg-gray-50 hover:!bg-gray-100 !text-gray-600 !rounded-lg !transition-colors !border !border-gray-200 !cursor-pointer"
+                      title="View Venue"
+                    >
+                      <ExternalLink className="!w-5 !h-5" />
+                    </button>
+                  )}
                 </div>
+              </div>
 
-                <div className="flex gap-4 pt-4">
-                  <button 
-                    className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-gray-100 transition-all"
-                    onClick={() => setSelectedBooking(null)}
-                  >
-                    Close
-                  </button>
-                  <button className="flex-[2] py-4 bg-[#1abc60] text-white rounded-3xl font-black uppercase tracking-widest text-xs shadow-xl shadow-green-100 hover:scale-[1.02] transition-all">
-                    Download Invoice
-                  </button>
-                </div>
-                {isBookingCompleted(selectedBooking) && (
-                  <button
-                    onClick={() => handleOpenReviewModal(selectedBooking)}
-                    disabled={selectedBooking.hasReviewed}
-                    className={`w-full py-4 rounded-3xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${
-                      selectedBooking.hasReviewed
-                        ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
-                        : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
-                    }`}
-                  >
-                    <Star className="w-4 h-4" />
-                    {selectedBooking.hasReviewed ? 'Review Submitted' : 'Write a Review'}
-                  </button>
-                )}
+              {/* Modal Actions */}
+              <div className="!p-6 !border-t !border-gray-100 !bg-gray-50 !flex !gap-3 !shrink-0">
+                <button 
+                  className="!flex-1 !py-2.5 !bg-white !border !border-gray-300 !text-gray-700 !rounded-lg !font-semibold !text-sm hover:!bg-gray-50 !transition-colors !cursor-pointer !shadow-sm"
+                  onClick={() => setSelectedBooking(null)}
+                >
+                  Close
+                </button>
+                <button className="!flex-[2] !py-2.5 !bg-[#1abc60] !text-white !rounded-lg !font-semibold !text-sm !shadow-sm hover:!bg-[#17a554] !transition-colors !border-none !cursor-pointer">
+                  Download Invoice
+                </button>
               </div>
             </motion.div>
           </div>
@@ -927,70 +985,77 @@ export default function ProfilePage() {
       {/* Review Modal */}
       <AnimatePresence>
         {reviewModal.open && reviewModal.booking && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="!fixed !inset-0 !z-[120] !flex !items-center !justify-center !p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setReviewModal({ open: false, booking: null })}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
+              className="!absolute !inset-0 !bg-gray-900/60 !backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl p-8 space-y-8"
+              className="!relative !w-full !max-w-md !bg-white !rounded-2xl !shadow-2xl !overflow-hidden !border !border-gray-200"
             >
-              <button
-                onClick={() => setReviewModal({ open: false, booking: null })}
-                className="absolute top-6 right-6 p-2 bg-gray-50 hover:bg-gray-100 text-gray-400 rounded-2xl transition-all"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              <div className="space-y-2 pr-12">
-                <p className="text-[10px] font-black text-[#1abc60] uppercase tracking-[0.2em]">{reviewModal.booking.sport}</p>
-                <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Review {reviewModal.booking.turf.name}</h3>
-                <p className="text-xs font-bold text-gray-400">{reviewModal.booking.date} at {reviewModal.booking.startTime}</p>
+              <div className="!px-6 !py-4 !border-b !border-gray-100 !flex !justify-between !items-center !bg-gray-50/50">
+                <div>
+                  <h3 className="!text-lg !font-bold !text-gray-900 !leading-tight">Write a Review</h3>
+                  <p className="!text-xs !font-medium !text-gray-500 !mt-0.5">For {reviewModal.booking.turf?.name || "Venue"}</p>
+                </div>
+                <button
+                  onClick={() => setReviewModal({ open: false, booking: null })}
+                  className="!p-2 !text-gray-400 hover:!text-gray-600 hover:!bg-gray-100 !rounded-lg !transition-colors !bg-transparent !border-none !cursor-pointer"
+                >
+                  <X className="!w-5 !h-5" />
+                </button>
               </div>
 
-              <div className="flex items-center justify-center gap-3">
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <button
-                    key={rating}
-                    onClick={() => setReviewRating(rating)}
-                    className="p-2 rounded-2xl hover:bg-amber-50 transition-all"
-                  >
-                    <Star
-                      className={`w-9 h-9 ${
-                        rating <= reviewRating
-                          ? 'fill-amber-400 text-amber-400'
-                          : 'text-gray-200'
-                      }`}
-                    />
-                  </button>
-                ))}
+              <div className="!p-6 !space-y-6">
+                <div className="!flex !flex-col !items-center !gap-3">
+                  <p className="!text-sm !font-semibold !text-gray-700">How was your experience?</p>
+                  <div className="!flex !items-center !gap-2">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        onClick={() => setReviewRating(rating)}
+                        className="!p-1 !bg-transparent !border-none !cursor-pointer hover:!scale-110 !transition-transform"
+                      >
+                        <Star
+                          className={`!w-10 !h-10 ${
+                            rating <= reviewRating
+                              ? '!fill-amber-400 !text-amber-400'
+                              : '!text-gray-200'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="!space-y-2">
+                  <label className="!text-xs !font-semibold !text-gray-600 !uppercase !tracking-wider">Your Feedback</label>
+                  <textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    rows={4}
+                    placeholder="Tell us what you liked or what could be better..."
+                    className="!w-full !px-4 !py-3 !bg-white !border !border-gray-300 !rounded-xl !font-medium !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all !resize-none"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Your Review</label>
-                <textarea
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  rows={5}
-                  placeholder="Share your experience..."
-                  className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-[24px] font-bold text-gray-900 outline-none focus:ring-4 focus:ring-green-50 focus:border-[#1abc60] transition-all resize-none"
-                />
+              <div className="!p-6 !border-t !border-gray-100 !bg-gray-50">
+                <button
+                  onClick={handleSubmitReview}
+                  disabled={submittingReview}
+                  className="!w-full !bg-[#1abc60] !text-white !py-3 !rounded-lg !font-bold !text-sm !shadow-sm hover:!bg-[#17a554] !transition-colors !flex !items-center !justify-center !gap-2 disabled:!opacity-60 disabled:!cursor-not-allowed !border-none"
+                >
+                  {submittingReview ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <Send className="!w-4 !h-4" />}
+                  Submit Review
+                </button>
               </div>
-
-              <button
-                onClick={handleSubmitReview}
-                disabled={submittingReview}
-                className="w-full bg-[#1abc60] text-white py-4 rounded-3xl font-black uppercase tracking-widest text-xs shadow-xl shadow-green-100 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:hover:scale-100"
-              >
-                {submittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                Submit Review
-              </button>
             </motion.div>
           </div>
         )}

@@ -638,7 +638,7 @@ export default function AddTournamentPage() {
                   name="entryFee"
                   value={formData.entryFee}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] rounded-lg focus:outline-none font-semibold text-lg text-gray-900 transition-colors"
+                  className="!w-full !pl-10 !pr-4 !py-3 !bg-white !border !border-gray-300 focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !rounded-lg focus:!outline-none !font-semibold !text-lg !text-gray-900 !transition-colors"
                   placeholder="0.00"
                 />
               </div>
@@ -654,15 +654,15 @@ export default function AddTournamentPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Start Date <span className="text-red-500">*</span></label>
-                  <input required type="date" name="startDate" value={formData.startDate} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] text-sm text-gray-900 transition-colors" />
+                  <input required type="date" name="startDate" value={formData.startDate} onChange={handleInputChange} className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">End Date <span className="text-red-500">*</span></label>
-                  <input required type="date" name="endDate" value={formData.endDate} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] text-sm text-gray-900 transition-colors" />
+                  <input required type="date" name="endDate" value={formData.endDate} onChange={handleInputChange} className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !transition-colors" />
                 </div>
                 <div className="pt-2">
                   <label className="block text-xs font-medium text-red-600 mb-1">Registration Deadline <span className="text-red-500">*</span></label>
-                  <input required type="date" name="registrationDeadline" value={formData.registrationDeadline} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm text-gray-900 transition-colors" />
+                  <input required type="date" name="registrationDeadline" value={formData.registrationDeadline} onChange={handleInputChange} className="!w-full !px-3 !py-2 !bg-white !border !border-red-200 !rounded-lg focus:!outline-none focus:!ring-2 focus:!ring-red-500/20 focus:!border-red-500 !text-sm !text-gray-900 !transition-colors" />
                 </div>
               </div>
             </div>
@@ -676,19 +676,19 @@ export default function AddTournamentPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Venue Name <span className="text-red-500">*</span></label>
-                  <input required type="text" name="location.venue" value={formData.location.venue} onChange={handleInputChange} placeholder="Arena Name" className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] text-sm text-gray-900 transition-colors" />
+                  <input required type="text" name="location.venue" value={formData.location.venue} onChange={handleInputChange} placeholder="Arena Name" className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">City <span className="text-red-500">*</span></label>
-                  <input required type="text" name="location.city" value={formData.location.city} onChange={handleInputChange} placeholder="Bangalore" className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] text-sm text-gray-900 transition-colors" />
+                  <input required type="text" name="location.city" value={formData.location.city} onChange={handleInputChange} placeholder="Bangalore" className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Full Address <span className="text-red-500">*</span></label>
-                  <textarea required name="location.address" value={formData.location.address} onChange={handleInputChange} rows={2} placeholder="Complete address..." className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] text-sm text-gray-900 resize-none transition-colors" />
+                  <textarea required name="location.address" value={formData.location.address} onChange={handleInputChange} rows={2} placeholder="Complete address..." className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !resize-none !transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Google Maps URL</label>
-                  <input type="text" name="location.mapUrl" value={formData.location.mapUrl} onChange={handleInputChange} placeholder="https://maps.google.com/..." className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] text-sm text-gray-900 transition-colors" />
+                  <input type="text" name="location.mapUrl" value={formData.location.mapUrl} onChange={handleInputChange} placeholder="https://maps.google.com/..." className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !transition-colors" />
                 </div>
                 
                 <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50 h-40">
@@ -720,16 +720,16 @@ export default function AddTournamentPage() {
               </div>
               <div className="space-y-4">
                 <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input required type="text" name="contact.name" value={formData.contact.name} onChange={handleInputChange} placeholder="Organizer Name" className="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] text-sm text-gray-900 transition-colors" />
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+                  <input required type="text" name="contact.name" value={formData.contact.name} onChange={handleInputChange} placeholder="Organizer Name" className="!w-full !pl-10 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !transition-colors" />
                 </div>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input required type="text" name="contact.phone" value={formData.contact.phone} onChange={handleInputChange} placeholder="Phone Number" className="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] text-sm text-gray-900 transition-colors" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+                  <input required type="text" name="contact.phone" value={formData.contact.phone} onChange={handleInputChange} placeholder="Phone Number" className="!w-full !pl-10 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !transition-colors" />
                 </div>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input required type="email" name="contact.email" value={formData.contact.email} onChange={handleInputChange} placeholder="Email Address" className="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] text-sm text-gray-900 transition-colors" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+                  <input required type="email" name="contact.email" value={formData.contact.email} onChange={handleInputChange} placeholder="Email Address" className="!w-full !pl-10 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !transition-colors" />
                 </div>
               </div>
             </div>

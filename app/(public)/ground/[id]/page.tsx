@@ -40,6 +40,9 @@ export default function VenueDetailsPage() {
             mapUrl: t.location.mapUrl || '',
             coordinates: t.location.coordinates,
             price: t.pricePerHour,
+            peakHourSurcharge: t.peakHourSurcharge || 0,
+            surfaceType: t.surfaceType || 'Natural Grass',
+            logo: t.logo ? (t.logo.startsWith('http') ? t.logo : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${t.logo}`) : null,
             image: t.images && t.images.length > 0 
               ? (t.images[0].startsWith('http') 
                   ? t.images[0] 
@@ -62,6 +65,9 @@ export default function VenueDetailsPage() {
             }) || [],
             about: t.description || t.about || "Premium sports facility featuring high-quality turf and excellent amenities. Perfect for competitive matches and friendly games.",
             courts: t.courts || [],
+            operatingHours: t.operatingHours || [],
+            priceHikes: t.priceHikes || [],
+            unavailableDates: t.unavailableDates || [],
             availableSlots: t.availableSlots || []
           };
           setVenue(mappedVenue);
@@ -110,14 +116,19 @@ export default function VenueDetailsPage() {
 
     const checkIsBooked = (timeVal: string) => {
       const [start, end] = timeVal.split(" - ");
-      // A slot is fully booked only if ALL available courts for that turf are booked for this time
-      const bookingsForSlot = bookedSlots.filter(b => b.startTime === start);
+      // A slot is booked if there's an overlapping booking on the same date and turf
+      // where any of the available courts for that turf are booked for this time range.
       
-      // If any selected court is in the booked list, we should probably mark it as "partially booked"
-      // or "unavailable" if all courts are taken.
-      // For simplicity in UI, we'll return the list of booked courts.
-      const bookedCourts = bookingsForSlot.flatMap(b => b.courts);
-      return bookedCourts;
+      const bookedCourts = new Set<string>();
+      
+      bookedSlots.forEach(b => {
+        // Overlap condition: (start < b.endTime) && (end > b.startTime)
+        if (start < b.endTime && end > b.startTime) {
+          b.courts.forEach((c: string) => bookedCourts.add(c));
+        }
+      });
+      
+      return Array.from(bookedCourts);
     };
 
     if (venue?.availableSlots && venue.availableSlots.length > 0) {
@@ -194,10 +205,10 @@ export default function VenueDetailsPage() {
 
       if (res.data.success) {
         toast.success("Booking initiated!");
-        // Navigate to checkout with all booking IDs joined by comma
-        const bookingIds = res.data.bookings?.map((b: any) => b._id) || [res.data.booking?._id];
-        if (bookingIds.length > 0) {
-          router.push(`/checkout/${bookingIds.join(',')}`);
+        // Navigate to checkout with the single booking ID
+        const bookingId = res.data.booking?._id;
+        if (bookingId) {
+          router.push(`/checkout/${bookingId}`);
         }
       }
     } catch (error: any) {
@@ -274,20 +285,31 @@ export default function VenueDetailsPage() {
           {/* LEFT COLUMN (Content) */}
           <div className="flex-1 min-w-0">
             {/* Header Area */}
-            <div className="mb-6">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
-                {venue.title}
-              </h1>
-              <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-gray-500">
-                <div className="bg-yellow-50 text-yellow-700 px-2.5 py-1 rounded-md flex items-center gap-1 font-semibold">
-                  {venue.rating} <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+                  {venue.title}
+                </h1>
+                <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-gray-500">
+                  <div className="bg-yellow-50 text-yellow-700 px-2.5 py-1 rounded-md flex items-center gap-1 font-semibold">
+                    {venue.rating} <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
+                  </div>
+                  <span>{venue.reviews} Reviews</span>
+                  <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                  <span className="flex items-center text-gray-600">
+                    <MapPin className="w-4 h-4 mr-1.5 text-gray-400" /> {venue.location}
+                  </span>
+                  <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                  <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider">
+                    {venue.surfaceType}
+                  </span>
                 </div>
-                <span>{venue.reviews} Reviews</span>
-                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                <span className="flex items-center text-gray-600">
-                  <MapPin className="w-4 h-4 mr-1.5 text-gray-400" /> {venue.location}
-                </span>
               </div>
+              {venue.logo && (
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border border-gray-100 shadow-sm shrink-0 bg-white p-1">
+                  <img src={venue.logo} alt={`${venue.title} Logo`} className="w-full h-full object-contain" />
+                </div>
+              )}
             </div>
 
             {/* Big Hero Image */}
@@ -370,9 +392,16 @@ export default function VenueDetailsPage() {
             
             {/* Booking Widget Card */}
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-              <div className="flex items-baseline gap-1.5 mb-6">
-                <span className="text-3xl font-bold text-gray-900">₹{venue.price}</span>
-                <span className="text-sm text-gray-500 font-medium">/ hour</span>
+              <div className="flex items-baseline justify-between mb-6">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-bold text-gray-900">₹{venue.price}</span>
+                  <span className="text-sm text-gray-500 font-medium">/ hour</span>
+                </div>
+                {venue.peakHourSurcharge > 0 && (
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                    +₹{venue.peakHourSurcharge} Peak Surcharge
+                  </span>
+                )}
               </div>
 
               <div className="space-y-4 mb-6">
@@ -432,15 +461,51 @@ export default function VenueDetailsPage() {
             </div>
 
             {/* Operating Hours Card */}
-            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 flex items-center gap-4">
-              <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
-                <Clock className="w-5 h-5 text-gray-600" />
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+                  <Clock className="w-5 h-5 text-gray-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Operating Hours</p>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Weekly Schedule</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">Operating Hours</p>
-                <p className="text-sm text-gray-500 mt-0.5">06:00 AM - 11:00 PM</p>
+              <div className="space-y-1.5 pt-2 border-t border-gray-100">
+                {venue.operatingHours?.length > 0 ? (
+                  venue.operatingHours.map((oh: any) => (
+                    <div key={oh.day} className="flex justify-between text-xs">
+                      <span className="font-semibold text-gray-600">{oh.day}</span>
+                      <span className={`${oh.isOpen ? 'text-gray-900 font-bold' : 'text-red-500 font-bold uppercase'}`}>
+                        {oh.isOpen ? `${oh.open} - ${oh.close}` : 'Closed'}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-900 font-bold">06:00 AM - 11:00 PM</p>
+                )}
               </div>
             </div>
+
+            {/* Closure Dates Card (If any) */}
+            {venue.unavailableDates?.length > 0 && (
+              <div className="bg-red-50 border border-red-100 rounded-2xl p-5 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white p-2 rounded-lg shadow-sm border border-red-100">
+                    <Calendar className="w-5 h-5 text-red-500" />
+                  </div>
+                  <span className="text-sm font-bold text-red-900 uppercase tracking-tight">Venue Closures</span>
+                </div>
+                <div className="space-y-2">
+                  {venue.unavailableDates.map((ud: any, idx: number) => (
+                    <div key={idx} className="bg-white/50 p-2 rounded-lg border border-red-200">
+                      <p className="text-xs font-bold text-red-700">{new Date(ud.date).toLocaleDateString()}</p>
+                      <p className="text-[10px] text-red-500 italic">{ud.reason}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Location Map Card */}
             <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5">
@@ -572,23 +637,26 @@ export default function VenueDetailsPage() {
             </div>
             
             <div className="p-6 space-y-2.5">
-              {currentCourts.map((court: string) => {
-                const isSelected = selectedCourts.includes(court);
+              {venue.courts.map((court: any) => {
+                const courtName = typeof court === 'string' ? court : (court.name || 'Court');
+                const courtType = typeof court === 'string' ? '' : (court.courtType || '');
+                const isSelected = selectedCourts.includes(courtName);
+                
                 // A court is disabled if it's already booked for ANY of the selected time slots
                 const isAlreadyBooked = selectedTimes.some(timeVal => {
                   const [start] = timeVal.split(" - ");
-                  return bookedSlots.some(b => b.startTime === start && b.courts.includes(court));
+                  return bookedSlots.some(b => b.startTime === start && b.courts.includes(courtName));
                 });
 
                 return (
                   <button 
-                    key={court}
+                    key={courtName}
                     disabled={isAlreadyBooked}
                     onClick={() => { 
                       if (isSelected) {
-                        setSelectedCourts(selectedCourts.filter(c => c !== court));
+                        setSelectedCourts(selectedCourts.filter(c => c !== courtName));
                       } else {
-                        setSelectedCourts([...selectedCourts, court]);
+                        setSelectedCourts([...selectedCourts, courtName]);
                       }
                     }}
                     className={`!w-full !flex !items-center !justify-between !p-4 !rounded-xl !cursor-pointer !border !transition-all !m-0 !shadow-none
@@ -600,8 +668,9 @@ export default function VenueDetailsPage() {
                     }`}
                   >
                     <div className="flex flex-col text-left">
-                      <span className="text-sm">{court}</span>
-                      {isAlreadyBooked && <span className="text-[10px] text-red-400 font-bold uppercase">Already Booked for Selected Time</span>}
+                      <span className="text-sm font-bold">{courtName}</span>
+                      <span className="text-[10px] text-gray-500 uppercase tracking-widest">{courtType} Surface</span>
+                      {isAlreadyBooked && <span className="text-[10px] text-red-400 font-bold uppercase mt-1">Already Booked for Selected Time</span>}
                     </div>
                     {isSelected && <CheckCircle2 className="w-5 h-5 text-[#1abc60]" />}
                   </button>

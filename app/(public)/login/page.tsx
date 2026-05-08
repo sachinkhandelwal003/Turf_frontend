@@ -48,12 +48,19 @@ function LoginForm() {
     try {
       const user = await login(email, password);
 
+      // RESTRICTION: Only 'user' role can login through public portal
+      if (user.role !== 'user') {
+        // Log them out immediately as they shouldn't be in the public portal session
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminUser');
+        toast.error("Admins must login through the Admin Portal.");
+        return;
+      }
+
       toast.success("Logged in Successfully! 🎉");
 
       if (redirect) {
         router.push(redirect);
-      } else if (user.role === 'admin' || user.role === 'superadmin') {
-        router.push('/admin/dashboard');
       } else {
         router.push('/profile');
       }

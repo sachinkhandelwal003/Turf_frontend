@@ -39,7 +39,6 @@ type MenuItem = {
 
 const baseMenuItems: MenuItem[] = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'view_dashboard' },
-  { href: '/admin/bookings', label: 'Bookings', icon: Calendar, permission: 'view_bookings' },
   { href: '/admin/reviews', label: 'Reviews', icon: Star, permission: 'view_reviews' },
   {
     href: '/admin/venues',

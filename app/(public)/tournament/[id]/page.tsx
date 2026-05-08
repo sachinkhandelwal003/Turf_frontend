@@ -68,12 +68,6 @@ interface Tournament {
   gallery?: string[];
 }
 
-const TrophyWatermark = () => (
-  <svg className="absolute -right-6 -bottom-6 w-56 h-56 text-white opacity-20 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 22c-2.76 0-5-2.24-5-5v-1c0-.55.45-1 1-1h8c.55 0 1 .45 1 1v1c0 2.76-2.24 5-5 5zm-3-6h6v1c0 1.65-1.35 3-3 3s-3-1.35-3-3v-1zm11-4h-2V7c0-2.21-1.79-4-4-4H9C6.79 3 5 4.79 5 7v5H3c-.55 0-1-.45-1-1V8c0-1.65 1.35-3 3-3h1V4c0-.55.45-1 1-1h6c.55 0 1 .45 1 1v1h1c1.65 0 3 1.35 3 3v3c0 .55-.45 1-1 1zm-1-5H5v5h14V7zM7 7h10v5H7V7z" />
-  </svg>
-);
-
 export default function TournamentDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -135,9 +129,8 @@ export default function TournamentDetailsPage() {
   const formatPrice = (price: string | number) => {
     if (price === undefined || price === null || price === '') return '0';
     if (typeof price === 'string') {
-      // If it's already formatted with symbols, just return it or clean it
       const cleaned = price.replace(/[^0-9]/g, '');
-      if (!cleaned) return price; // Return original if no digits found (e.g. "TBA")
+      if (!cleaned) return price; 
       return Number(cleaned).toLocaleString('en-IN');
     }
     return Number(price).toLocaleString('en-IN');
@@ -207,18 +200,51 @@ export default function TournamentDetailsPage() {
     setShowRegModal(true);
   };
 
-  const handleRegistrationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Helper function for mobile input to restrict non-digits
+  const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) => {
+    const val = e.target.value;
+    // Allow only numbers and maximum length of 10
+    if (/^\d*$/.test(val) && val.length <= 10) {
+      setter(val);
+    }
+  };
+
+  const validateForm = () => {
+    // Basic presence checks
     if (!teamName || !captainName || !email || !mobile || !address) {
       toast.error("Please fill all required fields!");
-      return;
+      return false;
     }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address!");
+      return false;
+    }
+
+    // Phone validation (10 digits)
+    if (mobile.length !== 10) {
+      toast.error("Primary phone must be exactly 10 digits!");
+      return false;
+    }
+
+    if (altMobile && altMobile.length !== 10) {
+      toast.error("Alternative phone must be exactly 10 digits!");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleRegistrationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
 
     setRegLoading(true);
     try {
-      // If tournament has an entry fee, we should go to checkout first
-      if (tournament.entryFee > 0) {
-        // We'll pass the registration details in the URL or session storage
+      if (tournament!.entryFee > 0) {
         const registrationData = {
           teamName,
           captainName,
@@ -228,8 +254,8 @@ export default function TournamentDetailsPage() {
           address,
           members,
           tournamentId: id,
-          entryFee: tournament.entryFee,
-          tournamentTitle: tournament.title
+          entryFee: tournament!.entryFee,
+          tournamentTitle: tournament!.title
         };
         sessionStorage.setItem('pending_registration', JSON.stringify(registrationData));
         router.push(`/tournament/checkout/${id}`);
@@ -249,7 +275,6 @@ export default function TournamentDetailsPage() {
       if (res.data.success) {
         toast.success("Registration Successful! 🎉");
         setShowRegModal(false);
-        // Reset form
         setTeamName("");
         setCaptainName("");
         setEmail("");
@@ -269,7 +294,7 @@ export default function TournamentDetailsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-12 h-12 animate-spin text-[#1abc60]" />
+        <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
       </div>
     );
   }
@@ -280,234 +305,234 @@ export default function TournamentDetailsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'upcoming': return 'bg-[#1abc60]';
-      case 'ongoing': return 'bg-blue-500';
-      case 'postponed': return 'bg-orange-500';
-      case 'cancelled': return 'bg-red-500';
+      case 'upcoming': return 'bg-[#1abc60] text-white';
+      case 'ongoing': return 'bg-blue-500 text-white';
+      case 'postponed': return 'bg-orange-500 text-white';
+      case 'cancelled': return 'bg-red-500 text-white';
       case 'finished':
-      case 'completed': return 'bg-gray-500';
-      default: return 'bg-[#1abc60]';
+      case 'completed': return 'bg-gray-500 text-white';
+      default: return 'bg-[#1abc60] text-white';
     }
   };
 
   return (
-    <div className="min-h-screen bg-white pb-24" style={{ fontFamily: 'var(--font-main)' }}>
+    <div className="min-h-screen bg-gray-50 pb-24" style={{ fontFamily: 'var(--font-main)' }}>
       
       {/* ================= 0. REGISTRATION MODAL ================= */}
       {showRegModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-[500px] rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-gray-100">
-            <div className="relative">
-              {/* Header with Background Pattern */}
-              <div className="bg-[#1abc60] p-8 pb-12 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-12 -mb-12 blur-xl" />
-                
-                <div className="relative z-10 flex justify-between items-start">
-                  <div>
-                    <h2 className="text-3xl font-black text-white leading-tight">Secure Your Spot</h2>
-                    <p className="text-white/80 text-sm font-medium mt-1">Join the ultimate {tournament.sport} showdown</p>
-                  </div>
-                  <button 
-                    onClick={() => setShowRegModal(false)}
-                    className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all text-white backdrop-blur-md"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm transition-opacity">
+          <div className="bg-white w-full max-w-[550px] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-gray-100">
+            
+            {/* Modal Header */}
+            <div className="bg-[#1abc60] p-6 relative shrink-0">
+              <div className="flex justify-between items-start relative z-10">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-white leading-tight">Secure Your Spot</h2>
+                  <p className="text-white/90 text-sm mt-1 font-medium">Join the ultimate {tournament.sport} showdown</p>
                 </div>
+                <button 
+                  onClick={() => setShowRegModal(false)}
+                  className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-white border-none cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
+            </div>
 
-              {/* Form Content */}
-              <div className="p-8 -mt-6 bg-white rounded-t-[40px] relative z-20">
-                <form onSubmit={handleRegistrationSubmit} className="space-y-6">
-                  <div className="space-y-5">
-                    {/* Team Name */}
-                    <div className="group">
-                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Team Identity</label>
-                      <div className="relative">
-                        <Users className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
-                        <input 
-                          required
-                          type="text" 
-                          placeholder="Enter Team Name" 
-                          value={teamName}
-                          onChange={(e) => setTeamName(e.target.value)}
-                          className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300"
-                        />
-                      </div>
+            {/* Modal Body / Form */}
+            <div className="p-6 bg-white overflow-y-auto custom-scrollbar flex-1">
+              <form onSubmit={handleRegistrationSubmit} className="space-y-5">
+                
+                {/* Team Identity */}
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-gray-800">Team Identity <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input 
+                      required
+                      type="text" 
+                      placeholder="Enter Team Name" 
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                      className="!w-full !bg-white !border !border-gray-200 !rounded-xl !pl-10 !pr-4 !py-3 !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all placeholder:!text-gray-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Captain Name */}
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-gray-800">Captain's Full Name <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input 
+                      required
+                      type="text" 
+                      placeholder="As per ID Proof" 
+                      value={captainName}
+                      onChange={(e) => setCaptainName(e.target.value)}
+                      className="!w-full !bg-white !border !border-gray-200 !rounded-xl !pl-10 !pr-4 !py-3 !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all placeholder:!text-gray-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Captain Email */}
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-gray-800">Captain's Email <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input 
+                      required
+                      type="email" 
+                      placeholder="captain@example.com" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="!w-full !bg-white !border !border-gray-200 !rounded-xl !pl-10 !pr-4 !py-3 !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all placeholder:!text-gray-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Contact Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-gray-800">Primary Phone <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input 
+                        required
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="10 digit mobile" 
+                        value={mobile}
+                        onChange={(e) => handleMobileChange(e, setMobile)}
+                        className="!w-full !bg-white !border !border-gray-200 !rounded-xl !pl-10 !pr-4 !py-3 !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all placeholder:!text-gray-400"
+                      />
                     </div>
-
-                    {/* Captain Name */}
-                    <div className="group">
-                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Captain&apos;s Full Name</label>
-                      <div className="relative">
-                        <User className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
-                        <input 
-                          required
-                          type="text" 
-                          placeholder="As per ID Proof" 
-                          value={captainName}
-                          onChange={(e) => setCaptainName(e.target.value)}
-                          className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300"
-                        />
-                      </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-gray-800">Alt Contact <span className="text-gray-400 font-normal">(Optional)</span></label>
+                    <div className="relative">
+                      <Contact className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input 
+                        type="text" 
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="10 digit alt mobile" 
+                        value={altMobile}
+                        onChange={(e) => handleMobileChange(e, setAltMobile)}
+                        className="!w-full !bg-white !border !border-gray-200 !rounded-xl !pl-10 !pr-4 !py-3 !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all placeholder:!text-gray-400"
+                      />
                     </div>
+                  </div>
+                </div>
 
-                    {/* Email */}
-                    <div className="group">
-                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Captain&apos;s Email</label>
-                      <div className="relative">
-                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
-                        <input 
-                          required
-                          type="email" 
-                          placeholder="captain@example.com" 
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300"
-                        />
-                      </div>
-                    </div>
+                {/* Captain Address */}
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-gray-800">Captain's Address <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <MapIcon className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-400" />
+                    <textarea 
+                      required
+                      placeholder="Complete Address" 
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="!w-full !bg-white !border !border-gray-200 !rounded-xl !pl-10 !pr-4 !py-3 !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all placeholder:!text-gray-400 !min-h-[80px] !resize-none"
+                    />
+                  </div>
+                </div>
 
-                    {/* Contact Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="group">
-                        <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Primary Phone</label>
-                        <div className="relative">
-                          <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
+                {/* Team Members */}
+                <div className="pt-2">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-semibold text-gray-800">Team Members</label>
+                    <button 
+                      type="button"
+                      onClick={addMember}
+                      className="!flex !items-center !gap-1 !text-sm !font-semibold !text-[#1abc60] hover:!bg-green-50 !px-3 !py-1.5 !rounded-lg !transition-colors !border-none !bg-transparent !cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Member
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {members.map((member, idx) => (
+                      <div key={idx} className="flex gap-2 items-start">
+                        <div className="flex-1 grid grid-cols-2 gap-2">
                           <input 
                             required
-                            type="tel" 
-                            placeholder="Mobile Number" 
-                            value={mobile}
-                            onChange={(e) => setMobile(e.target.value)}
-                            className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300"
+                            type="text" 
+                            placeholder="Member Name" 
+                            value={member.name}
+                            onChange={(e) => updateMember(idx, "name", e.target.value)}
+                            className="!w-full !bg-white !border !border-gray-200 !rounded-lg !px-3 !py-2.5 !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
                           />
-                        </div>
-                      </div>
-                      <div className="group">
-                        <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Alt Contact (Optional)</label>
-                        <div className="relative">
-                          <Contact className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
                           <input 
-                            type="tel" 
-                            placeholder="Alt Number" 
-                            value={altMobile}
-                            onChange={(e) => setAltMobile(e.target.value)}
-                            className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300"
+                            required
+                            type="text" 
+                            placeholder="Role (e.g. Striker)" 
+                            value={member.role}
+                            onChange={(e) => updateMember(idx, "role", e.target.value)}
+                            className="!w-full !bg-white !border !border-gray-200 !rounded-lg !px-3 !py-2.5 !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
                           />
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Address */}
-                    <div className="group">
-                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1 group-focus-within:text-[#1abc60] transition-colors">Captain&apos;s Address</label>
-                      <div className="relative">
-                        <MapIcon className="absolute left-5 top-5 w-5 h-5 text-gray-300 group-focus-within:text-[#1abc60] transition-colors" />
-                        <textarea 
-                          required
-                          placeholder="Complete Address" 
-                          value={address}
-                          onChange={(e) => setAddress(e.target.value)}
-                          className="w-full bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 py-4 text-base font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all placeholder:text-gray-300 min-h-[100px] resize-none"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Team Members */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between ml-1">
-                        <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em]">Team Members</label>
                         <button 
                           type="button"
-                          onClick={addMember}
-                          className="flex items-center gap-1.5 text-[11px] font-black text-[#1abc60] uppercase tracking-wider hover:bg-[#1abc60]/10 px-3 py-1.5 rounded-lg transition-all"
+                          onClick={() => removeMember(idx)}
+                          className="!p-2.5 !text-red-500 !bg-red-50 hover:!bg-red-100 !rounded-lg !transition-colors !border-none !cursor-pointer shrink-0"
                         >
-                          <Plus className="w-3.5 h-3.5" />
-                          Add Member
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                      
-                      <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                        {members.map((member, idx) => (
-                          <div key={idx} className="flex gap-3 items-start animate-in slide-in-from-left-5 duration-300">
-                            <div className="flex-1 grid grid-cols-2 gap-2">
-                              <input 
-                                required
-                                type="text" 
-                                placeholder="Member Name" 
-                                value={member.name}
-                                onChange={(e) => updateMember(idx, "name", e.target.value)}
-                                className="w-full bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all"
-                              />
-                              <input 
-                                required
-                                type="text" 
-                                placeholder="Role (e.g. Striker)" 
-                                value={member.role}
-                                onChange={(e) => updateMember(idx, "role", e.target.value)}
-                                className="w-full bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-[#1abc60] transition-all"
-                              />
-                            </div>
-                            <button 
-                              type="button"
-                              onClick={() => removeMember(idx)}
-                              className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                        {members.length === 0 && (
-                          <p className="text-center py-6 text-xs text-gray-400 font-bold italic border-2 border-dashed border-gray-100 rounded-2xl">
-                            Click &quot;Add Member&quot; to build your squad
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                    ))}
+                    {members.length === 0 && (
+                      <p className="text-center py-4 text-xs font-medium text-gray-500 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+                        Click "+ Add Member" to build your squad
+                      </p>
+                    )}
                   </div>
+                </div>
 
-                  <div className="pt-2">
-                    <button 
-                      type="submit"
-                      disabled={regLoading}
-                      className="w-full bg-gray-900 text-white rounded-2xl py-5 font-black text-sm uppercase tracking-[0.2em] shadow-xl hover:bg-[#1abc60] transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group"
-                    >
-                      {regLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        "Proceed to Secure Checkout"
-                      )}
-                    </button>
-                    <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-6 flex items-center justify-center gap-2">
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#1abc60]" />
-                      100% Encrypted & Secure Registration
-                    </p>
-                  </div>
-                </form>
-              </div>
+                <div className="pt-4 border-t border-gray-100">
+                  <button 
+                    type="submit"
+                    disabled={regLoading}
+                    className="!w-full !bg-gray-900 hover:!bg-[#1abc60] !text-white !rounded-xl !py-3.5 !text-sm !font-bold !uppercase !tracking-wide !transition-all !shadow-lg disabled:!opacity-50 !flex !items-center !justify-center !gap-2 !border-none !cursor-pointer"
+                  >
+                    {regLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      "Proceed to Secure Checkout"
+                    )}
+                  </button>
+                  <p className="text-center text-xs text-gray-500 font-semibold uppercase tracking-wider mt-4 flex items-center justify-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-[#1abc60]" />
+                    100% Encrypted & Secure Registration
+                  </p>
+                </div>
+              </form>
             </div>
           </div>
         </div>
       )}
-      <div className="relative w-full h-[900px] md:h-[550px] flex flex-col justify-end pb-12">
-        <div className="absolute inset-0 z-0 w-full h-full bg-[#111827]">
+
+      {/* ================= 1. HERO SECTION ================= */}
+      <div className="relative w-full h-[400px] md:h-[500px] flex flex-col justify-end pb-10">
+        <div className="absolute inset-0 z-0 w-full h-full bg-gray-900">
           <img 
             src={getImageUrl(tournament.image || "")} 
             alt={tournament.title} 
-            className="w-full h-full object-cover object-center opacity-90"
+            className="w-full h-full object-cover object-center opacity-70 mix-blend-overlay"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#111827] via-[#111827]/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent" />
         </div>
 
-        <div className="relative z-10 w-full max-w-[1600px] mx-auto px-6 lg:px-12 xl:px-16">
-          <div className={`inline-flex items-center text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider mb-4 ${getStatusColor(tournament.status)}`}>
-            <span className="w-1.5 h-1.5 bg-white rounded-full mr-2"></span>
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-md shadow-sm mb-4 ${getStatusColor(tournament.status)} capitalize border border-white/10`}>
             {tournament.status}
           </div>
           
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-6 leading-tight relative z-20">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-tight mb-6 leading-tight relative z-20">
             {tournament.title.split(' ').length > 2 ? (
               <>
                 <span className="text-white drop-shadow-2xl">{tournament.title.split(' ').slice(0, 2).join(' ')}</span>
@@ -518,14 +543,14 @@ export default function TournamentDetailsPage() {
             )}
           </h1>
           
-          <div className="flex flex-wrap items-center gap-8 md:gap-12 relative z-20">
+          <div className="flex flex-wrap items-center gap-6 md:gap-10">
             <div>
-              <p className="text-white/80 text-[9px] font-black uppercase tracking-[0.2em] mb-1.5 drop-shadow-md">ENTRY FEE</p>
-              <p className="text-xl md:text-2xl font-black text-white leading-none drop-shadow-2xl">₹ {formatPrice(tournament.entryFee)}</p>
+              <p className="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-1">Entry Fee</p>
+              <p className="text-xl md:text-2xl font-bold text-white">₹ {formatPrice(tournament.entryFee)}</p>
             </div>
             <div>
-              <p className="text-white/80 text-[9px] font-black uppercase tracking-[0.2em] mb-1.5 drop-shadow-md">DATES</p>
-              <p className="text-xl md:text-2xl font-black text-white leading-none drop-shadow-2xl">
+              <p className="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-1">Dates</p>
+              <p className="text-xl md:text-2xl font-bold text-white">
                 {new Date(tournament.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(tournament.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </p>
             </div>
@@ -534,33 +559,35 @@ export default function TournamentDetailsPage() {
       </div>
 
       {/* ================= 2. MAIN CONTENT ================= */}
-      <div className="max-w-[1600px] mx-auto px-6 lg:px-12 xl:px-16 pt-12 flex flex-col lg:flex-row gap-12 lg:gap-20 justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 flex flex-col lg:flex-row gap-8 lg:gap-12">
         
         {/* LEFT COLUMN */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 space-y-8">
           
           {/* Overview */}
-          <div className="mb-12">
-            <h2 className="text-[20px] font-black text-[#1abc60] uppercase mb-4 tracking-wide">The Tournament Overview</h2>
-            <p className="text-[14px] text-gray-600 leading-relaxed font-normal max-w-4xl">
-              {tournament.description}
-            </p>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Tournament Overview</h2>
+            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                {tournament.description}
+              </p>
+            </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: "Registered", value: `${tournament.registeredTeams?.length || 0} Teams`, icon: Users },
               { label: "Format", value: tournament.format || tournament.matchType || "Tournament", icon: ShieldCheck },
               { label: "Sport", value: tournament.sport, icon: Trophy },
-              { label: "Entry", value: `₹${formatPrice(tournament.entryFee)}`, icon: Medal }
+              { label: "Entry Fee", value: `₹${formatPrice(tournament.entryFee)}`, icon: Medal }
             ].map((stat, idx) => {
               const Icon = stat.icon;
               return (
-                <div key={idx} className="bg-[#fcfcfd] rounded-[10px] p-5 flex flex-col items-start border border-gray-100 shadow-sm">
-                  <Icon className="w-5 h-5 text-[#1abc60] mb-2.5" strokeWidth={1.5} />
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">{stat.label}</span>
-                  <span className="text-[15px] font-bold text-[#1e293b]">{stat.value}</span>
+                <div key={idx} className="bg-white rounded-xl p-4 flex flex-col items-start border border-gray-200 shadow-sm">
+                  <Icon className="w-5 h-5 text-[#1abc60] mb-3" />
+                  <span className="text-xs text-gray-500 font-medium">{stat.label}</span>
+                  <span className="text-sm font-semibold text-gray-900 mt-0.5">{stat.value}</span>
                 </div>
               );
             })}
@@ -568,15 +595,15 @@ export default function TournamentDetailsPage() {
 
           {/* Rules */}
           {tournament.rules && tournament.rules.length > 0 && (
-            <div className="mb-12">
-              <h2 className="text-[20px] font-black text-[#1abc60] uppercase mb-5 tracking-wide">Format & Rules</h2>
-              <div className="bg-[#fcfcfd] rounded-[12px] p-7 space-y-4 border border-gray-100 shadow-sm">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 mb-3">Format & Rules</h2>
+              <div className="bg-white rounded-xl p-6 space-y-4 border border-gray-200 shadow-sm">
                 {tournament.rules.map((rule, idx) => (
                   <div key={idx} className="flex gap-3 items-start">
-                    <div className="w-5 h-5 rounded-full bg-[#1abc60] text-white flex-shrink-0 flex items-center justify-center text-[11px] font-bold mt-0.5">
+                    <div className="w-6 h-6 rounded-full bg-green-50 text-[#1abc60] flex-shrink-0 flex items-center justify-center text-xs font-semibold mt-0.5">
                       {idx + 1}
                     </div>
-                    <p className="text-[13px] text-gray-600 leading-relaxed font-medium">{rule}</p>
+                    <p className="text-sm text-gray-700 leading-relaxed pt-0.5">{rule}</p>
                   </div>
                 ))}
               </div>
@@ -585,12 +612,12 @@ export default function TournamentDetailsPage() {
 
           {/* Gallery Section */}
           {tournament.gallery && tournament.gallery.length > 0 && (
-            <div className="mb-12">
-              <h2 className="text-[20px] font-black text-[#1abc60] uppercase mb-5 tracking-wide">Tournament Gallery</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 mb-3">Tournament Gallery</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {tournament.gallery.map((img, idx) => (
-                  <div key={idx} className="aspect-square rounded-[12px] overflow-hidden border border-gray-100 shadow-sm">
-                    <img src={getImageUrl(img)} alt={`Gallery ${idx}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                  <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-gray-100">
+                    <img src={getImageUrl(img)} alt={`Gallery ${idx}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
                   </div>
                 ))}
               </div>
@@ -599,48 +626,53 @@ export default function TournamentDetailsPage() {
         </div>
 
         {/* ================= 3. RIGHT SIDEBAR ================= */}
-        <div className="w-full lg:w-[340px] xl:w-[380px] flex-shrink-0 space-y-6 self-start lg:sticky lg:top-8">
+        <div className="w-full lg:w-[340px] flex-shrink-0 space-y-6 self-start lg:sticky lg:top-8">
           
           {/* Register Card */}
-          <div className="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm">
-            <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1.5">ENTRY FEE</p>
+          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+            <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Entry Fee</p>
             <div className="flex items-baseline gap-1 mb-5">
-              <span className="text-4xl font-black text-[#1abc60] leading-none">₹ {formatPrice(tournament.entryFee)}</span>
-              <span className="text-[12px] text-gray-500 font-bold">/team</span>
+              <span className="text-3xl font-bold text-gray-900">₹ {formatPrice(tournament.entryFee)}</span>
+              <span className="text-sm text-gray-500">/team</span>
             </div>
+            
             <button 
               onClick={handleRegisterClick}
               disabled={isRegistrationClosed()}
-              className={`w-full text-[13px] font-black uppercase tracking-widest py-4 rounded-2xl transition-all mb-4 shadow-lg cursor-pointer border-none active:scale-[0.98] ${
+              className={`!w-full !text-sm !font-semibold !uppercase !tracking-wide !py-3 !rounded-lg !transition-colors !mb-4 !shadow-sm !border-none ${
                 isRegistrationClosed() 
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none' 
-                  : 'bg-[#1abc60] hover:bg-[#169c4e] text-white shadow-green-100'
+                  ? '!bg-gray-100 !text-gray-400 !cursor-not-allowed !shadow-none' 
+                  : '!bg-[#1abc60] hover:!bg-[#17a554] !text-white !cursor-pointer'
               }`}
             >
               {isRegistrationClosed() ? getRegistrationStatusMessage() : "REGISTER NOW"}
             </button>
-            <p className="text-center text-[10px] text-gray-400 font-bold leading-relaxed uppercase tracking-tighter">
-              Limited spots available. Registration closes on <br/><span className="text-gray-600 font-black">{new Date(tournament.registrationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>.
+            
+            <p className="text-center text-xs text-gray-500 leading-relaxed">
+              Limited spots available. Registration closes on <br/>
+              <span className="font-semibold text-gray-700">
+                {new Date(tournament.registrationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>.
             </p>
           </div>
 
           {/* Location Details */}
-          <div className="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm space-y-6">
-            <h3 className="text-[12px] font-black text-gray-800 uppercase tracking-widest">LOCATION DETAILS</h3>
+          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-5">
+            <h3 className="text-sm font-bold text-gray-900">Location Details</h3>
             
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center shrink-0">
-                <MapPin className="w-6 h-6 text-[#1abc60]" />
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
+                <MapPin className="w-5 h-5 text-[#1abc60]" />
               </div>
-              <div className="space-y-1">
-                <p className="text-[15px] font-black text-gray-800 leading-tight">{tournament.location.venue}</p>
-                <p className="text-[11px] text-gray-500 font-bold leading-relaxed uppercase tracking-tighter">
+              <div className="space-y-0.5">
+                <p className="text-sm font-semibold text-gray-900">{tournament.location.venue}</p>
+                <p className="text-xs text-gray-500">
                   {[tournament.location.address, tournament.location.city].filter(Boolean).join(', ')}
                 </p>
               </div>
             </div>
 
-            <div className="relative h-[200px] w-full rounded-[20px] overflow-hidden bg-gray-50 border border-gray-100 group">
+            <div className="relative h-40 w-full rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
               {embedUrl || (tournament.location.venue && tournament.location.city) ? (
                 <iframe
                   title="Tournament Location"
@@ -649,8 +681,9 @@ export default function TournamentDetailsPage() {
                   loading="lazy"
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <MapIcon className="w-8 h-8 text-gray-200" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 gap-1">
+                  <MapIcon className="w-6 h-6" />
+                  <span className="text-xs font-medium">Map Unavailable</span>
                 </div>
               )}
             </div>
@@ -659,50 +692,48 @@ export default function TournamentDetailsPage() {
               href={tournament.location.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([tournament.location.venue, tournament.location.address, tournament.location.city].filter(Boolean).join(', '))}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors group no-underline"
+              className="!flex !items-center !justify-between !p-3 !bg-gray-50 !rounded-lg hover:!bg-gray-100 !transition-colors !no-underline !border !border-gray-200"
             >
-              <div className="flex items-center gap-3">
-                <MapIcon className="w-5 h-5 text-gray-400 group-hover:text-[#1abc60] transition-colors" />
-                <p className="text-[12px] text-gray-600 font-black uppercase tracking-wider transition-colors group-hover:text-gray-900">
-                  View on Maps
-                </p>
+              <div className="flex items-center gap-2">
+                <MapIcon className="w-4 h-4 text-gray-500" />
+                <span className="text-sm text-gray-700 font-medium">View on Maps</span>
               </div>
-              <ExternalLink className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
+              <ExternalLink className="w-4 h-4 text-gray-400" />
             </a>
           </div>
 
           {/* Organizer Contact */}
-          <div className="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm space-y-6">
-            <h3 className="text-[12px] font-black text-gray-800 uppercase tracking-widest">ORGANIZER CONTACT</h3>
+          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4">
+            <h3 className="text-sm font-bold text-gray-900">Organizer Contact</h3>
             
-            <div className="bg-[#fcfcfd] rounded-[20px] p-2 space-y-1 border border-gray-50">
-              <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white transition-all">
-                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
-                  <User className="w-4 h-4 text-gray-400" />
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 border border-gray-200">
+                  <User className="w-4 h-4 text-gray-500" />
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-400 font-bold text-[13px]">:</span>
-                  <p className="text-[13px] font-black text-gray-700 uppercase tracking-tight">{tournament.contact?.name || "Organizer"}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white transition-all">
-                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-400 font-bold text-[13px]">:</span>
-                  <p className="text-[13px] font-black text-gray-700">{tournament.contact?.phone || "+91 00000 00000"}</p>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500">Name</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{tournament.contact?.name || "Organizer"}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white transition-all">
-                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
-                  <Mail className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 border border-gray-200">
+                  <Phone className="w-4 h-4 text-gray-500" />
                 </div>
-                <div className="flex items-center gap-1 overflow-hidden">
-                  <span className="text-gray-400 font-bold text-[13px] flex-shrink-0">:</span>
-                  <p className="text-[13px] font-black text-gray-700 truncate">{tournament.contact?.email || "events@turf.com"}</p>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500">Phone</p>
+                  <p className="text-sm font-semibold text-gray-900">{tournament.contact?.phone || "N/A"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 border border-gray-200">
+                  <Mail className="w-4 h-4 text-gray-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500">Email</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{tournament.contact?.email || "N/A"}</p>
                 </div>
               </div>
             </div>

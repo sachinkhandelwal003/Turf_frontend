@@ -50,6 +50,26 @@ export default function TurfDetailsPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [selectedCourts, setSelectedCourts] = useState<string[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<any[]>([]);
+  const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      if (!id || !selectedDate) return;
+      setIsAvailabilityLoading(true);
+      try {
+        const res = await api.get(`/bookings/check-availability?turfId=${id}&date=${selectedDate}`);
+        if (res.data.success) {
+          setBookedSlots(res.data.bookedSlots || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch availability:", error);
+      } finally {
+        setIsAvailabilityLoading(false);
+      }
+    };
+    fetchAvailability();
+  }, [id, selectedDate]);
 
   const defaultTimeSlots = [
     { label: "Morning", slots: ["06:00 - 07:00", "07:00 - 08:00", "08:00 - 09:00", "09:00 - 10:00"] },
@@ -149,7 +169,12 @@ export default function TurfDetailsPage() {
       if (res.data.success) {
         toast.success("Booking created successfully!");
         setShowBookingModal(false);
-        router.push("/profile");
+        const bookingId = res.data.booking?._id;
+        if (bookingId) {
+          router.push(`/checkout/${bookingId}`);
+        } else {
+          router.push("/profile");
+        }
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to create booking");
@@ -424,21 +449,35 @@ export default function TurfDetailsPage() {
                   <div key={group.label} className="space-y-4">
                     <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{group.label}</h4>
                     <div className="grid grid-cols-2 gap-3">
-                      {group.slots.map(slot => (
-                        <button 
-                          key={slot}
-                          onClick={() => {
-                            if (selectedSlots.includes(slot)) {
-                              setSelectedSlots(selectedSlots.filter(s => s !== slot));
-                            } else {
-                              setSelectedSlots([...selectedSlots, slot]);
-                            }
-                          }}
-                          className={`p-3 rounded-xl border-2 font-bold text-sm transition-all ${selectedSlots.includes(slot) ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-md shadow-green-50' : 'border-gray-50 text-gray-400 hover:border-gray-200'}`}
-                        >
-                          {slot}
-                        </button>
-                      ))}
+                      {group.slots.map((slot) => {
+                        const [start, end] = slot.split(" - ");
+                        const bookedCourts = bookedSlots.filter(b => (start < b.endTime && end > b.startTime)).flatMap(b => b.courts);
+                        const isFullyBooked = bookedCourts.length >= (turf.courts?.length || 1);
+                        const isSelected = selectedSlots.includes(slot);
+
+                        return (
+                          <button
+                            key={slot}
+                            disabled={isFullyBooked}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedSlots(selectedSlots.filter(s => s !== slot));
+                              } else {
+                                setSelectedSlots([...selectedSlots, slot]);
+                              }
+                            }}
+                            className={`p-3 rounded-xl border-2 font-bold text-sm transition-all ${
+                              isFullyBooked 
+                                ? 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed' 
+                                : isSelected 
+                                  ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-md shadow-green-50' 
+                                  : 'border-gray-50 text-gray-400 hover:border-gray-200'
+                            }`}
+                          >
+                            {slot}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}

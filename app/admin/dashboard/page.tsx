@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Shield, 
   ArrowUpRight, Loader2, AlertCircle, RefreshCw,
-  MapPin, Clock, Calendar, Trophy, BarChart3, PlusCircle
+  MapPin, Clock, Calendar, Trophy, BarChart3, PlusCircle, Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/app/services/api';
 import { useAuth } from '@/app/context/AuthContext';
+import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer 
@@ -78,6 +80,35 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const handleDeleteUser = async (id: string) => {
+    if (id === (currentUser as any).id) {
+      return toast.error("You cannot delete your own account");
+    }
+
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This user account will be permanently deleted!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, delete it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await api.delete(`/auth/users/${id}`);
+        if (res.data.success) {
+          setRecentUsers(prev => prev.filter(u => u._id !== id));
+          toast.success("User deleted successfully");
+          fetchDashboardData();
+        }
+      } catch (error: any) {
+        toast.error(error.response?.data?.msg || "Failed to delete user");
+      }
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -87,18 +118,43 @@ export default function AdminDashboard() {
     try {
       setError(null);
       const res = await api.get('/dashboard/stats');
-
       if (res.data.success) {
         setStats(res.data.stats);
-        setRecentUsers(res.data.recentUsers);
-        setRecentTurfs(res.data.recentTurfs);
+        setRecentTurfs(res.data.recentTurfs || []);
+        setRecentUsers(res.data.recentUsers || []);
       }
-    } catch (error: any) {
-      console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data. Please check your connection.');
+    } catch (err: any) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.response?.data?.error || 'Failed to fetch dashboard data');
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleDeleteVenue = async (id: string) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This venue will be permanently deleted!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, delete it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await api.delete(`/turfs/${id}`);
+        if (res.data.success) {
+          setRecentTurfs(prev => prev.filter(t => t._id !== id));
+          toast.success("Venue deleted successfully");
+          // Optionally refresh stats
+          fetchDashboardData();
+        }
+      } catch (error: any) {
+        toast.error(error.response?.data?.error || "Failed to delete venue");
+      }
     }
   };
 
@@ -311,6 +367,12 @@ export default function AdminDashboard() {
                     >
                       <PlusCircle className="w-3 h-3" /> Book Offline
                     </Link>
+                    <button
+                      onClick={() => handleDeleteVenue(t._id)}
+                      className="text-[10px] font-bold text-red-500 hover:text-red-700 mt-1 flex items-center gap-0.5"
+                    >
+                      <Trash2 className="w-3 h-3" /> Delete Venue
+                    </button>
                   </div>
                 </div>
               ))
@@ -360,6 +422,14 @@ export default function AdminDashboard() {
                     }`}>
                       {u.role}
                     </span>
+                    {u._id !== (currentUser as any).id && (
+                      <button
+                        onClick={() => handleDeleteUser(u._id)}
+                        className="text-[10px] font-bold text-red-500 hover:text-red-700 mt-1 flex items-center gap-0.5"
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete User
+                      </button>
+                    )}
                   </div>
                 </div>
               ))

@@ -153,6 +153,21 @@ export default function AdminRolesPage() {
               </label>
             ))}
           </div>
+          
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <button 
+              onClick={() => setIsAdding(false)}
+              className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-lg transition-all"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleCreateRole}
+              className="px-6 py-2 bg-[#1abc60] text-white text-sm font-bold rounded-lg hover:bg-[#16a085] transition-all shadow-lg shadow-green-100 flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" /> Save Role
+            </button>
+          </div>
         </div>
       )}
 

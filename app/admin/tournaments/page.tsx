@@ -20,6 +20,7 @@ import Link from 'next/link';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/context/AuthContext';
+import Swal from 'sweetalert2';
 
 interface RegisteredTeam {
   name: string;
@@ -105,16 +106,36 @@ export default function TournamentsListPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this tournament?')) return;
-    
-    try {
-      const res = await api.delete(`/tournaments/${id}`);
-      if (res.data.success) {
-        toast.success('Tournament deleted successfully');
-        setTournaments(prev => prev.filter(t => t._id !== id));
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This tournament will be permanently deleted!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, delete it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await api.delete(`/tournaments/${id}`);
+        if (res.data.success) {
+          setTournaments(prev => prev.filter(t => t._id !== id));
+          Swal.fire({
+            title: "Deleted!",
+            text: "Tournament has been deleted.",
+            icon: "success",
+            confirmButtonColor: "#1abc60"
+          });
+        }
+      } catch (error) {
+        Swal.fire({
+          title: "Error!",
+          text: "Failed to delete tournament",
+          icon: "error",
+          confirmButtonColor: "#1abc60"
+        });
       }
-    } catch (error) {
-      toast.error('Failed to delete tournament');
     }
   };
 

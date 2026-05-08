@@ -26,11 +26,6 @@ export default function AdminLayout({
     }
   }, [isAuthenticated, isLoading, router, isLoginPage]);
 
-  // Close sidebar when route changes on mobile
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [pathname]);
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

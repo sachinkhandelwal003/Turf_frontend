@@ -80,7 +80,7 @@ interface Turf {
   reviewsCount?: number;
 }
 
-interface FormData {
+interface TurfFormData {
   name: string;
   location: Location;
   pricePerHour: number;
@@ -121,7 +121,7 @@ const getImageUrl = (path: string): string => {
   return `${API_BASE_URL?.replace(/\/api$/, '')}${path}`;
 };
 
-const getEmptyFormData = (): FormData => ({
+const getEmptyFormData = (): TurfFormData => ({
   name: "",
   location: { address: "", city: "", landmark: "", mapUrl: "" },
   pricePerHour: 0,
@@ -137,7 +137,7 @@ const getEmptyFormData = (): FormData => ({
   reviewsCount: 0
 });
 
-const transformTurfToFormData = (turf: Turf): FormData => ({
+const transformTurfToFormData = (turf: Turf): TurfFormData => ({
   name: turf.name,
   location: {
     address: turf.location.address,
@@ -153,7 +153,7 @@ const transformTurfToFormData = (turf: Turf): FormData => ({
   operatingHours: turf.operatingHours.length > 0 
     ? turf.operatingHours 
     : DAYS.map(day => ({ day, open: "06:00", close: "22:00", isOpen: true })),
-  courts: turf.courts || [{ name: "Court 1", courtType: "Synthetic" }],
+  courts: turf.courts && turf.courts.length > 0 ? turf.courts : [{ name: "Court 1", courtType: "" }],
   sports: turf.sports || [],
   amenities: turf.amenities || [],
   description: turf.description || "",
@@ -162,7 +162,7 @@ const transformTurfToFormData = (turf: Turf): FormData => ({
   reviewsCount: turf.reviewsCount || 0
 });
 
-const validateForm = (formData: FormData): ValidationErrors => {
+const validateForm = (formData: TurfFormData): ValidationErrors => {
   const errors: ValidationErrors = {};
   
   if (!formData.name.trim()) errors.name = "Venue name is required";
@@ -193,12 +193,12 @@ const useDebounce = <T,>(value: T, delay: number): T => {
 };
 
 const useTurfForm = (initialTurf?: Turf | null) => {
-  const [formData, setFormData] = useState<FormData>(() => 
+  const [formData, setFormData] = useState<TurfFormData>(() => 
     initialTurf ? transformTurfToFormData(initialTurf) : getEmptyFormData()
   );
   const [errors, setErrors] = useState<ValidationErrors>({});
   
-  const updateField = useCallback((field: keyof FormData, value: unknown) => {
+  const updateField = useCallback((field: keyof TurfFormData, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: "" }));
@@ -263,10 +263,19 @@ const SkeletonCard = () => (
   </div>
 );
 
+const STAT_COLOR_CLASS: Record<string, { bg: string; text: string }> = {
+  blue: { bg: "bg-blue-50", text: "text-blue-600" },
+  emerald: { bg: "bg-emerald-50", text: "text-emerald-600" },
+  orange: { bg: "bg-orange-50", text: "text-orange-600" },
+  purple: { bg: "bg-purple-50", text: "text-purple-600" },
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const StatsCard = ({ label, value, icon: Icon, color }: any) => (
+const StatsCard = ({ label, value, icon: Icon, color }: any) => {
+  const c = STAT_COLOR_CLASS[color] ?? STAT_COLOR_CLASS.blue;
+  return (
   <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-4">
-    <div className={`p-3 rounded-xl bg-${color}-50 text-${color}-600`}>
+    <div className={`p-3 rounded-xl ${c.bg} ${c.text}`}>
       <Icon className="w-5 h-5" />
     </div>
     <div>
@@ -274,7 +283,8 @@ const StatsCard = ({ label, value, icon: Icon, color }: any) => (
       <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
     </div>
   </div>
-);
+  );
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TurfCard = ({ turf, onEdit, onDelete, onToggleStatus }: any) => {
@@ -533,11 +543,14 @@ export default function AdminTurfPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [availableSports, setAvailableSports] = useState<string[]>([]);
   const [commonAmenities, setCommonAmenities] = useState<string[]>([]);
+  const [courtTypes, setCourtTypes] = useState<string[]>([]);
   
   const itemsPerPage = 6;
   const debouncedSearch = useDebounce(searchTerm, 300);
   
   const { formData, errors, setErrors, updateField, updateLocation, resetForm, setFormFromTurf } = useTurfForm(editingTurf);
+  const courtsCount = formData.courts?.length || 1;
+  const primaryCourtType = formData.courts?.[0]?.courtType || "";
   
   // Filtered turfs based on search
   const filteredTurfs = useMemo(() => {
@@ -573,6 +586,12 @@ export default function AdminTurfPage() {
         setAvailableSports(masters.filter((m: any) => m.category === "sport").map((m: any) => m.name));
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setCommonAmenities(masters.filter((m: any) => m.category === "amenity").map((m: any) => m.name));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setCourtTypes(
+          masters
+            .filter((m: any) => m.category === "court_type" || m.category === "surface_type")
+            .map((m: any) => m.name)
+        );
       }
     } catch {
       console.error("Failed to fetch masters");
@@ -627,13 +646,11 @@ export default function AdminTurfPage() {
       data.append("reviewsCount", String(formData.reviewsCount));
       
       const existingImages = formData.images
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((img: any) => !img.originalFile && typeof img.url === 'string')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((img: any) => {
-          const url = img.url;
-          if (url.includes('/uploads/')) {
-            return '/uploads/' + url.split('/uploads/')[1];
+        .map((img) => (typeof img === "string" ? img : img.url))
+        .filter((url): url is string => typeof url === "string" && url.length > 0)
+        .map((url) => {
+          if (url.includes("/uploads/")) {
+            return "/uploads/" + url.split("/uploads/")[1];
           }
           return url;
         });
@@ -765,6 +782,21 @@ export default function AdminTurfPage() {
     fetchMasters();
   }, [fetchTurfs, fetchMasters]);
   
+  useEffect(() => {
+    if (!courtTypes.length) return;
+    if (!formData.courts?.length) return;
+    const hasMissingType = formData.courts.some((c) => !c.courtType);
+    if (!hasMissingType) return;
+    updateField(
+      "courts",
+      formData.courts.map((c, idx) => ({
+        ...c,
+        name: c.name || `Court ${idx + 1}`,
+        courtType: c.courtType || courtTypes[0],
+      }))
+    );
+  }, [courtTypes, formData.courts, updateField]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch]);
@@ -928,7 +960,7 @@ export default function AdminTurfPage() {
       {/* Professional Modal */}
       <AnimatePresence>
         {showModal && (
-          <div className="fixed inset-0 bg-gray-900/60 z-100 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="fixed inset-0 bg-gray-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 10 }}
@@ -1083,6 +1115,57 @@ export default function AdminTurfPage() {
                             {errors.sports && (
                               <p className="text-xs text-red-500 mt-1">{errors.sports}</p>
                             )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-1.5">
+                              <label className="block text-sm font-medium text-gray-700">Number of Courts</label>
+                              <input
+                                type="number"
+                                min={1}
+                                max={50}
+                                value={courtsCount}
+                                onChange={(e) => {
+                                  const nextCount = Math.max(1, Math.min(50, Number(e.target.value) || 1));
+                                  const nextType = primaryCourtType || courtTypes[0] || "Synthetic";
+                                  const nextCourts = Array.from({ length: nextCount }).map((_, idx) => ({
+                                    name: formData.courts?.[idx]?.name || `Court ${idx + 1}`,
+                                    courtType: formData.courts?.[idx]?.courtType || nextType,
+                                    isActive: formData.courts?.[idx]?.isActive ?? true,
+                                  }));
+                                  updateField("courts", nextCourts);
+                                }}
+                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] outline-none text-sm transition-all"
+                                placeholder="e.g. 2"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="block text-sm font-medium text-gray-700">Court Type</label>
+                              <select
+                                value={primaryCourtType || (courtTypes[0] || "Synthetic")}
+                                onChange={(e) => {
+                                  const nextType = e.target.value;
+                                  updateField(
+                                    "courts",
+                                    (formData.courts?.length ? formData.courts : [{ name: "Court 1", courtType: nextType }]).map(
+                                      (c, idx) => ({
+                                        ...c,
+                                        name: c.name || `Court ${idx + 1}`,
+                                        courtType: nextType,
+                                      })
+                                    )
+                                  );
+                                }}
+                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] outline-none text-sm transition-all"
+                              >
+                                {(courtTypes.length ? courtTypes : ["Synthetic"]).map((t) => (
+                                  <option key={t} value={t}>
+                                    {t}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
                           
                           <div className="space-y-2">

@@ -3,7 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { 
   Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2,
-  Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash, Calendar, Trash2, Plus, Info
+  Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash, Calendar, Info
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -41,15 +41,14 @@ interface ApiCarryForwardShape {
   rates: any[];
   availableSlots: any[];
   courts: any[];
-  unavailableDates: any[];
 }
 
 const defaultForm: FormShape = {
   name: '',
   description: '',
-  sports: ['Cricket'],
-  surfaceType: 'Hybrid Grass',
-  amenities: ['Floodlights', 'Changing Rooms'],
+  sports: [],
+  surfaceType: '',
+  amenities: [],
   address: '',
   city: '',
   landmark: '',
@@ -70,6 +69,8 @@ const fallbackAmenities = ['Floodlights', 'Changing Rooms', 'Shower', 'Parking',
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+type OperatingHour = { day: string; open: string; close: string; isOpen: boolean };
+
 export default function VenueForm({ mode, turfId }: VenueFormProps) {
   const router = useRouter();
   const [form, setForm] = useState<FormShape>(defaultForm);
@@ -83,8 +84,13 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
     rates: days.map(day => ({ day, price: 0, isPeak: false })),
     availableSlots: [],
     courts: [{ name: 'Court 1', courtType: 'Synthetic' }],
-    unavailableDates: [],
   });
+  const [operatingHours, setOperatingHours] = useState<OperatingHour[]>(
+    days.map((day) => ({ day, open: '06:00', close: '23:00', isOpen: true }))
+  );
+  const [slotDuration, setSlotDuration] = useState<number>(60);
+  const [courtsCount, setCourtsCount] = useState<number>(1);
+  const [slotPreviewDay, setSlotPreviewDay] = useState<string>('Monday');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [heroImage, setHeroImage] = useState<File | null>(null);
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
@@ -94,8 +100,39 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
   const heroRef = useRef<HTMLInputElement | null>(null);
   const galleryRef = useRef<HTMLInputElement | null>(null);
 
-  const [selectedBlockedDate, setSelectedBlockedDate] = useState('');
-  const [specialPrice, setSpecialPrice] = useState('');
+  const formatMinutes = (mins: number) => String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+  const parseTimeToMinutes = (time: string) => {
+    const [h, m] = (time || '00:00').split(':').map((v) => Number(v));
+    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+  };
+  const buildTimeSlots = (open: string, close: string, duration: number) => {
+    const start = parseTimeToMinutes(open);
+    const end = parseTimeToMinutes(close);
+    const d = Math.max(15, Number(duration) || 60);
+    const slots: { startTime: string; endTime: string }[] = [];
+    let cur = start;
+    while (cur + d <= end) {
+      slots.push({ startTime: formatMinutes(cur), endTime: formatMinutes(cur + d) });
+      cur += d;
+    }
+    return slots;
+  };
+
+  const to12h = (time24: string) => {
+    const [hh, mm] = (time24 || '00:00').split(':').map((v) => Number(v));
+    const h = (hh % 12) || 12;
+    const ampm = hh < 12 ? 'AM' : 'PM';
+    return `${h}:${String(mm || 0).padStart(2, '0')} ${ampm}`;
+  };
+
+  const TIME_OPTIONS = (() => {
+    const opts: { value: string; label: string }[] = [];
+    for (let mins = 0; mins < 24 * 60; mins += 30) {
+      const value = formatMinutes(mins);
+      opts.push({ value, label: to12h(value) });
+    }
+    return opts;
+  })();
 
   useEffect(() => {
     const loadMasters = async () => {
@@ -171,6 +208,25 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           weekendClose: weekendHours?.close || '22:00',
           termsAccepted: true,
         });
+        if (Array.isArray(target.operatingHours) && target.operatingHours.length) {
+          setOperatingHours(
+            days.map((day) => {
+              const found = target.operatingHours.find((h: any) => h.day === day);
+              return {
+                day,
+                open: found?.open || (day === 'Saturday' || day === 'Sunday' ? '08:00' : '06:00'),
+                close: found?.close || (day === 'Saturday' || day === 'Sunday' ? '22:00' : '23:00'),
+                isOpen: found?.isOpen !== false,
+              };
+            })
+          );
+        }
+        if (typeof target.slotDuration === 'number') {
+          setSlotDuration(target.slotDuration || 60);
+        }
+        if (Array.isArray(target.courts)) {
+          setCourtsCount(Math.max(1, target.courts.length || 1));
+        }
         setRating(target.rating || 0);
         setReviewsCount(target.reviewsCount || 0);
         setExistingImages(Array.isArray(target.images) ? target.images : []);
@@ -184,7 +240,6 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                   courtType: court.courtType || court.type || target.surfaceType || 'Synthetic',
                 }))
               : [{ name: 'Court 1', courtType: target.surfaceType || 'Synthetic' }],
-          unavailableDates: Array.isArray(target.unavailableDates) ? target.unavailableDates : [],
         });
       } catch (error) {
         toast.error('Failed to load venue details.');
@@ -288,7 +343,11 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
     );
   };
 
-  const buildOperatingHours = () => {
+  const effectiveOperatingHours = () => {
+    // Keep old weekday/weekend fields as fallback, but prefer per-day state.
+    if (operatingHours?.length === 7) {
+      return operatingHours;
+    }
     const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => ({
       day,
       open: form.weekdayOpen,
@@ -335,40 +394,12 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
     return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
   };
 
-  const addBlockedDate = () => {
-    if (!selectedBlockedDate) {
-      toast.error('Please select a date');
-      return;
-    }
-
-    const alreadyExists = apiCarryForward.unavailableDates.some(
-      (item: any) => item.date === selectedBlockedDate
-    );
-
-    if (alreadyExists) {
-      toast.error('This date is already in the list');
-      return;
-    }
-
+  const updateDayRate = (day: string, patch: Partial<{ price: number; isPeak: boolean }>) => {
     setApiCarryForward((prev) => ({
       ...prev,
-      unavailableDates: [
-        ...prev.unavailableDates,
-        { 
-          date: selectedBlockedDate, 
-          reason: specialPrice ? `Special Price: ₹${specialPrice}` : 'Blocked' 
-        },
-      ],
-    }));
-    setSelectedBlockedDate('');
-    setSpecialPrice('');
-    toast.success('Date rule added');
-  };
-
-  const removeBlockedDate = (date: string) => {
-    setApiCarryForward((prev) => ({
-      ...prev,
-      unavailableDates: prev.unavailableDates.filter((item: any) => item.date !== date),
+      rates: (prev.rates?.length ? prev.rates : days.map((d) => ({ day: d, price: 0, isPeak: false }))).map((r: any) =>
+        r.day === day ? { ...r, ...patch } : r
+      ),
     }));
   };
 
@@ -385,6 +416,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
 
     setSaving(true);
     try {
+      const resolvedSurfaceType = form.surfaceType || surfaceOptions[0] || 'Synthetic';
       const payload = new FormData();
       payload.append('name', form.name);
       payload.append('description', form.description);
@@ -392,7 +424,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       payload.append('amenities', JSON.stringify(form.amenities));
       payload.append('pricePerHour', String(Number(form.pricePerHour || 0)));
       payload.append('peakHourSurcharge', String(Number(form.peakHourSurcharge || 0)));
-      payload.append('surfaceType', form.surfaceType);
+      payload.append('surfaceType', resolvedSurfaceType);
       payload.append(
         'location',
         JSON.stringify({
@@ -403,27 +435,19 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           mapUrl: form.mapUrl,
         })
       );
-      payload.append('operatingHours', JSON.stringify(buildOperatingHours()));
+      payload.append('slotDuration', String(slotDuration));
+      payload.append('operatingHours', JSON.stringify(effectiveOperatingHours()));
       payload.append('availableSlots', JSON.stringify(apiCarryForward.availableSlots));
       payload.append('rates', JSON.stringify(apiCarryForward.rates));
       payload.append(
         'courts',
         JSON.stringify(
-          (apiCarryForward.courts?.length ? apiCarryForward.courts : [{ name: 'Court 1', courtType: form.surfaceType }]).map(
-            (court: any) => ({
-              name: court.name || 'Court 1',
-              courtType: court.courtType || court.type || form.surfaceType,
-            })
-          )
+          Array.from({ length: Math.max(1, courtsCount) }).map((_, idx) => ({
+            name: `Court ${idx + 1}`,
+            courtType: resolvedSurfaceType,
+          }))
         )
       );
-
-      // Clean unavailableDates to match expected backend format (date and reason only)
-      const cleanUnavailableDates = apiCarryForward.unavailableDates.map((item: any) => ({
-        date: item.date,
-        reason: item.reason || 'Blocked'
-      }));
-      payload.append('unavailableDates', JSON.stringify(cleanUnavailableDates));
       
       payload.append('existingImages', JSON.stringify(existingImages));
       payload.append('rating', String(rating));
@@ -605,99 +629,44 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
             </div>
           </div>
 
-          {/* Date-Specific Rules (Calendar) */}
+          {/* Day-wise Pricing (Mon–Sun) */}
           <div className="mt-8 pt-6 border-t border-gray-100">
             <div className="flex items-center gap-2 mb-4">
               <Calendar className="h-4 w-4 text-[#1abc60]" />
-              <h3 className="text-sm font-semibold text-gray-900">Date-Specific Pricing & Availability</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Day-wise Pricing (Monday to Sunday)</h3>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div className="space-y-4">
-                <p className="text-xs text-gray-500">
-                  Select a date to set a special price or block it completely for bookings.
-                </p>
-                
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-gray-700 uppercase">Select Date</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-20" />
-                      <input 
-                        type="date" 
-                        min={new Date().toISOString().split('T')[0]}
-                        value={selectedBlockedDate}
-                        onChange={(e) => setSelectedBlockedDate(e.target.value)}
-                        className="!w-full !pl-10 !pr-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !relative !z-10"
-                      />
-                    </div>
-                  </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Set different prices for each day. These will be used when generating slots and pricing.
+            </p>
 
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-gray-700 uppercase">Custom Price (Optional)</label>
-                    <div className="relative">
+            <div className="space-y-2">
+              {(apiCarryForward.rates?.length ? apiCarryForward.rates : days.map((d) => ({ day: d, price: 0, isPeak: false }))).map((rate: any) => (
+                <div key={rate.day} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
+                  <div className="w-24 text-sm font-semibold text-gray-700">{rate.day}</div>
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="relative flex-1">
                       <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input 
+                      <input
                         type="number"
-                        value={specialPrice}
-                        onChange={(e) => setSpecialPrice(e.target.value)}
-                        placeholder="e.g. 1500"
+                        value={Number(rate.price || 0)}
+                        onChange={(e) => updateDayRate(rate.day, { price: Number(e.target.value || 0) })}
                         className="!w-full !pl-9 !pr-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
+                        placeholder="e.g. 1500"
                       />
                     </div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(rate.isPeak)}
+                        onChange={(e) => updateDayRate(rate.day, { isPeak: e.target.checked })}
+                        className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60]"
+                      />
+                      Peak
+                    </label>
                   </div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={addBlockedDate}
-                  className="!flex !w-full !items-center !justify-center !gap-2 !rounded-lg !bg-[#1abc60] !px-4 !py-2.5 !text-sm !font-semibold !text-white hover:!bg-[#17a554] !transition-colors !cursor-pointer !border-none !shadow-sm"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Date Rule
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Active Rules</h4>
-                <div className="bg-gray-50 rounded-xl border border-gray-200 min-h-[140px] max-h-[240px] overflow-y-auto">
-                  {apiCarryForward.unavailableDates.length > 0 ? (
-                    <div className="divide-y divide-gray-200">
-                      {apiCarryForward.unavailableDates.map((item: any, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between p-3 hover:bg-white transition-colors">
-                          <div className="flex items-center gap-3">
-                            <div className="bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
-                              <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-gray-900">
-                                {new Date(item.date).toLocaleDateString('en-US', {
-                                  month: 'short', day: 'numeric', year: 'numeric'
-                                })}
-                              </p>
-                              <p className="text-[11px] text-gray-500">{item.reason}</p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeBlockedDate(item.date)}
-                            className="!p-1.5 !text-gray-400 hover:!text-red-500 hover:!bg-red-50 !rounded-lg !transition-colors !cursor-pointer !bg-transparent !border-none"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center mb-2 border border-gray-100 shadow-sm">
-                        <Info className="h-4 w-4 text-gray-300" />
-                      </div>
-                      <p className="text-[10px] font-medium text-gray-400">No special date rules added yet.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -848,46 +817,151 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
               <p className="text-xs text-gray-500">Additional amount added during evening/weekend peak hours.</p>
             </div>
           </div>
+
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">Courts & Slot Duration</h3>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Number of Courts</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={courtsCount}
+                  onChange={(e) => setCourtsCount(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
+                />
+                <p className="text-xs text-gray-500">Availability per slot will be based on this court count.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Slot Duration (minutes)</label>
+                <select
+                  value={slotDuration}
+                  onChange={(e) => setSlotDuration(Math.max(15, Number(e.target.value) || 60))}
+                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
+                >
+                  {[30, 45, 60, 90, 120].map((m) => (
+                    <option key={m} value={m}>
+                      {m} minutes
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500">Slots are generated from operating hours using this duration.</p>
+              </div>
+            </div>
+          </div>
           
           <div className="mt-8 pt-6 border-t border-gray-100">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">Operating Hours</h3>
-            <div className="space-y-4 max-w-2xl">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <span className="w-24 text-sm font-medium text-gray-600">Weekdays</span>
-                <div className="flex items-center gap-2 flex-1">
-                  <input 
-                    type="time" 
-                    value={form.weekdayOpen} 
-                    onChange={(e) => setForm((prev) => ({ ...prev, weekdayOpen: e.target.value }))} 
-                    className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors" 
-                  />
-                  <span className="text-sm text-gray-400">to</span>
-                  <input 
-                    type="time" 
-                    value={form.weekdayClose} 
-                    onChange={(e) => setForm((prev) => ({ ...prev, weekdayClose: e.target.value }))} 
-                    className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors" 
-                  />
+            <div className="space-y-2">
+              {operatingHours.map((oh, idx) => (
+                <div
+                  key={oh.day}
+                  className={`flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border p-3 transition-colors ${
+                    oh.isOpen ? 'border-gray-200 bg-white' : 'border-dashed border-gray-200 bg-gray-50'
+                  }`}
+                >
+                  <div className="w-28 text-sm font-semibold text-gray-700">{oh.day}</div>
+                  <div className="flex items-center gap-2 flex-1">
+                    <select
+                      value={oh.open}
+                      disabled={!oh.isOpen}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setOperatingHours((prev) => prev.map((d, i) => (i === idx ? { ...d, open: value } : d)));
+                      }}
+                      className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors disabled:!bg-gray-100"
+                    >
+                      {TIME_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-sm text-gray-400">to</span>
+                    <select
+                      value={oh.close}
+                      disabled={!oh.isOpen}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setOperatingHours((prev) => prev.map((d, i) => (i === idx ? { ...d, close: value } : d)));
+                      }}
+                      className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors disabled:!bg-gray-100"
+                    >
+                      {TIME_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={oh.isOpen}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setOperatingHours((prev) => prev.map((d, i) => (i === idx ? { ...d, isOpen: checked } : d)));
+                      }}
+                      className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60]"
+                    />
+                    Open
+                  </label>
+                </div>
+              ))}
+            </div>
+
+            {/* Slots Preview */}
+            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-[#1abc60]" />
+                  <h4 className="text-sm font-semibold text-gray-900">Auto-generated Time Slots</h4>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-gray-600">Preview day</span>
+                  <select
+                    value={slotPreviewDay}
+                    onChange={(e) => setSlotPreviewDay(e.target.value)}
+                    className="!px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
+                  >
+                    {days.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <span className="w-24 text-sm font-medium text-gray-600">Weekends</span>
-                <div className="flex items-center gap-2 flex-1">
-                  <input 
-                    type="time" 
-                    value={form.weekendOpen} 
-                    onChange={(e) => setForm((prev) => ({ ...prev, weekendOpen: e.target.value }))} 
-                    className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors" 
-                  />
-                  <span className="text-sm text-gray-400">to</span>
-                  <input 
-                    type="time" 
-                    value={form.weekendClose} 
-                    onChange={(e) => setForm((prev) => ({ ...prev, weekendClose: e.target.value }))} 
-                    className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors" 
-                  />
-                </div>
-              </div>
+
+              {(() => {
+                const day = operatingHours.find((d) => d.day === slotPreviewDay);
+                if (!day || !day.isOpen) {
+                  return <p className="text-xs text-gray-500">This day is marked closed. No slots will be generated.</p>;
+                }
+                const slots = buildTimeSlots(day.open, day.close, slotDuration);
+                if (!slots.length) {
+                  return <p className="text-xs text-gray-500">No slots for this range. Check open/close times and slot duration.</p>;
+                }
+                return (
+                  <div className="flex flex-wrap gap-2">
+                    {slots.slice(0, 18).map((s) => (
+                      <span
+                        key={`${s.startTime}-${s.endTime}`}
+                        className="bg-white border border-gray-200 text-gray-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg"
+                      >
+                        {to12h(s.startTime)} - {to12h(s.endTime)} · {courtsCount} court{courtsCount !== 1 ? 's' : ''}
+                      </span>
+                    ))}
+                    {slots.length > 18 && (
+                      <span className="text-[11px] font-semibold text-gray-500 px-2 py-1">
+                        +{slots.length - 18} more
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

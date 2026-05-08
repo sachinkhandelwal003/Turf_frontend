@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { 
   MapPin, Star, ChevronDown, Calendar, Clock, ChevronLeft,
-  Activity, CheckCircle2, Droplets, Car, Utensils, ShieldPlus, 
+  Activity, CheckCircle2, ShieldPlus, 
   Circle, X, Loader2 
 } from 'lucide-react';
 import api from '@/app/services/api';
@@ -40,6 +40,7 @@ export default function VenueDetailsPage() {
             mapUrl: t.location.mapUrl || '',
             coordinates: t.location.coordinates,
             price: t.pricePerHour,
+            slotDuration: t.slotDuration || 60,
             peakHourSurcharge: t.peakHourSurcharge || 0,
             surfaceType: t.surfaceType || 'Natural Grass',
             logo: t.logo ? (t.logo.startsWith('http') ? t.logo : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${t.logo}`) : null,
@@ -52,22 +53,12 @@ export default function VenueDetailsPage() {
               ? img 
               : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${img}`) || [],
             sports: t.sports || ["Sports"],
-            amenities: t.amenities?.map((a: any) => {
-              const name = typeof a === 'string' ? a : (a?.name || 'Amenity');
-              return {
-                name: name,
-                icon: name.toLowerCase().includes('park') ? Car : 
-                      name.toLowerCase().includes('show') ? Droplets : 
-                      name.toLowerCase().includes('light') ? Activity :
-                      name.toLowerCase().includes('food') || name.toLowerCase().includes('cafe') ? Utensils :
-                      Activity
-              };
-            }) || [],
+            amenities: (t.amenities || []).map((a: any) => (typeof a === 'string' ? a : (a?.name || 'Amenity'))),
             about: t.description || t.about || "Premium sports facility featuring high-quality turf and excellent amenities. Perfect for competitive matches and friendly games.",
             courts: t.courts || [],
             operatingHours: t.operatingHours || [],
+            rates: t.rates || [],
             priceHikes: t.priceHikes || [],
-            unavailableDates: t.unavailableDates || [],
             availableSlots: t.availableSlots || []
           };
           setVenue(mappedVenue);
@@ -114,6 +105,19 @@ export default function VenueDetailsPage() {
   const getTimeSlots = () => {
     if (!venue) return { "MORNING": [], "AFTERNOON": [], "EVENING": [] };
 
+    const formatMinutes = (mins: number) =>
+      String(Math.floor(mins / 60)).padStart(2, "0") + ":" + String(mins % 60).padStart(2, "0");
+    const parseTimeToMinutes = (time: string) => {
+      const [h, m] = (time || "00:00").split(":").map((v) => Number(v));
+      return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+    };
+    const to12hLabel = (time: string) => {
+      const [hh, mm] = time.split(":").map((v) => Number(v));
+      const h = hh % 12 || 12;
+      const ampm = hh < 12 ? "AM" : "PM";
+      return `${h}:${String(mm || 0).padStart(2, "0")} ${ampm}`;
+    };
+
     const checkIsBooked = (timeVal: string) => {
       const [start, end] = timeVal.split(" - ");
       // A slot is booked if there's an overlapping booking on the same date and turf
@@ -131,46 +135,44 @@ export default function VenueDetailsPage() {
       return Array.from(bookedCourts);
     };
 
-    if (venue?.availableSlots && venue.availableSlots.length > 0) {
-      const groups: Record<string, any[]> = {};
-      venue.availableSlots.forEach((slot: any) => {
-        const type = (slot.type || "Other").toUpperCase();
-        if (!groups[type]) groups[type] = [];
-        const timeVal = `${slot.startTime} - ${slot.endTime}`;
-        const bookedCourts = checkIsBooked(slot.startTime + " - " + slot.endTime);
-        
-        groups[type].push({
-          time: timeVal,
-          status: bookedCourts.length >= (venue?.courts?.length || 1) ? "disabled" : "available",
-          value: timeVal,
-          bookedCourts
-        });
-      });
-      return groups;
-    }
-
+    // Generate slots dynamically from operating hours + slotDuration for the selected date's day
     const groups: Record<string, any[]> = {
       "MORNING": [],
       "AFTERNOON": [],
       "EVENING": []
     };
 
-    for (let h = 6; h < 23; h++) {
-      const start = `${h.toString().padStart(2, '0')}:00`;
-      const end = `${(h + 1).toString().padStart(2, '0')}:00`;
-      const timeVal = `${start} - ${end}`;
-      const label = `${h % 12 || 12}:00 ${h < 12 ? 'AM' : 'PM'} - ${(h + 1) % 12 || 12}:00 ${h + 1 < 12 || h + 1 === 24 ? 'AM' : 'PM'}`;
-      let type = h < 12 ? "MORNING" : h >= 17 ? "EVENING" : "AFTERNOON";
-      
-      const bookedCourts = checkIsBooked(timeVal);
+    const dayName = new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" });
+    const operatingDay = venue?.operatingHours?.find((d: any) => d.day === dayName);
+    if (!operatingDay || operatingDay.isOpen === false) {
+      return groups;
+    }
 
+    const open = operatingDay.open || "06:00";
+    const close = operatingDay.close || "23:00";
+    const duration = Number(venue?.slotDuration || 60);
+
+    let cur = parseTimeToMinutes(open);
+    const end = parseTimeToMinutes(close);
+    const d = Math.max(15, duration || 60);
+
+    while (cur + d <= end) {
+      const start = formatMinutes(cur);
+      const endTime = formatMinutes(cur + d);
+      const timeVal = `${start} - ${endTime}`;
+      const label = `${to12hLabel(start)} - ${to12hLabel(endTime)}`;
+      const type = cur < 12 * 60 ? "MORNING" : cur >= 17 * 60 ? "EVENING" : "AFTERNOON";
+
+      const bookedCourts = checkIsBooked(timeVal);
       groups[type].push({
         time: label,
         status: bookedCourts.length >= (venue?.courts?.length || 1) ? "disabled" : "available",
         value: timeVal,
         bookedCourts
       });
+      cur += d;
     }
+
     return groups;
   };
 
@@ -185,6 +187,33 @@ export default function VenueDetailsPage() {
 
   const currentCourts = getCourts();
 
+  const getSlotMinutes = (slotValue: string) => {
+    const [start, end] = slotValue.split(" - ");
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    return (eh * 60 + em) - (sh * 60 + sm);
+  };
+
+  const getBookedCourtsForSlot = (slotValue: string) => {
+    const [start, end] = slotValue.split(" - ");
+    const booked = new Set<string>();
+    bookedSlots.forEach((b) => {
+      if (start < b.endTime && end > b.startTime) {
+        b.courts.forEach((c: string) => booked.add(c));
+      }
+    });
+    return booked;
+  };
+
+  useEffect(() => {
+    if (!selectedTimes.length || !selectedCourts.length) return;
+    setSelectedCourts((prev) =>
+      prev.filter((courtName) =>
+        !selectedTimes.some((slot) => getBookedCourtsForSlot(slot).has(courtName))
+      )
+    );
+  }, [selectedTimes, bookedSlots]);
+
   const handleBooking = async () => {
     if (!id || selectedTimes.length === 0 || selectedCourts.length === 0) {
       if (selectedCourts.length === 0) toast.error("Please select at least one court");
@@ -194,13 +223,18 @@ export default function VenueDetailsPage() {
 
     setIsBooking(true);
     try {
+      const dayName = new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" });
+      const dayRate = venue?.rates?.find((r: any) => r.day === dayName)?.price;
+      const effectiveHourlyRate = Number(dayRate ?? venue?.price ?? 0);
+      const totalMinutes = selectedTimes.reduce((sum, slot) => sum + Math.max(0, getSlotMinutes(slot)), 0);
+      const totalHours = totalMinutes / 60;
       const res = await api.post("/bookings", {
         turfId: id,
         sport: venue?.sports?.[0] || "Sport",
         date: selectedDate,
         slots: selectedTimes,
         courts: selectedCourts,
-        price: (venue?.price || 0) * selectedTimes.length * selectedCourts.length,
+        price: effectiveHourlyRate * totalHours * selectedCourts.length,
       });
 
       if (res.data.success) {
@@ -364,17 +398,14 @@ export default function VenueDetailsPage() {
             <div className="mb-12">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Amenities</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {venue.amenities.map((amenity: any, idx: number) => {
-                  const Icon = amenity.icon;
-                  return (
-                    <div key={idx} className="bg-gray-50 border border-gray-100 p-5 rounded-2xl flex flex-col items-center justify-center text-center gap-3 hover:shadow-sm transition-shadow">
-                      <div className="bg-white p-2.5 rounded-full shadow-sm">
-                        <Icon className="w-5 h-5 text-[#1abc60]" strokeWidth={2.5} />
-                      </div>
-                      <span className="text-sm font-semibold text-gray-800">{amenity.name}</span>
-                    </div>
-                  );
-                })}
+                {venue.amenities.map((amenity: string, idx: number) => (
+                  <div
+                    key={idx}
+                    className="bg-gray-50 border border-gray-100 p-5 rounded-2xl flex items-center justify-center text-center hover:shadow-sm transition-shadow"
+                  >
+                    <span className="text-sm font-semibold text-gray-800">{amenity}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -644,8 +675,7 @@ export default function VenueDetailsPage() {
                 
                 // A court is disabled if it's already booked for ANY of the selected time slots
                 const isAlreadyBooked = selectedTimes.some(timeVal => {
-                  const [start] = timeVal.split(" - ");
-                  return bookedSlots.some(b => b.startTime === start && b.courts.includes(courtName));
+                  return getBookedCourtsForSlot(timeVal).has(courtName);
                 });
 
                 return (

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
 import Link from 'next/link'; 
-import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X, Loader2, Search, Wifi, Coffee, Dumbbell, Car, Bath, ShowerIcon, Sunset, Users } from 'lucide-react';
+import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X, Loader2, Search } from 'lucide-react';
 import api from '@/app/services/api';
 import { useSearchParams } from 'next/navigation';
 
@@ -28,23 +28,9 @@ interface Venue {
   sportTypes?: string[];
 }
 
-// ============= Helper Functions =============
-const getAmenityIcon = (amenity: string) => {
-  const amenityLower = amenity.toLowerCase();
-  if (amenityLower.includes('wifi')) return <Wifi className="w-3 h-3" />;
-  if (amenityLower.includes('parking')) return <Car className="w-3 h-3" />;
-  if (amenityLower.includes('shower')) return <ShowerIcon className="w-3 h-3" />;
-  if (amenityLower.includes('changing')) return <Users className="w-3 h-3" />;
-  if (amenityLower.includes('cafe') || amenityLower.includes('coffee')) return <Coffee className="w-3 h-3" />;
-  if (amenityLower.includes('gym') || amenityLower.includes('fitness')) return <Dumbbell className="w-3 h-3" />;
-  if (amenityLower.includes('floodlight') || amenityLower.includes('light')) return <Sunset className="w-3 h-3" />;
-  return <Check className="w-3 h-3" />;
-};
-
 // ============= Subcomponents =============
 const AmenityBadge = ({ amenity }: { amenity: string }) => (
-  <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
-    {getAmenityIcon(amenity)}
+  <span className="inline-flex items-center bg-gray-100 text-gray-700 text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
     {amenity}
   </span>
 );

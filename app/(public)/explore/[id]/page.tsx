@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { 
   MapPin, Star, Clock, Info, Shield, CheckCircle2, 
   Calendar, ChevronRight, Loader2, Users, IndianRupee,
-  Activity, Coffee, Car, Wifi, Waves as Shower, Zap, X
+  Activity, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/app/services/api";
@@ -22,6 +22,8 @@ interface Turf {
     mapUrl?: string;
   };
   pricePerHour: number;
+  slotDuration?: number;
+  rates?: { day: string; price: number; isPeak?: boolean }[];
   sports: string[];
   amenities: string[];
   images: string[];
@@ -32,6 +34,7 @@ interface Turf {
     name: string;
     courtType: string;
   }[];
+  operatingHours?: { day: string; open: string; close: string; isOpen: boolean }[];
   availableSlots: {
     startTime: string;
     endTime: string;
@@ -71,11 +74,27 @@ export default function TurfDetailsPage() {
     fetchAvailability();
   }, [id, selectedDate]);
 
-  const defaultTimeSlots = [
-    { label: "Morning", slots: ["06:00 - 07:00", "07:00 - 08:00", "08:00 - 09:00", "09:00 - 10:00"] },
-    { label: "Afternoon", slots: ["12:00 - 13:00", "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00"] },
-    { label: "Evening", slots: ["18:00 - 19:00", "19:00 - 20:00", "20:00 - 21:00", "21:00 - 22:00"] },
-  ];
+  const to12h = (time24: string) => {
+    const [hhRaw, mmRaw] = (time24 || '00:00').split(':');
+    const hh = Number(hhRaw);
+    const mm = Number(mmRaw);
+    const h = (hh % 12) || 12;
+    const ampm = hh < 12 ? 'AM' : 'PM';
+    return `${h}:${String(mm || 0).padStart(2, '0')} ${ampm}`;
+  };
+
+  const formatRange = (range: string) => {
+    const [start, end] = range.split(' - ').map((s) => s.trim());
+    if (!start || !end) return range;
+    return `${to12h(start)} - ${to12h(end)}`;
+  };
+
+  const parseTimeToMinutes = (time: string) => {
+    const [h, m] = (time || '00:00').split(':').map((v) => Number(v));
+    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+  };
+  const formatMinutes = (mins: number) =>
+    String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
 
   const getTimeSlots = () => {
     if (turf?.availableSlots && turf.availableSlots.length > 0) {
@@ -87,10 +106,40 @@ export default function TurfDetailsPage() {
       });
       return Object.entries(groups).map(([label, slots]) => ({ label, slots }));
     }
-    return defaultTimeSlots;
+    if (!turf?.operatingHours) return [];
+    const dayName = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
+    const operatingDay = turf.operatingHours.find((d) => d.day === dayName);
+    if (!operatingDay || operatingDay.isOpen === false) return [];
+
+    const open = operatingDay.open || '06:00';
+    const close = operatingDay.close || '23:00';
+    const d = Math.max(15, Number(turf.slotDuration || 60));
+    let cur = parseTimeToMinutes(open);
+    const end = parseTimeToMinutes(close);
+
+    const groups: Record<string, string[]> = { Morning: [], Afternoon: [], Evening: [] };
+    while (cur + d <= end) {
+      const start = formatMinutes(cur);
+      const endTime = formatMinutes(cur + d);
+      const value = `${start} - ${endTime}`;
+      const hour = cur / 60;
+      const label = hour < 12 ? 'Morning' : hour >= 17 ? 'Evening' : 'Afternoon';
+      groups[label].push(value);
+      cur += d;
+    }
+    return Object.entries(groups).map(([label, slots]) => ({ label, slots }));
   };
 
   const timeSlots = getTimeSlots();
+
+  useEffect(() => {
+    if (!selectedSlots.length || !selectedCourts.length) return;
+    setSelectedCourts((prev) =>
+      prev.filter((courtName) =>
+        !selectedSlots.some((slot) => getBookedCourtsForSlot(slot).has(courtName))
+      )
+    );
+  }, [selectedSlots, bookedSlots]);
 
   useEffect(() => {
     if (id) fetchTurfDetails();
@@ -136,14 +185,24 @@ export default function TurfDetailsPage() {
     return url;
   };
 
-  const getAmenityIcon = (name: string) => {
-    const n = name.toLowerCase();
-    if (n.includes('park')) return <Car className="w-5 h-5" />;
-    if (n.includes('show')) return <Shower className="w-5 h-5" />;
-    if (n.includes('light')) return <Zap className="w-5 h-5" />;
-    if (n.includes('cafe')) return <Coffee className="w-5 h-5" />;
-    if (n.includes('water')) return <Activity className="w-5 h-5" />;
-    return <CheckCircle2 className="w-5 h-5" />;
+  const getAmenityLabel = (name: string) => name;
+
+  const getSlotMinutes = (slotValue: string) => {
+    const [start, end] = slotValue.split(" - ");
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    return (eh * 60 + em) - (sh * 60 + sm);
+  };
+
+  const getBookedCourtsForSlot = (slotValue: string) => {
+    const [start, end] = slotValue.split(" - ");
+    const booked = new Set<string>();
+    bookedSlots.forEach((b) => {
+      if (start < b.endTime && end > b.startTime) {
+        b.courts.forEach((c: string) => booked.add(c));
+      }
+    });
+    return booked;
   };
 
   const handleBooking = async () => {
@@ -154,16 +213,18 @@ export default function TurfDetailsPage() {
     }
 
     try {
-      // Send the first slot to create the initial booking
-      // Note: We'll update the backend to handle multiple slots later, 
-      // but for now, we'll send them as a comma-separated string or an array if the backend supports it.
+      const dayName = new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" });
+      const dayRate = turf?.rates?.find((r: any) => r.day === dayName)?.price;
+      const effectiveHourlyRate = Number(dayRate ?? turf.pricePerHour ?? 0);
+      const totalMinutes = selectedSlots.reduce((sum, slot) => sum + Math.max(0, getSlotMinutes(slot)), 0);
+      const totalHours = totalMinutes / 60;
       const res = await api.post("/bookings", {
         turfId: turf._id,
         sport: selectedSport,
         date: selectedDate,
-        slots: selectedSlots, // Changed from slot: selectedSlot
-        courts: selectedCourts, // Added courts
-        price: turf.pricePerHour * selectedSlots.length * selectedCourts.length, // Total price
+        slots: selectedSlots,
+        courts: selectedCourts,
+        price: effectiveHourlyRate * totalHours * selectedCourts.length,
       });
 
       if (res.data.success) {
@@ -287,11 +348,8 @@ export default function TurfDetailsPage() {
               <h2 className="text-xl font-black text-gray-900 uppercase tracking-wider">Amenities</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {turf.amenities.map(a => (
-                  <div key={a} className="bg-white border border-gray-100 p-6 rounded-3xl flex flex-col items-center gap-3 text-center group hover:border-[#1abc60] transition-colors">
-                    <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-green-50 group-hover:text-[#1abc60] transition-colors">
-                      {getAmenityIcon(a)}
-                    </div>
-                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest group-hover:text-gray-900 transition-colors">{a}</span>
+                  <div key={a} className="bg-white border border-gray-100 p-6 rounded-3xl flex items-center justify-center text-center hover:border-[#1abc60] transition-colors">
+                    <span className="text-xs font-black text-gray-700 uppercase tracking-widest">{getAmenityLabel(a)}</span>
                   </div>
                 ))}
               </div>
@@ -422,8 +480,14 @@ export default function TurfDetailsPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       {turf.courts.map((court) => (
+                        (() => {
+                          const courtBookedForSelectedSlots = selectedSlots.some((slot) =>
+                            getBookedCourtsForSlot(slot).has(court.name)
+                          );
+                          return (
                         <button 
                           key={court.name}
+                          disabled={courtBookedForSelectedSlots}
                           onClick={() => {
                             if (selectedCourts.includes(court.name)) {
                               setSelectedCourts(selectedCourts.filter(c => c !== court.name));
@@ -431,7 +495,13 @@ export default function TurfDetailsPage() {
                               setSelectedCourts([...selectedCourts, court.name]);
                             }
                           }}
-                          className={`p-3 rounded-xl border-2 font-bold text-sm transition-all text-left flex items-center justify-between ${selectedCourts.includes(court.name) ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-md shadow-green-50' : 'border-gray-50 text-gray-400 hover:border-gray-200 bg-white'}`}
+                          className={`p-3 rounded-xl border-2 font-bold text-sm transition-all text-left flex items-center justify-between ${
+                            courtBookedForSelectedSlots
+                              ? 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed'
+                              : selectedCourts.includes(court.name)
+                              ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+                              : 'border-gray-200 text-gray-500 hover:border-gray-300 bg-white'
+                          }`}
                         >
                           <div className="flex flex-col">
                             <span className="text-sm font-black uppercase tracking-tight">{court.name}</span>
@@ -439,6 +509,8 @@ export default function TurfDetailsPage() {
                           </div>
                           {selectedCourts.includes(court.name) && <CheckCircle2 className="w-4 h-4" />}
                         </button>
+                          );
+                        })()
                       ))}
                     </div>
                   </div>
@@ -450,15 +522,17 @@ export default function TurfDetailsPage() {
                     <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{group.label}</h4>
                     <div className="grid grid-cols-2 gap-3">
                       {group.slots.map((slot) => {
-                        const [start, end] = slot.split(" - ");
-                        const bookedCourts = bookedSlots.filter(b => (start < b.endTime && end > b.startTime)).flatMap(b => b.courts);
-                        const isFullyBooked = bookedCourts.length >= (turf.courts?.length || 1);
+                        const bookedCourts = getBookedCourtsForSlot(slot);
+                        const isFullyBooked = bookedCourts.size >= (turf.courts?.length || 1);
+                        const clashesWithSelectedCourts =
+                          selectedCourts.length > 0 &&
+                          selectedCourts.some((courtName) => bookedCourts.has(courtName));
                         const isSelected = selectedSlots.includes(slot);
 
                         return (
                           <button
                             key={slot}
-                            disabled={isFullyBooked}
+                            disabled={isFullyBooked || clashesWithSelectedCourts}
                             onClick={() => {
                               if (isSelected) {
                                 setSelectedSlots(selectedSlots.filter(s => s !== slot));
@@ -467,14 +541,14 @@ export default function TurfDetailsPage() {
                               }
                             }}
                             className={`p-3 rounded-xl border-2 font-bold text-sm transition-all ${
-                              isFullyBooked 
+                              (isFullyBooked || clashesWithSelectedCourts)
                                 ? 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed' 
                                 : isSelected 
-                                  ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-md shadow-green-50' 
-                                  : 'border-gray-50 text-gray-400 hover:border-gray-200'
+                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm' 
+                                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
                             }`}
                           >
-                            {slot}
+                            {formatRange(slot)}
                           </button>
                         );
                       })}
@@ -486,7 +560,16 @@ export default function TurfDetailsPage() {
               <div className="p-8 border-t border-gray-50 bg-gray-50/50 flex gap-4">
                 <div className="flex-1">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Estimated Total</span>
-                  <span className="text-2xl font-black text-gray-900">₹{turf.pricePerHour * (selectedSlots.length || 1) * (selectedCourts.length || 1)}</span>
+                  <span className="text-2xl font-black text-gray-900">
+                    ₹{(() => {
+                      const dayName = new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" });
+                      const dayRate = turf?.rates?.find((r: any) => r.day === dayName)?.price;
+                      const effectiveHourlyRate = Number(dayRate ?? turf.pricePerHour ?? 0);
+                      const totalMinutes = selectedSlots.reduce((sum, slot) => sum + Math.max(0, getSlotMinutes(slot)), 0);
+                      const totalHours = totalMinutes / 60;
+                      return (effectiveHourlyRate * totalHours * selectedCourts.length).toFixed(2);
+                    })()}
+                  </span>
                 </div>
                 <button 
                   onClick={handleBooking}

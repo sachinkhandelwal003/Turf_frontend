@@ -33,6 +33,7 @@ interface Booking {
   date: string;
   startTime: string;
   endTime: string;
+  slots?: string[];
   price: number;
   totalAmount?: number;
   courts: string[];
@@ -44,6 +45,12 @@ interface Booking {
 interface Turf {
   _id: string;
   name: string;
+  pricePerHour?: number;
+  slotDuration?: number;
+  rates?: { day: string; price: number; isPeak?: boolean }[];
+  operatingHours?: { day: string; open: string; close: string; isOpen: boolean }[];
+  courts?: { name: string; courtType?: string }[];
+  sports?: string[];
 }
 
 export default function AdminBookingsPage() {
@@ -55,7 +62,7 @@ export default function AdminBookingsPage() {
 }
 
 function AdminBookingsContent() {
-  const { isSuperadmin, isLoading: authLoading } = useAuth();
+  const { isSuperadmin, isAuthenticated, isLoading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -120,8 +127,8 @@ function AdminBookingsContent() {
         ...offlineData,
         isOffline: true,
         sport: offlineData.sport || 'General',
-        // Backend expects price for all slots/courts
-        price: offlineData.price || 0
+        // Always send computed total for accurate billing
+        price: calculatedOfflineTotal
       });
 
       if (res.data.success) {
@@ -145,11 +152,6 @@ function AdminBookingsContent() {
     } finally {
       setIsCreatingOffline(false);
     }
-  };
-
-  const getTurfSlots = (turfId: string) => {
-    const turf = availableTurfs.find(t => t._id === turfId) as any;
-    return turf?.availableSlots || [];
   };
 
   const getTurfCourts = (turfId: string) => {
@@ -178,23 +180,30 @@ function AdminBookingsContent() {
   }, [searchParams, availableTurfs, router]);
 
   useEffect(() => {
-    if (!authLoading) {
+    if (!authLoading && isAuthenticated) {
       fetchBookings();
       fetchTurfs();
     }
-  }, [authLoading, isSuperadmin]);
+  }, [authLoading, isAuthenticated, isSuperadmin]);
 
   useEffect(() => {
-    if (!authLoading) {
+    if (!authLoading && isAuthenticated) {
       setCurrentPage(1);
       fetchBookings();
     }
-  }, [statusFilter, startDate, endDate, startTime, endTime, turfIdFilter]);
+  }, [authLoading, isAuthenticated, statusFilter, startDate, endDate, startTime, endTime, turfIdFilter]);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      fetchBookings();
+    }
+  }, [authLoading, isAuthenticated, currentPage]);
 
   // Debounced search
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (!authLoading) {
+        if (!isAuthenticated) return;
         if (currentPage !== 1) {
           setCurrentPage(1);
         } else {
@@ -204,7 +213,7 @@ function AdminBookingsContent() {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
+  }, [authLoading, isAuthenticated, searchTerm]);
 
   const fetchTurfs = async () => {
     try {
@@ -296,6 +305,92 @@ function AdminBookingsContent() {
       return dateStr;
     }
   };
+
+  const to12h = (time24: string) => {
+    const [hhRaw, mmRaw] = (time24 || '00:00').split(':');
+    const hh = Number(hhRaw);
+    const mm = Number(mmRaw);
+    const h = (hh % 12) || 12;
+    const ampm = hh < 12 ? 'AM' : 'PM';
+    return `${h}:${String(mm || 0).padStart(2, '0')} ${ampm}`;
+  };
+
+  const formatRange = (range: string) => {
+    const [start, end] = range.split(' - ').map((s) => s.trim());
+    if (!start || !end) return range;
+    return `${to12h(start)} - ${to12h(end)}`;
+  };
+
+  const parseTimeToMinutes = (time: string) => {
+    const [h, m] = (time || '00:00').split(':').map((v) => Number(v));
+    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+  };
+  const formatMinutes = (mins: number) =>
+    String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+
+  const buildSlotsForTurf = (turfId: string, date: string) => {
+    const turf = availableTurfs.find((t) => t._id === turfId) as any;
+    if (!turf) return [];
+    const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+    const operatingDay = turf.operatingHours?.find((d: any) => d.day === dayName);
+    if (!operatingDay || operatingDay.isOpen === false) return [];
+    const open = operatingDay.open || '06:00';
+    const close = operatingDay.close || '23:00';
+    const duration = Number(turf.slotDuration || 60);
+    const d = Math.max(15, duration || 60);
+    let cur = parseTimeToMinutes(open);
+    const end = parseTimeToMinutes(close);
+    const slots: { value: string; label: string; startTime: string; endTime: string }[] = [];
+    while (cur + d <= end) {
+      const start = formatMinutes(cur);
+      const endTime = formatMinutes(cur + d);
+      const value = `${start} - ${endTime}`;
+      slots.push({ value, label: formatRange(value), startTime: start, endTime });
+      cur += d;
+    }
+    return slots;
+  };
+
+  const getSlotMinutes = (slotValue: string) => {
+    const [start, end] = slotValue.split(" - ");
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    return (eh * 60 + em) - (sh * 60 + sm);
+  };
+
+  const getBookedCourtsForRange = (timeVal: string) => {
+    const [start, end] = timeVal.split(" - ");
+    const booked = new Set<string>();
+    bookedSlotsForOffline.forEach((b) => {
+      if (start < b.endTime && end > b.startTime) {
+        b.courts.forEach((c: string) => booked.add(c));
+      }
+    });
+    return booked;
+  };
+
+  const getEffectiveSlotPrice = (turfId: string, date: string) => {
+    const turf = availableTurfs.find((t) => t._id === turfId) as any;
+    if (!turf) return 0;
+    const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+    const dayRate = turf.rates?.find((r: any) => r.day === dayName)?.price;
+    return Number(dayRate ?? turf.pricePerHour ?? 0);
+  };
+
+  const calculatedOfflineTotal =
+    getEffectiveSlotPrice(offlineData.turfId, offlineData.date) *
+    (offlineData.slots.reduce((sum, slot) => sum + Math.max(0, getSlotMinutes(slot)), 0) / 60) *
+    offlineData.courts.length;
+
+  useEffect(() => {
+    if (!offlineData.slots.length || !offlineData.courts.length) return;
+    setOfflineData((prev) => ({
+      ...prev,
+      courts: prev.courts.filter(
+        (courtName) => !prev.slots.some((slot) => getBookedCourtsForRange(slot).has(courtName))
+      ),
+    }));
+  }, [offlineData.slots, bookedSlotsForOffline]);
 
   if (loading && bookings.length === 0) {
     return (
@@ -569,7 +664,7 @@ function AdminBookingsContent() {
                       </div>
                       <div className="flex items-center text-sm text-gray-700">
                         <Clock4 className="w-4 h-4 mr-2 text-gray-400" />
-                        <span>{booking.startTime} - {booking.endTime}</span>
+                        <span>{to12h(booking.startTime)} - {to12h(booking.endTime)}</span>
                       </div>
                     </div>
                     <div className="pt-2 border-t border-gray-100">
@@ -579,6 +674,26 @@ function AdminBookingsContent() {
                         </p>
                         <p className="text-base font-semibold text-gray-900">₹{booking.totalAmount || booking.price}</p>
                       </div>
+                      {!!booking.slots?.length && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span className="bg-gray-50 text-gray-700 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-gray-200">
+                            {booking.slots.length} slot{booking.slots.length !== 1 ? 's' : ''}
+                          </span>
+                          {booking.slots.slice(0, 3).map((s) => (
+                            <span
+                              key={s}
+                              className="bg-gray-50 text-gray-700 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-gray-200"
+                            >
+                              {formatRange(s)}
+                            </span>
+                          ))}
+                          {booking.slots.length > 3 && (
+                            <span className="text-[11px] font-semibold text-gray-500 px-2 py-1">
+                              +{booking.slots.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -741,14 +856,13 @@ function AdminBookingsContent() {
 
                   {/* Price */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Total Price (₹)</label>
-                    <input 
-                      type="number"
-                      placeholder="0"
-                      value={offlineData.price}
-                      onChange={(e) => setOfflineData({...offlineData, price: Number(e.target.value)})}
-                      className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl font-bold text-sm outline-none focus:bg-white focus:border-[#1abc60] transition-all"
-                    />
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Calculated Total (₹)</label>
+                    <div className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl font-black text-sm text-gray-900">
+                      ₹{calculatedOfflineTotal}
+                    </div>
+                    <p className="text-[10px] text-gray-500 font-medium">
+                      Day rate × selected slots × selected courts
+                    </p>
                   </div>
                 </div>
 
@@ -785,15 +899,25 @@ function AdminBookingsContent() {
                         {getTurfCourts(offlineData.turfId).map((court: any) => {
                           const courtName = typeof court === 'string' ? court : (court.name || 'Court');
                           const isSelected = offlineData.courts.includes(courtName);
+                          const isBookedForSelectedSlots = offlineData.slots.some((slot) =>
+                            getBookedCourtsForRange(slot).has(courtName)
+                          );
                           return (
                             <button
                               key={courtName}
                               type="button"
+                              disabled={isBookedForSelectedSlots}
                               onClick={() => {
                                 if (isSelected) setOfflineData({...offlineData, courts: offlineData.courts.filter(c => c !== courtName)});
                                 else setOfflineData({...offlineData, courts: [...offlineData.courts, courtName]});
                               }}
-                              className={`px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all ${isSelected ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100 hover:border-gray-200'}`}
+                              className={`px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all ${
+                                isBookedForSelectedSlots
+                                  ? 'bg-gray-100 text-gray-300 border border-gray-100 cursor-not-allowed'
+                                  : isSelected
+                                  ? 'bg-emerald-600 text-white shadow-sm'
+                                  : 'bg-gray-50 text-gray-500 border border-gray-200 hover:border-gray-300'
+                              }`}
                             >
                               {courtName}
                             </button>
@@ -806,33 +930,33 @@ function AdminBookingsContent() {
                     <div className="space-y-4">
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Available Time Slots</label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {getTurfSlots(offlineData.turfId).map((slot: any) => {
-                          const timeVal = `${slot.startTime} - ${slot.endTime}`;
-                          const [start, end] = timeVal.split(" - ");
-                          
-                          // Check if fully booked
-                          const bookedCourts = bookedSlotsForOffline.filter(b => (start < b.endTime && end > b.startTime)).flatMap(b => b.courts);
-                          const isFullyBooked = bookedCourts.length >= (getTurfCourts(offlineData.turfId).length || 1);
+                        {buildSlotsForTurf(offlineData.turfId, offlineData.date).map((slot: any) => {
+                          const timeVal = slot.value;
+                          const bookedCourts = getBookedCourtsForRange(timeVal);
+                          const isFullyBooked = bookedCourts.size >= (getTurfCourts(offlineData.turfId).length || 1);
+                          const clashesWithSelectedCourts =
+                            offlineData.courts.length > 0 &&
+                            offlineData.courts.some((c) => bookedCourts.has(c));
                           const isSelected = offlineData.slots.includes(timeVal);
 
                           return (
                             <button
                               key={timeVal}
                               type="button"
-                              disabled={isFullyBooked}
+                              disabled={isFullyBooked || clashesWithSelectedCourts}
                               onClick={() => {
                                 if (isSelected) setOfflineData({...offlineData, slots: offlineData.slots.filter(s => s !== timeVal)});
                                 else setOfflineData({...offlineData, slots: [...offlineData.slots, timeVal]});
                               }}
                               className={`p-3 rounded-xl border-2 font-bold text-sm transition-all ${
-                                isFullyBooked 
+                                (isFullyBooked || clashesWithSelectedCourts)
                                   ? 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed' 
                                   : isSelected 
-                                    ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-md shadow-green-50' 
-                                    : 'border-gray-50 text-gray-400 hover:border-gray-200'
+                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm' 
+                                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
                               }`}
                             >
-                              {timeVal}
+                              {slot.label}
                             </button>
                           );
                         })}

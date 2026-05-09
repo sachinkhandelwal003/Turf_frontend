@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/app/context/AuthContext';
 import { Toaster } from 'sonner';
+import FloatingChatWrapper from './components/chat/FloatingChatWrapper';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className={`${inter.className} overflow-x-hidden`} suppressHydrationWarning>
         <AuthProvider>
           {children}
+          <FloatingChatWrapper />
           <Toaster position="top-right" richColors />
         </AuthProvider>
       </body>

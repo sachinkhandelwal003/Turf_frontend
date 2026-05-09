@@ -2,14 +2,24 @@
 
 import { useState, useRef } from "react";
 import { useChat } from "@/app/context/ChatContext";
+import { usePublicChat } from "./PublicChatProvider";
 import { Image as ImageIcon, Paperclip, X, Smile, Send } from "lucide-react";
 
-export default function MessageInput() {
+export default function MessageInput({ isPublic = false }: { isPublic?: boolean }) {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { sendMessage, replyingTo, setReplyingTo } = useChat();
+  
+  // Conditionally use the correct hook
+  const publicContext = isPublic ? usePublicChat() : null;
+  const adminContext = !isPublic ? useChat() : null;
+  
+  const context = isPublic ? publicContext : adminContext;
+
+  if (!context) return null;
+
+  const { sendMessage, replyingTo, setReplyingTo } = context;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -25,96 +35,71 @@ export default function MessageInput() {
     }
   };
 
-  const removeFile = () => {
-    setFile(null);
-    setPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
   const handleSend = async () => {
     if (!text.trim() && !file) return;
-
     await sendMessage(text, file || undefined, replyingTo?._id);
     setText("");
-    removeFile();
+    setFile(null);
+    setPreview(null);
     setReplyingTo(null);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   return (
-    <div className="p-3 sm:p-4 border-t bg-white">
-      {/* Reply Preview */}
+    <div className="p-3 sm:p-4 bg-white border-t border-gray-100">
       {replyingTo && (
-        <div className="mb-3 p-2 bg-primary/5 border-l-4 border-primary rounded-r-lg flex items-center justify-between animate-in slide-in-from-bottom-2">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold text-primary uppercase">Replying to {replyingTo.senderId?.name}</p>
-            <p className="text-xs text-gray-600 truncate">{replyingTo.text}</p>
+        <div className="mb-2 p-2 bg-gray-50 rounded-lg flex items-center justify-between border-l-4 border-[#1abc60]">
+          <div className="text-xs truncate">
+            <span className="font-bold text-[#1abc60]">Replying to:</span> {replyingTo.text}
           </div>
+          <button onClick={() => setReplyingTo(null)} className="text-gray-400">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+      
+      {preview && (
+        <div className="mb-2 relative inline-block">
+          <img src={preview} alt="Preview" className="h-20 w-20 object-cover rounded-lg border border-gray-200" />
           <button 
-            onClick={() => setReplyingTo(null)}
-            className="p-1 hover:bg-primary/10 rounded-full text-primary transition-colors"
+            onClick={() => { setFile(null); setPreview(null); }}
+            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3 h-3" />
           </button>
         </div>
       )}
 
-      {/* File Preview */}
-      {(preview || file) && (
-        <div className="mb-3 p-2 bg-gray-50 rounded-xl flex items-center gap-3 relative group animate-in slide-in-from-bottom-2 border border-gray-100">
-          <div className="relative shrink-0">
-            {preview ? (
-              <img src={preview} alt="Preview" className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg border border-white shadow-sm" />
-            ) : (
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Paperclip className="text-primary w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-            )}
-            <button 
-              onClick={removeFile}
-              className="absolute -top-2 -right-2 p-1 bg-white shadow-md hover:bg-red-50 hover:text-red-600 rounded-full transition-all border border-gray-100"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs sm:text-sm font-bold truncate text-gray-800">{file?.name}</p>
-            <p className="text-[10px] sm:text-xs text-gray-500">{(file!.size / 1024).toFixed(1)} KB</p>
-          </div>
+      <div className="flex items-end gap-2">
+        <div className="flex gap-1 mb-1">
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 text-gray-400 hover:text-[#1abc60] transition-colors"
+          >
+            <ImageIcon className="w-5 h-5" />
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden" 
+          />
         </div>
-      )}
-
-      <div className="flex items-center gap-2 sm:gap-3">
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          className="hidden"
-          accept="image/*,.pdf,.doc,.docx"
-        />
-        <button 
-          onClick={() => fileInputRef.current?.click()}
-          className="p-2 !bg-transparent !text-gray-400 hover:!text-primary hover:!bg-gray-100 rounded-full transition-all !shadow-none"
-          title="Attach file"
-        >
-          <Paperclip className="w-5 h-5" />
-        </button>
         
-        <div className="flex-1 relative">
-          <input
+        <div className="flex-1 bg-gray-100 rounded-2xl px-4 py-2 flex items-center min-h-[44px]">
+          <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             placeholder="Type a message..."
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all pr-10"
+            className="w-full bg-transparent border-none focus:ring-0 text-sm resize-none max-h-32 py-1 outline-none"
+            rows={1}
           />
-          <button className="absolute right-2 top-1/2 -translate-y-1/2 !bg-transparent !text-gray-400 hover:!text-amber-500 transition-colors !shadow-none !p-0">
+          <button className="p-1 text-gray-400 hover:text-gray-600">
             <Smile className="w-5 h-5" />
           </button>
         </div>
@@ -122,7 +107,11 @@ export default function MessageInput() {
         <button
           onClick={handleSend}
           disabled={!text.trim() && !file}
-          className="!bg-primary !text-white !p-2.5 !m-0 rounded-xl font-medium hover:!bg-primary/90 disabled:opacity-50 transition-all shadow-md shadow-primary/10 active:scale-95"
+          className={`p-3 rounded-full transition-all ${
+            text.trim() || file 
+              ? "bg-[#1abc60] text-white shadow-md hover:scale-105 active:scale-95" 
+              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+          }`}
         >
           <Send className="w-5 h-5" />
         </button>

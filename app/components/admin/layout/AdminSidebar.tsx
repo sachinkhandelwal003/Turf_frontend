@@ -18,6 +18,7 @@ import {
   Trophy,
   Calendar,
   Star,
+  MessageSquare,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -67,6 +68,7 @@ const baseMenuItems: MenuItem[] = [
       { href: '/admin/tournaments/registrations', label: 'Tournament Registration', permission: 'manage_tournaments' },
     ],
   },
+  { href: '/admin/chat', label: 'Chat', icon: MessageSquare, permission: 'view_chat' },
   { href: '/admin/settings', label: 'Settings', icon: Settings, permission: 'manage_settings' },
 ];
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
-import { Search, Shield, User as UserIcon, Loader2, Check, AlertCircle, Save, X, Plus, Trash2, Mail, Phone, Lock, UserPlus, Edit2, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
+import { Search, Shield, User as UserIcon, Loader2, Check, AlertCircle, Save, X, Plus, Trash2, Mail, Phone, Lock, UserPlus, Edit2, ChevronLeft, ChevronRight, Camera, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ interface User {
   role: 'user' | 'admin' | 'superadmin';
   permissions: string[];
   isActive: boolean;
+  coins?: number;
   profilePhoto?: string;
   createdBy?: {
     _id: string;
@@ -338,6 +339,7 @@ export default function AdminUsersPage() {
               <tr>
                 <th className="px-6 py-4">User</th>
                 <th className="px-6 py-4">Role</th>
+                <th className="px-6 py-4">Coins</th>
                 <th className="px-6 py-4">Contact</th>
                 <th className="px-6 py-4">Created By</th>
                 <th className="px-6 py-4">Status</th>
@@ -688,11 +690,23 @@ export default function AdminUsersPage() {
                       <input 
                         value={editData.email} 
                         onChange={e => setEditData({...editData, email: e.target.value})} 
-                        className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all" 
+                        className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all" 
                       />
                     </div>
                   </div>
 
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-gray-700">Coin Balance</label>
+                    <div className="relative">
+                      <Award className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-yellow-600 z-10" />
+                      <div className="!w-full !pl-10 !pr-4 !py-2.5 !bg-yellow-50 !border !border-yellow-200 !text-sm !text-yellow-700 !font-bold !rounded-lg">
+                        {editingUser?.coins || 0} Coins
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
                     <label className="block text-sm font-semibold text-gray-700">Assign Role</label>
                     <div className="relative">
@@ -854,6 +868,15 @@ function UserRow({ user, isCurrentUser, onEdit, onDelete, getImageUrl }: {
         }`}>
           {user.role}
         </span>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-yellow-50 rounded-lg border border-yellow-200 w-fit" title="Current Coin Balance">
+            <Award className="w-3.5 h-3.5 text-yellow-600" />
+            <span className="text-xs font-bold text-yellow-700">{user.coins || 0}</span>
+          </div>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter ml-1">Remaining Balance</p>
+        </div>
       </td>
       <td className="px-6 py-4">
         <div className="text-sm font-medium text-gray-600">{user.phone || '-'}</div>

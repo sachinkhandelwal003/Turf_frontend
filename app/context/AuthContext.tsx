@@ -12,6 +12,7 @@ interface User {
   permissions: string[];
   profilePhoto?: string;
   coverPhoto?: string;
+  coins?: number;
   createdAt?: string;
 }
 
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           permissions: data.user.permissions || [],
           profilePhoto: data.user.profilePhoto,
           coverPhoto: data.user.coverPhoto,
+          coins: data.user.coins || 0,
           createdAt: data.user.createdAt
         };
         setUser(userData);
@@ -111,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         permissions: data.user.permissions || [],
         profilePhoto: data.user.profilePhoto,
         coverPhoto: data.user.coverPhoto,
+        coins: data.user.coins || 0,
         createdAt: data.user.createdAt
       };
 

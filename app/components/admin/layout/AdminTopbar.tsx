@@ -1,11 +1,12 @@
 'use client';
 
 import { useAuth } from '@/app/context/AuthContext';
-import { Bell, User, LogOut, Menu, Crown, Search, Settings } from 'lucide-react';
-import { useState } from 'react';
+import { Bell, User, LogOut, Menu, Crown, Search, Settings, Coins } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import api from '@/app/services/api';
 
 interface AdminTopbarProps {
   onMenuClick?: () => void;
@@ -14,7 +15,25 @@ interface AdminTopbarProps {
 export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
   const { user, logout, isSuperadmin } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [coinValue, setCoinValue] = useState<number | null>(null);
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (isSuperadmin) {
+      fetchSettings();
+    }
+  }, [isSuperadmin]);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/settings');
+      if (res.data.success) {
+        setCoinValue(res.data.settings.coinValue);
+      }
+    } catch (error) {
+      console.error("Failed to fetch settings in topbar:", error);
+    }
+  };
 
   const getProfileImageUrl = (path: string | undefined) => {
     if (!path) return null;
@@ -42,6 +61,19 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
 
           {/* Right Actions: Notification + Profile (FIXED GAP) */}
           <div className="flex items-center gap-2">
+            {/* Coin Value Display for Super Admin */}
+            {isSuperadmin && coinValue !== null && (
+              <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-yellow-50 rounded-xl border border-yellow-200 mr-2 group hover:bg-yellow-100 transition-colors cursor-help" title="Current Coin Exchange Rate">
+                <div className="w-8 h-8 rounded-lg bg-yellow-100 flex items-center justify-center text-yellow-600 group-hover:scale-110 transition-transform">
+                  <Coins className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <p className="text-[10px] font-bold text-yellow-600 uppercase tracking-wider leading-none">Coin Value</p>
+                  <p className="text-sm font-black text-yellow-700">1 = ₹{coinValue}</p>
+                </div>
+              </div>
+            )}
+
             {/* Notifications */}
             <button className="relative p-2 !bg-transparent !border-none !shadow-none !text-slate-400 hover:!text-slate-900 transition-all group mr-2">
               <Bell className="w-6 h-6 group-hover:rotate-12 transition-transform" />

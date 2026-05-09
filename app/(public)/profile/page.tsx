@@ -476,6 +476,15 @@ export default function ProfilePage() {
                   <p className="!text-2xl !font-bold !text-[#1abc60] !mb-1">₹{bookings.reduce((sum, b) => sum + b.price, 0)}</p>
                   <p className="!text-xs !font-semibold !text-emerald-700 !uppercase">Total Spent</p>
                 </div>
+                <div className="!col-span-2 !p-4 !bg-yellow-50 !rounded-lg !border !border-yellow-100 !flex !items-center !justify-between">
+                  <div>
+                    <p className="!text-xs !font-semibold !text-yellow-700 !uppercase !mb-1">Available Coins</p>
+                    <p className="!text-2xl !font-black !text-yellow-700">{user.coins || 0}</p>
+                  </div>
+                  <div className="!p-3 !bg-yellow-100 !rounded-xl">
+                    <Award className="!w-6 !h-6 !text-yellow-600" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

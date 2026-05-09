@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, X, User, LogOut } from 'lucide-react'; 
+import { Menu, X, User, LogOut, Coins } from 'lucide-react'; 
 import { useAuth } from '@/app/context/AuthContext';
 
 const navLinks = [
@@ -90,11 +90,18 @@ export default function Navbar() {
             {/* --- RIGHT: AUTH / PROFILE (DESKTOP) --- */}
             <div className="hidden lg:flex flex-1 items-center justify-end gap-6">
               {isAuthenticated ? (
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="w-10 h-10 rounded-full border-2 border-transparent hover:border-[#1abc60] overflow-hidden cursor-pointer transition-all shadow-sm focus:outline-none !bg-transparent !p-0"
-                  >
+                <div className="flex items-center gap-4">
+                  {/* Coins Display */}
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 rounded-full border border-yellow-200">
+                    <Coins className="w-4 h-4 text-yellow-600" />
+                    <span className="text-sm font-bold text-yellow-700">{user?.coins || 0}</span>
+                  </div>
+
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="w-10 h-10 rounded-full border-2 border-transparent hover:border-[#1abc60] overflow-hidden cursor-pointer transition-all shadow-sm focus:outline-none !bg-transparent !p-0"
+                    >
                     <img
                       src={getProfileImg()} 
                       alt="Profile"
@@ -137,6 +144,7 @@ export default function Navbar() {
                       </motion.div>
                     )}
                   </AnimatePresence>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -202,6 +210,13 @@ export default function Navbar() {
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-8 flex flex-col gap-4">
                   {isAuthenticated ? (
                     <>
+                      <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-xl border border-yellow-100 mb-2">
+                        <div className="flex items-center gap-2">
+                          <Coins className="w-5 h-5 text-yellow-600" />
+                          <span className="text-base font-bold text-yellow-700">My Coins</span>
+                        </div>
+                        <span className="text-lg font-black text-yellow-700">{user?.coins || 0}</span>
+                      </div>
                       <Link href="/profile" onClick={() => setIsOpen(false)} className="flex items-center gap-3 text-[18px] font-bold !text-[#1abc60] !no-underline">
                         <div className="w-8 h-8 rounded-full overflow-hidden border border-[#1abc60]/20">
                           <img src={getProfileImg()} alt="Profile" className="w-full h-full object-cover" />

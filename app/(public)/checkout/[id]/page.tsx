@@ -7,7 +7,7 @@ import {
   CreditCard, Wallet, Landmark, 
   Smartphone, ChevronRight, Loader2, Info,
   Users as UsersIcon, CheckCircle2, AlertCircle,
-  Calendar, Clock, Settings, Plus
+  Calendar, Clock, Settings, Plus, Ticket, Award, Coins
 } from 'lucide-react';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
@@ -38,7 +38,7 @@ interface Booking {
 export default function CheckoutPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, refreshUser } = useAuth();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -49,6 +49,11 @@ export default function CheckoutPage() {
   const [numPlayers, setNumPlayers] = useState(4);
   const [paymentMethod, setPaymentMethod] = useState('upi');
 
+  // Coins State
+  const [useCoins, setUseCoins] = useState(false);
+  const [appliedCoins, setAppliedCoins] = useState(0); // This will be the number of coins
+  const [coinValue, setCoinValue] = useState(1);
+
   useEffect(() => {
     if (!authLoading) {
       if (!isAuthenticated) {
@@ -56,9 +61,21 @@ export default function CheckoutPage() {
         router.push(`/login?redirect=/checkout/${id}`);
       } else {
         fetchBooking();
+        fetchSettings();
       }
     }
   }, [id, isAuthenticated, authLoading]);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/settings');
+      if (res.data.success) {
+        setCoinValue(res.data.settings.coinValue || 1);
+      }
+    } catch (error) {
+      console.error("Failed to fetch settings:", error);
+    }
+  };
 
   const fetchBooking = async () => {
     try {
@@ -81,15 +98,17 @@ export default function CheckoutPage() {
     try {
       const res = await api.post(`/bookings/${id}/pay`, {
         paymentMethod,
-        paymentId: `PAY${Date.now()}`
+        paymentId: `PAY${Date.now()}`,
+        usedCoins: useCoins ? appliedCoins : 0
       });
 
       if (res.data.success) {
         toast.success("Payment Successful!");
+        await refreshUser(); // Get new coin balance
         router.push(`/payment-success/${id}`);
       }
     } catch (error: any) {
-      toast.error("Payment failed. Please try again.");
+      toast.error(error.response?.data?.error || "Payment failed. Please try again.");
     } finally {
       setProcessing(false);
     }
@@ -116,8 +135,10 @@ export default function CheckoutPage() {
 
   if (!booking) return null;
 
-  const payableToday = strategy === 'full' ? booking.totalAmount : (booking.totalAmount * 0.25);
-  const balanceDue = booking.totalAmount - payableToday;
+  const discountAmount = useCoins ? (appliedCoins * coinValue) : 0;
+  const totalWithCoins = Math.max(0, booking.totalAmount - discountAmount);
+  const payableToday = strategy === 'full' ? totalWithCoins : (totalWithCoins * 0.25);
+  const balanceDue = totalWithCoins - payableToday;
   const perPlayer = payableToday / numPlayers;
 
   const getDurationLabel = () => {
@@ -191,6 +212,71 @@ export default function CheckoutPage() {
                   <p className="text-xs text-gray-500 font-medium">Balance ₹{Math.round(booking.totalAmount * 0.75).toLocaleString()} due at ground.</p>
                 </div>
               </div>
+            </div>
+
+            {/* COIN COUPON SECTION */}
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-yellow-50 flex items-center justify-center text-yellow-600">
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800">Coin Coupon</h2>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1 bg-yellow-50 rounded-full border border-yellow-100">
+                  <Coins className="w-3.5 h-3.5 text-yellow-600" />
+                  <span className="text-xs font-bold text-yellow-700">{user?.coins || 0} Available</span>
+                </div>
+              </div>
+
+              {user?.coins && user.coins > 0 ? (
+                <div className={`p-4 rounded-xl border-2 transition-all ${useCoins ? 'border-yellow-400 bg-yellow-50/30' : 'border-gray-100 bg-gray-50/30'}`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-gray-900">Redeem Your Coins</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">Use your earned coins for an instant discount.</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (!useCoins) {
+                          const maxCoinsNeeded = Math.ceil(booking.totalAmount / coinValue);
+                          setAppliedCoins(Math.min(user?.coins || 0, maxCoinsNeeded));
+                        }
+                        setUseCoins(!useCoins);
+                      }}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border-none cursor-pointer ${
+                        useCoins 
+                          ? 'bg-yellow-500 text-white shadow-sm' 
+                          : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {useCoins ? 'Applied' : 'Apply Now'}
+                    </button>
+                  </div>
+                  
+                  {useCoins && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="flex flex-col gap-2 pt-3 border-t border-yellow-200/50"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-yellow-800">Coins Redeemed:</span>
+                        <span className="text-sm font-bold text-yellow-700">{appliedCoins} Coins</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-yellow-800">Discount Applied:</span>
+                        <span className="text-sm font-black text-yellow-700">- ₹{discountAmount.toFixed(2)}</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 flex items-center gap-3">
+                  <Ticket className="w-5 h-5 text-gray-400" />
+                  <p className="text-xs font-medium text-gray-500">You don't have any coins to redeem yet. Book more to earn!</p>
+                </div>
+              )}
             </div>
 
             {/* 2. SPLIT WITH SQUAD */}
@@ -396,6 +482,15 @@ export default function CheckoutPage() {
                     <span>Convenience Fee</span>
                     <span className="text-gray-900">₹{booking.convenienceFee.toFixed(2)}</span>
                   </div>
+                  {useCoins && (
+                    <div className="flex justify-between text-sm font-bold text-yellow-700">
+                      <span className="flex items-center gap-1.5">
+                        <Award className="w-3.5 h-3.5" />
+                        Coin Discount ({appliedCoins} coins)
+                      </span>
+                      <span>- ₹{discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center pt-4 pb-2 border-b border-dashed border-gray-200">
                     <span className="text-sm font-bold text-gray-800">Payable Today</span>
                     <span className="text-xl font-bold text-gray-900">₹{payableToday.toFixed(2)}</span>

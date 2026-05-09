@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { 
   Save, Loader2, Globe, Lock, Shield, 
   Image as ImageIcon, Apple, 
-  Check, Info
+  Check, Info, Coins
 } from "lucide-react";
 import { motion } from "framer-motion";
 import api from "@/app/services/api";
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import MediaUpload from "@/components/MediaUpload";
 import { useAuth } from "@/app/context/AuthContext";
 
-type SettingsTab = "general" | "hero" | "auth" | "security";
+type SettingsTab = "general" | "hero" | "auth" | "security" | "coins";
 
 interface UploadedFile {
   id: string;
@@ -40,6 +40,7 @@ interface SettingsState {
   siteName: string;
   contactEmail: string;
   maintenanceMode: boolean;
+  coinValue: number;
   heroBanner: {
     title: string;
     subtitle: string;
@@ -81,6 +82,7 @@ export default function AdminSettingsPage() {
     siteName: "Turf Booking",
     contactEmail: "",
     maintenanceMode: false,
+    coinValue: 1,
     heroBanner: {
       title: "UP YOUR GAME",
       subtitle: "Premium sports venues, professional training, and competitive matches. Book your victory in seconds.",
@@ -126,6 +128,7 @@ export default function AdminSettingsPage() {
       formData.append("siteName", settings.siteName);
       formData.append("contactEmail", settings.contactEmail);
       formData.append("maintenanceMode", String(settings.maintenanceMode));
+      formData.append("coinValue", String(settings.coinValue));
       formData.append("googleLogin", JSON.stringify(settings.googleLogin));
       formData.append("appleLogin", JSON.stringify(settings.appleLogin));
       formData.append("heroBanner", JSON.stringify(settings.heroBanner));
@@ -192,6 +195,7 @@ export default function AdminSettingsPage() {
         <div className="lg:col-span-1 space-y-1.5">
           {([
             {id: "general", label: "Branding & General", icon: Globe },
+            { id: "coins", label: "Coin System", icon: Coins },
             { id: "hero", label: "Hero Banner", icon: ImageIcon },
             { id: "auth", label: "Authentication", icon: Lock },
             { id: "security", label: "Security & Access", icon: Shield },
@@ -282,6 +286,51 @@ export default function AdminSettingsPage() {
                         maxFiles={1}
                       />
                       <p className="text-xs text-gray-500">Recommended: 200x200 Square SVG or PNG</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "coins" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+                <div className="space-y-5">
+                  <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2">Coin Value Configuration</h3>
+                  <div className="p-6 bg-yellow-50 rounded-xl border border-yellow-200 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center text-yellow-600">
+                        <Coins className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900">Exchange Rate</h4>
+                        <p className="text-xs text-gray-500">Set how much each coin is worth in currency (₹).</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-gray-700">1 Coin = ? (₹)</label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
+                          <input 
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={settings.coinValue} 
+                            onChange={e => setSettings({...settings, coinValue: parseFloat(e.target.value) || 0})}
+                            className="w-full pl-8 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-all text-sm font-bold" 
+                            placeholder="1.0"
+                          />
+                        </div>
+                        <p className="text-[10px] text-gray-500">Current Rate: 1 Coin = ₹{settings.coinValue}</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-white/50 rounded-lg border border-yellow-100 flex items-start gap-3">
+                      <Info className="w-4 h-4 text-yellow-600 mt-0.5" />
+                      <p className="text-xs text-yellow-800 leading-relaxed">
+                        Changing this value will affect all future checkouts. For example, if you set it to <strong>2.0</strong>, a user with 10 coins will get a <strong>₹20</strong> discount.
+                      </p>
                     </div>
                   </div>
                 </div>

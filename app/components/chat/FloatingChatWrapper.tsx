@@ -19,7 +19,7 @@ export default function FloatingChatWrapper() {
     const checkBookings = async () => {
       if (isAuthenticated && user) {
         try {
-          const res = await api.get('/bookings/my-bookings');
+          const res = await api.get('/bookings/my');
           if (res.data.success) {
             const confirmed = res.data.bookings.some((b: any) => 
               b.status === 'confirmed' || b.status === 'completed'

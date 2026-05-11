@@ -69,14 +69,14 @@ export default function MessageBubble({
 
           <div className="relative group/bubble">
             <div
-              className={`py-2.5 px-4 rounded-2xl shadow-sm ${
+              className={`py-2.5 px-4 rounded-2xl shadow-sm transition-all hover:shadow-md ${
                 isSender
-                  ? "bg-[#1abc60] text-white rounded-tr-none"
+                  ? "bg-gradient-to-br from-[#1abc60] to-[#16a34a] text-white rounded-tr-none"
                   : "bg-white text-gray-800 rounded-tl-none border border-gray-100"
               }`}
             >
               {!isSender && (
-                <p className="text-[10px] font-bold opacity-70 mb-1">
+                <p className="text-[10px] font-bold text-[#1abc60] mb-1 uppercase tracking-wider">
                   {message.senderId?.name || "User"}
                 </p>
               )}

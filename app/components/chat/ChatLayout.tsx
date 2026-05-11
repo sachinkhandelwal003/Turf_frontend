@@ -63,44 +63,46 @@ export default function ChatLayout({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="flex h-full bg-white overflow-hidden relative rounded-xl border border-gray-100 shadow-sm flex-col md:flex-row">
-      <div className={`${showSidebar ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-80 border-r border-gray-100 bg-white shrink-0 h-full`}>
-        <div className="h-[73px] px-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
-          <h2 className="font-bold text-lg text-gray-800">Messages</h2>
+    <div className="flex h-[calc(100vh-140px)] bg-white overflow-hidden relative rounded-2xl border border-gray-100 shadow-xl flex-col md:flex-row">
+      <div className={`${showSidebar ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[340px] border-r border-gray-100 bg-white shrink-0 h-full`}>
+        <div className="h-[73px] px-6 border-b border-gray-100 flex items-center justify-between bg-white">
+          <h2 className="font-extrabold text-xl text-gray-900 tracking-tight">Messages</h2>
           {currentUser?.role === 'superadmin' && (
             <button 
               onClick={() => setShowAdminList(true)}
-              className="p-2 hover:bg-gray-100 rounded-lg text-[#1abc60] transition-colors border border-gray-200"
-              title="New Chat with Admin"
+              className="p-2.5 bg-[#1abc60]/10 hover:bg-[#1abc60] text-[#1abc60] hover:text-white rounded-xl transition-all duration-300 border border-[#1abc60]/10"
+              title="New Chat"
             >
               <Plus className="w-5 h-5" />
             </button>
           )}
         </div>
-        <div className="p-3 border-b space-y-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="p-4 border-b bg-gray-50/30 space-y-3">
+          <div className="relative group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#1abc60] transition-colors" />
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-gray-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-[#1abc60]/20 outline-none"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-4 focus:ring-[#1abc60]/5 focus:border-[#1abc60]/30 outline-none transition-all"
             />
           </div>
-          <select 
-            value={filter} 
-            onChange={(e) => setFilter(e.target.value)}
-            className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1abc60] bg-white"
-          >
-            <option value="all">All Chats</option>
-            <option value="user_support">User Support</option>
-            <option value="user_superadmin">User to SuperAdmin</option>
-            <option value="admin_internal">Internal Admin</option>
-            <option value="superadmin_admin">SuperAdmin to Admin</option>
-          </select>
+          <div className="flex gap-2">
+            <select 
+              value={filter} 
+              onChange={(e) => setFilter(e.target.value)}
+              className="flex-1 p-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 focus:outline-none focus:ring-4 focus:ring-[#1abc60]/5 focus:border-[#1abc60]/30 bg-white transition-all appearance-none cursor-pointer"
+            >
+              <option value="all">All Channels</option>
+              <option value="user_support">Support</option>
+              <option value="user_superadmin">SuperAdmin</option>
+              <option value="admin_internal">Internal</option>
+              <option value="superadmin_admin">Management</option>
+            </select>
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
           <ConversationList
             conversations={filteredConversations}
             onSelect={setSelectedConversation}
@@ -110,31 +112,48 @@ export default function ChatLayout({ userId }: { userId: string }) {
         </div>
       </div>
 
-      <div className={`${!showSidebar ? 'flex' : 'hidden'} md:flex flex-col flex-1 min-w-0 bg-gray-50/50`}>
+      <div className={`${!showSidebar ? 'flex' : 'hidden'} md:flex flex-col flex-1 min-w-0 bg-white`}>
         {selectedConversation ? (
           <>
-            <div className="h-[73px] px-4 border-b border-gray-100 bg-white flex items-center gap-3 shadow-sm shrink-0">
-              <button 
-                onClick={() => setShowSidebar(true)}
-                className="md:hidden p-1 hover:bg-gray-100 rounded-lg text-gray-600"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              
-              <div className="w-10 h-10 rounded-full bg-[#1abc60]/10 flex items-center justify-center text-[#1abc60] font-bold shrink-0">
-                {selectedConversation.participants.find(p => p._id !== userId)?.name?.[0] || "C"}
+            <div className="h-[73px] px-6 border-b border-gray-100 bg-white flex items-center justify-between shadow-sm shrink-0 z-10">
+              <div className="flex items-center gap-3 min-w-0">
+                <button 
+                  onClick={() => setShowSidebar(true)}
+                  className="md:hidden p-2 hover:bg-gray-100 rounded-xl text-gray-600 transition-colors"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                
+                <div className="relative shrink-0">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#1abc60] to-[#16a34a] flex items-center justify-center text-white font-black shadow-lg shadow-[#1abc60]/20">
+                    {selectedConversation.participants.find(p => p._id !== userId)?.name?.[0] || "C"}
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-gray-900 truncate tracking-tight">
+                    {selectedConversation.participants.find(p => p._id !== userId)?.name || "Chat"}
+                  </h2>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      {selectedConversation.type.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h2 className="text-base font-bold text-gray-900 truncate">
-                  {selectedConversation.participants.find(p => p._id !== userId)?.name || "Chat"}
-                </h2>
-                <p className="text-[10px] text-gray-500 capitalize">
-                  {selectedConversation.type.replace(/_/g, " ")}
-                </p>
+
+              <div className="flex items-center gap-2">
+                <button className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-400 transition-all">
+                  <Search className="w-5 h-5" />
+                </button>
+                <button className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-400 transition-all">
+                  <Menu className="w-5 h-5" />
+                </button>
               </div>
             </div>
             
-            <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-hidden flex flex-col bg-gray-50/30">
               <MessageList
                 messages={messages}
                 currentUserId={userId}
@@ -146,16 +165,16 @@ export default function ChatLayout({ userId }: { userId: string }) {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500 p-8 text-center">
-            <div className="max-w-xs">
-              <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="w-10 h-10 text-gray-400" />
+          <div className="flex-1 flex items-center justify-center text-gray-500 p-8 text-center bg-gray-50/30">
+            <div className="max-w-sm">
+              <div className="w-24 h-24 bg-white rounded-[32px] shadow-xl border border-gray-100 flex items-center justify-center mx-auto mb-6 transform rotate-6 hover:rotate-0 transition-transform duration-500">
+                <MessageSquare className="w-10 h-10 text-[#1abc60]" />
               </div>
-              <p className="text-lg font-medium text-gray-900">Your Messages</p>
-              <p className="text-sm text-gray-500 mt-1">Select a conversation from the list to start chatting.</p>
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight">Welcome to Chat</h3>
+              <p className="text-sm text-gray-500 mt-2 leading-relaxed">Select a conversation from the sidebar to start collaborating with your team or users.</p>
               <button 
                 onClick={() => setShowSidebar(true)}
-                className="mt-6 md:hidden px-6 py-2 bg-[#1abc60] text-white rounded-lg font-medium"
+                className="mt-8 md:hidden px-8 py-3 bg-[#1abc60] text-white rounded-2xl font-bold shadow-lg shadow-[#1abc60]/20 hover:bg-[#16a34a] transition-all"
               >
                 View Conversations
               </button>

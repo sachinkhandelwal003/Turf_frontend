@@ -40,8 +40,9 @@ export const useChat = () => {
   return context;
 };
 
-export const ChatProvider = ({ children, userId }: { children: ReactNode; userId: string }) => {
+export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
+  const userId = user?._id;
   const [socket, setSocket] = useState<Socket | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);

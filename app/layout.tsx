@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+
 import { AuthProvider } from '@/app/context/AuthContext';
+import { ChatProvider } from '@/app/context/ChatContext';
+
 import { Toaster } from 'sonner';
 import FloatingChatWrapper from './components/chat/FloatingChatWrapper';
 
@@ -19,11 +22,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} overflow-x-hidden`} suppressHydrationWarning>
+      <body
+        className={`${inter.className} overflow-x-hidden`}
+        suppressHydrationWarning
+      >
         <AuthProvider>
-          {children}
-          <FloatingChatWrapper />
-          <Toaster position="top-right" richColors />
+          <ChatProvider>
+            {children}
+
+            <FloatingChatWrapper />
+
+            <Toaster position="top-right" richColors />
+          </ChatProvider>
         </AuthProvider>
       </body>
     </html>

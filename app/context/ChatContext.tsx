@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { Conversation, Message } from "@/app/types/chat.types";
 import { 
@@ -28,6 +28,7 @@ interface ChatContextType {
   startConversationWithSuperAdmin: () => Promise<void>;
   startConversationWithAdmin: (adminId: string) => Promise<void>;
   isLoading: boolean;
+  refreshMessages: () => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -42,18 +43,24 @@ export const useChat = () => {
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const userId = user?._id;
+  const userId = user?.id;
   const [socket, setSocket] = useState<Socket | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
     const socketUrl = apiUrl.replace("/api", "");
-    const newSocket = io(socketUrl);
+    const newSocket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
     setSocket(newSocket);
 
     return () => {
@@ -61,60 +68,62 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  const fetchConversations = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const data = await getConversations(userId);
+      const fetchedConversations = data.conversations || [];
+      setConversations(fetchedConversations);
+      
+      const supportConv = fetchedConversations.find((c: Conversation) => c.type === "user_superadmin");
+      if (supportConv && !selectedConversation) {
+        setSelectedConversation(supportConv);
+      }
+    } catch (error) {
+      console.error("Failed to fetch conversations:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId, selectedConversation]);
+
+  const fetchMessages = useCallback(async () => {
+    if (!selectedConversation) return;
+    try {
+      const data = await getMessages(selectedConversation._id);
+      setMessages(data.messages || []);
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+    }
+  }, [selectedConversation]);
+
   useEffect(() => {
     if (!userId) return;
-
-    const fetchConversations = async () => {
-      try {
-        const data = await getConversations(userId);
-        const fetchedConversations = data.conversations || [];
-        setConversations(fetchedConversations);
-        
-        // Auto-select "user_superadmin" conversation if it exists
-        const supportConv = fetchedConversations.find((c: Conversation) => c.type === "user_superadmin");
-        if (supportConv) {
-          setSelectedConversation(supportConv);
-        }
-      } catch (error) {
-        console.error("Failed to fetch conversations:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchConversations();
-  }, [userId]);
+  }, [userId, fetchConversations]);
 
   useEffect(() => {
     if (!selectedConversation || !socket) return;
 
-    const fetchMessages = async () => {
-      try {
-        const data = await getMessages(selectedConversation._id);
-        setMessages(data.messages || []);
-        socket.emit("join_conversation", selectedConversation._id);
-      } catch (error) {
-        console.error("Failed to fetch messages:", error);
-      }
-    };
-
     fetchMessages();
+    socket.emit("join_conversation", selectedConversation._id);
 
     socket.on("receive_message", (newMessage: Message) => {
-      // Check if message is for the current selected conversation
       const isForCurrent = selectedConversation && newMessage.conversationId === selectedConversation._id;
       
       if (isForCurrent) {
-        setMessages((prev) => [...prev, newMessage]);
+        setMessages((prev) => {
+          // Check if message already exists
+          const exists = prev.some(m => m._id === newMessage._id);
+          if (exists) return prev;
+          return [...prev, newMessage];
+        });
       } else {
-        // Show popup notification for background messages
         const senderName = newMessage.senderId?.name || "Someone";
         toast.success(`New message from ${senderName}`, {
           description: newMessage.text.substring(0, 30) + (newMessage.text.length > 30 ? '...' : ''),
         });
       }
       
-      // Update last message and updatedAt in conversation list for all incoming messages
       setConversations((prev) => 
         prev.map((conv) => 
           conv._id === newMessage.conversationId 
@@ -141,9 +150,23 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       socket.off("message_deleted");
       socket.off("message_reacted");
     };
-  }, [selectedConversation, socket]);
+  }, [selectedConversation, socket, fetchMessages]);
 
-  const sendMessage = async (text: string, file?: File, replyTo?: string) => {
+  useEffect(() => {
+    if (selectedConversation) {
+      pollIntervalRef.current = setInterval(() => {
+        fetchMessages();
+      }, 5000);
+    }
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [selectedConversation, fetchMessages]);
+
+  const sendMessage = useCallback(async (text: string, file?: File, replyTo?: string) => {
     if (!selectedConversation || !userId || !socket || !user) return;
 
     const messageData = {
@@ -158,12 +181,13 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await sendMessageApi(messageData);
       socket.emit("send_message", response.message);
+      setMessages((prev) => [...prev, response.message]);
     } catch (error) {
       console.error("Failed to send message:", error);
     }
-  };
+  }, [selectedConversation, userId, user, socket]);
 
-  const deleteMessage = async (messageId: string) => {
+  const deleteMessage = useCallback(async (messageId: string) => {
     if (!socket) return;
     try {
       await deleteMessageApi(messageId);
@@ -175,9 +199,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Failed to delete message:", error);
     }
-  };
+  }, [socket, selectedConversation]);
 
-  const reactToMessage = async (messageId: string, emoji: string) => {
+  const reactToMessage = useCallback(async (messageId: string, emoji: string) => {
     if (!socket || !userId) return;
     try {
       const response = await reactToMessageApi(messageId, { userId, emoji });
@@ -189,9 +213,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Failed to react to message:", error);
     }
-  };
+  }, [socket, userId]);
 
-  const startConversationWithSuperAdmin = async () => {
+  const startConversationWithSuperAdmin = useCallback(async () => {
     if (!userId) return;
 
     try {
@@ -215,9 +239,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Failed to start conversation with superadmin:", error);
     }
-  };
+  }, [userId]);
 
-  const startConversationWithAdmin = async (adminId: string) => {
+  const startConversationWithAdmin = useCallback(async (adminId: string) => {
     if (!userId) return;
 
     try {
@@ -238,7 +262,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Failed to start conversation with admin:", error);
     }
-  };
+  }, [userId]);
+
+  const refreshMessages = useCallback(async () => {
+    await fetchMessages();
+  }, [fetchMessages]);
 
   return (
     <ChatContext.Provider
@@ -255,6 +283,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         startConversationWithSuperAdmin,
         startConversationWithAdmin,
         isLoading,
+        refreshMessages,
       }}
     >
       {children}

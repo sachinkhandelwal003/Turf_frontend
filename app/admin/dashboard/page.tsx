@@ -122,10 +122,23 @@ export default function AdminDashboard() {
         setStats(res.data.stats);
         setRecentTurfs(res.data.recentTurfs || []);
         setRecentUsers(res.data.recentUsers || []);
+      } else {
+        throw new Error(res.data.msg || 'Failed to load dashboard');
       }
     } catch (err: any) {
       console.error('Error fetching dashboard data:', err);
-      setError(err.response?.data?.error || 'Failed to fetch dashboard data');
+      const errorMsg = err.response?.data?.msg || err.response?.data?.error || 'Failed to fetch dashboard data';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      // Set fallback data
+      setStats({
+        users: { total: 0, customers: 0, admins: 0, superadmins: 0 },
+        turfs: { total: 0, pending: 0, approved: 0, rejected: 0 },
+        bookings: { total: 0, confirmed: 0, pending: 0, cancelled: 0 },
+        tournaments: { total: 0, pending: 0, approved: 0, rejected: 0 },
+        revenue: { total: 0, bookings: 0, tournaments: 0 },
+        roles: 0
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -185,7 +198,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (error || !stats) {
+  if (!stats) {
     return (
       <div className="flex items-center justify-center min-h-[80vh]">
         <div className="text-center bg-white p-8 rounded-2xl shadow-sm border border-gray-200 max-w-md">

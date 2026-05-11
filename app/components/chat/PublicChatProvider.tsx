@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
@@ -55,6 +55,7 @@ interface ChatContextType {
   setReplyingTo: (message: Message | null) => void;
   startConversationWithSuperAdmin: () => Promise<void>;
   isLoading: boolean;
+  refreshMessages: () => Promise<void>;
 }
 
 const ChatContext = React.createContext<ChatContextType | undefined>(undefined);
@@ -75,19 +76,26 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [isLoading, setIsLoading] = useState(!!user?.id);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const userId = user?.id;
 
   useEffect(() => {
-    if (user?.id) {
+    if (userId) {
       setIsLoading(true);
     } else {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [userId]);
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
     const socketUrl = apiUrl.replace("/api", "");
-    const newSocket = io(socketUrl);
+    const newSocket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
     setSocket(newSocket);
 
     return () => {
@@ -95,63 +103,69 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
     };
   }, []);
 
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const fetchConversations = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"}/chat/conversations/${user.id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const data = await response.json();
-        const fetchedConversations = data.conversations || [];
-        setConversations(fetchedConversations);
-        
-        const supportConv = fetchedConversations.find((c: Conversation) => c.type === "user_superadmin");
-        if (supportConv) {
-          setSelectedConversation(supportConv);
+  const fetchConversations = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"}/chat/conversations/${userId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-      } catch (error) {
-        console.error("Failed to fetch conversations:", error);
-      } finally {
-        setIsLoading(false);
+      );
+      const data = await response.json();
+      const fetchedConversations = data.conversations || [];
+      setConversations(fetchedConversations);
+      
+      const supportConv = fetchedConversations.find((c: Conversation) => c.type === "user_superadmin");
+      if (supportConv && !selectedConversation) {
+        setSelectedConversation(supportConv);
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch conversations:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId, selectedConversation]);
 
+  const fetchMessages = useCallback(async () => {
+    if (!selectedConversation) return;
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"}/chat/messages/${selectedConversation._id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await response.json();
+      setMessages(data.messages || []);
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+    }
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    if (!userId) return;
     fetchConversations();
-  }, [user?.id]);
+  }, [userId, fetchConversations]);
 
   useEffect(() => {
     if (!selectedConversation || !socket) return;
 
-    const fetchMessages = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"}/chat/messages/${selectedConversation._id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const data = await response.json();
-        setMessages(data.messages || []);
-        socket.emit("join_conversation", selectedConversation._id);
-      } catch (error) {
-        console.error("Failed to fetch messages:", error);
-      }
-    };
-
     fetchMessages();
+    socket.emit("join_conversation", selectedConversation._id);
 
     socket.on("receive_message", (newMessage: Message) => {
       const isForCurrent = selectedConversation && newMessage.conversationId === selectedConversation._id;
       
       if (isForCurrent) {
-        setMessages((prev) => [...prev, newMessage]);
+        setMessages((prev) => {
+          // Check if message already exists
+          const exists = prev.some(m => m._id === newMessage._id);
+          if (exists) return prev;
+          return [...prev, newMessage];
+        });
       } else {
         const senderName = newMessage.senderId?.name || "Someone";
         toast.success(`New message from ${senderName}`, {
@@ -185,14 +199,28 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
       socket.off("message_deleted");
       socket.off("message_reacted");
     };
-  }, [selectedConversation, socket]);
+  }, [selectedConversation, socket, fetchMessages]);
+
+  useEffect(() => {
+    if (selectedConversation) {
+      pollIntervalRef.current = setInterval(() => {
+        fetchMessages();
+      }, 5000);
+    }
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [selectedConversation, fetchMessages]);
 
   const sendMessage = useCallback(async (text: string, file?: File, replyTo?: string) => {
-    if (!selectedConversation || !user?.id || !socket || !user) return;
+    if (!selectedConversation || !userId || !socket || !user) return;
 
     const formData = new FormData();
     formData.append("conversationId", selectedConversation._id);
-    formData.append("senderId", user.id);
+    formData.append("senderId", userId);
     formData.append("senderRole", user.role);
     formData.append("text", text);
     if (replyTo) formData.append("replyTo", replyTo);
@@ -211,11 +239,12 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
       const data = await response.json();
       if (data.message) {
         socket.emit("send_message", data.message);
+        setMessages((prev) => [...prev, data.message]);
       }
     } catch (error) {
       console.error("Failed to send message:", error);
     }
-  }, [selectedConversation, user, socket]);
+  }, [selectedConversation, userId, user, socket]);
 
   const deleteMessage = useCallback(async (messageId: string) => {
     if (!socket) return;
@@ -239,7 +268,7 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
   }, [socket, selectedConversation]);
 
   const reactToMessage = useCallback(async (messageId: string, emoji: string) => {
-    if (!socket || !user?.id) return;
+    if (!socket || !userId) return;
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
@@ -250,7 +279,7 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ userId: user.id, emoji }),
+          body: JSON.stringify({ userId, emoji }),
         }
       );
       const data = await response.json();
@@ -263,10 +292,10 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
     } catch (error) {
       console.error("Failed to react to message:", error);
     }
-  }, [socket, user]);
+  }, [socket, userId]);
 
   const startConversationWithSuperAdmin = useCallback(async () => {
-    if (!user?.id) return;
+    if (!userId) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -280,8 +309,8 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
           },
           body: JSON.stringify({
             type: "user_superadmin",
-            participants: [user.id],
-            createdBy: user.id,
+            participants: [userId],
+            createdBy: userId,
           }),
         }
       );
@@ -297,7 +326,11 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
     } catch (error) {
       console.error("Failed to start conversation:", error);
     }
-  }, [user]);
+  }, [userId]);
+
+  const refreshMessages = useCallback(async () => {
+    await fetchMessages();
+  }, [fetchMessages]);
 
   const value: ChatContextType = {
     conversations,
@@ -311,6 +344,7 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
     setReplyingTo,
     startConversationWithSuperAdmin,
     isLoading,
+    refreshMessages,
   };
 
   return (

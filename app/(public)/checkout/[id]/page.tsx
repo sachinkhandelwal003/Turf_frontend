@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -12,6 +12,12 @@ import {
 import api from '@/app/services/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/context/AuthContext';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 interface Booking {
   _id: string;
@@ -48,20 +54,62 @@ export default function CheckoutPage() {
   const [splitWithSquad, setSplitWithSquad] = useState(true);
   const [numPlayers, setNumPlayers] = useState(4);
   const [paymentMethod, setPaymentMethod] = useState('upi');
-
+  
+  // Razorpay State
+  const [razorpaySettings, setRazorpaySettings] = useState<{
+    enabled: boolean;
+    keyId: string;
+  }>({ enabled: false, keyId: '' });
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  
   // Coins State
   const [useCoins, setUseCoins] = useState(false);
-  const [appliedCoins, setAppliedCoins] = useState(0); // This will be the number of coins
+  const [appliedCoins, setAppliedCoins] = useState(0);
   const [coinValue, setCoinValue] = useState(1);
+
+  useEffect(() => {
+    if (!window.Razorpay) {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => setRazorpayLoaded(true);
+      document.body.appendChild(script);
+    } else {
+      setRazorpayLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const loadLocalSettings = () => {
+      const localSettings = localStorage.getItem('adminSettings');
+      if (localSettings) {
+        try {
+          const parsed = JSON.parse(localSettings);
+          console.log('✅ GROUND: LOCALSTORAGE LOAD:', parsed);
+          if (parsed.razorpay) {
+            setRazorpaySettings({
+              enabled: !!parsed.razorpay.enabled,
+              keyId: parsed.razorpay.keyId || ''
+            });
+            setCoinValue(parsed.coinValue || 1);
+          }
+        } catch (e) {
+          console.error('GROUND: Local parse error');
+        }
+      }
+    };
+
+    loadLocalSettings();
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     if (!authLoading) {
       if (!isAuthenticated) {
-        toast.error("Please login to access checkout");
+        toast.error('Please login to access checkout');
         router.push(`/login?redirect=/checkout/${id}`);
       } else {
         fetchBooking();
-        fetchSettings();
       }
     }
   }, [id, isAuthenticated, authLoading]);
@@ -69,48 +117,33 @@ export default function CheckoutPage() {
   const fetchSettings = async () => {
     try {
       const res = await api.get('/settings');
-      if (res.data.success) {
-        setCoinValue(res.data.settings.coinValue || 1);
+      console.log('GROUND: Settings API response:', res.data);
+      if (res.data && res.data.settings) {
+        const apiSettings = res.data.settings;
+        const apiRazorpay = apiSettings.razorpay || {};
+        setCoinValue(apiSettings.coinValue || 1);
+        setRazorpaySettings(prev => ({
+          enabled: !!apiRazorpay.enabled || prev.enabled,
+          keyId: apiRazorpay.keyId || prev.keyId
+        }));
       }
     } catch (error) {
-      console.error("Failed to fetch settings:", error);
+      console.error('GROUND: API fetch failed, using localStorage only');
     }
   };
 
   const fetchBooking = async () => {
     try {
-      // Handle potential multiple IDs by taking the first one if the backend doesn't support bulk
       const bookingId = String(id).split(',')[0];
       const res = await api.get(`/bookings/${bookingId}`);
       if (res.data.success) {
         setBooking(res.data.booking);
       }
     } catch (error: any) {
-      toast.error("Booking not found");
+      toast.error('Booking not found');
       router.push('/ground');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handlePayment = async () => {
-    setProcessing(true);
-    try {
-      const res = await api.post(`/bookings/${id}/pay`, {
-        paymentMethod,
-        paymentId: `PAY${Date.now()}`,
-        usedCoins: useCoins ? appliedCoins : 0
-      });
-
-      if (res.data.success) {
-        toast.success("Payment Successful!");
-        await refreshUser(); // Get new coin balance
-        router.push(`/payment-success/${id}`);
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Payment failed. Please try again.");
-    } finally {
-      setProcessing(false);
     }
   };
 
@@ -125,7 +158,125 @@ export default function CheckoutPage() {
     }
   };
 
-  if (loading) {
+  const discountAmount = useCoins ? appliedCoins * coinValue : 0;
+  const payableToday = strategy === 'partial' 
+    ? Math.round((booking?.totalAmount || 0) * 0.25) - discountAmount 
+    : (booking?.totalAmount || 0) + (booking?.convenienceFee || 0) - discountAmount;
+  const balanceDue = strategy === 'partial' 
+    ? Math.round((booking?.totalAmount || 0) * 0.75) 
+    : 0;
+
+  const handlePayment = async () => {
+    console.log('=== GROUND CHECKOUT PAYMENT START ===');
+    console.log('1. Razorpay settings:', razorpaySettings);
+    console.log('2. Key ID:', razorpaySettings.keyId);
+    console.log('3. Enabled:', razorpaySettings.enabled);
+    console.log('4. Razorpay loaded:', razorpayLoaded);
+    console.log('5. Window.Razorpay:', !!window.Razorpay);
+    console.log('6. Split enabled:', splitWithSquad);
+    console.log('7. Players:', numPlayers);
+    console.log('8. Amount:', payableToday);
+
+    if (razorpaySettings.enabled && razorpaySettings.keyId && razorpayLoaded && window.Razorpay) {
+      console.log('✅ Opening Razorpay Checkout NOW!');
+      setProcessing(true);
+      
+      try {
+        const options = {
+          key: razorpaySettings.keyId,
+          amount: Math.round(Math.max(payableToday, 1) * 100),
+          currency: 'INR',
+          name: booking?.turf?.name || 'Turf Booking',
+          description: `${booking?.sport} Booking${splitWithSquad ? ` (Split ${numPlayers} ways)` : ''}`,
+          prefill: {
+            name: user?.name || '',
+            email: user?.email || '',
+            contact: user?.phone || ''
+          },
+          theme: {
+            color: '#1abc60'
+          },
+          handler: async (response: any) => {
+            console.log('✅ Razorpay Success Response:', response);
+            try {
+              const res = await api.post(`/bookings/${id}/pay`, {
+                paymentMethod,
+                paymentId: response.razorpay_payment_id,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpaySignature: response.razorpay_signature,
+                usedCoins: useCoins ? appliedCoins : 0,
+                splitWithSquad: splitWithSquad,
+                numPlayers: splitWithSquad ? numPlayers : undefined
+              });
+
+              console.log('Booking API Response:', res.data);
+
+              if (res.data.success) {
+                toast.success('✅ Payment Successful!');
+                await refreshUser();
+                router.push(`/payment-success/${id}`);
+              } else {
+                toast.error(res.data.msg || 'Payment verification failed');
+                setProcessing(false);
+              }
+            } catch (error: any) {
+              console.error('API Error:', error);
+              toast.error('Payment successful! Booking pending verification.');
+              await refreshUser();
+              router.push(`/payment-success/${id}`);
+            }
+          }
+        };
+
+        console.log('Razorpay Options:', options);
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+        
+        razorpay.on('payment.failed', (response: any) => {
+          console.error('❌ Payment failed:', response);
+          toast.error('Payment failed. Please try again.');
+          setProcessing(false);
+        });
+        
+      } catch (error) {
+        console.error('❌ Razorpay init error:', error);
+        toast.error('Razorpay failed. Trying backup payment...');
+        await handleFallbackPayment();
+      }
+    } else {
+      console.log('⚠️ Using fallback payment method');
+      await handleFallbackPayment();
+    }
+  };
+
+  const handleFallbackPayment = async () => {
+    setProcessing(true);
+    try {
+      console.log('Fallback payment processing...');
+      const res = await api.post(`/bookings/${id}/pay`, {
+        paymentMethod,
+        paymentId: `PAY-${Date.now()}`,
+        usedCoins: useCoins ? appliedCoins : 0,
+        splitWithSquad,
+        numPlayers: splitWithSquad ? numPlayers : undefined
+      });
+
+      if (res.data.success) {
+        toast.success('Payment Successful!');
+        await refreshUser();
+        router.push(`/payment-success/${id}`);
+      } else {
+        toast.error(res.data.msg || 'Payment failed');
+      }
+    } catch (error: any) {
+      console.error('Fallback error:', error);
+      toast.error(error.response?.data?.error || 'Payment failed. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
@@ -135,29 +286,25 @@ export default function CheckoutPage() {
 
   if (!booking) return null;
 
-  const discountAmount = useCoins ? (appliedCoins * coinValue) : 0;
-  const totalWithCoins = Math.max(0, booking.totalAmount - discountAmount);
-  const payableToday = strategy === 'full' ? totalWithCoins : (totalWithCoins * 0.25);
-  const balanceDue = totalWithCoins - payableToday;
-  const perPlayer = payableToday / numPlayers;
-
-  const getDurationLabel = () => {
-    if (booking.isMultiple && booking.bookingCount) {
-      return `${booking.bookingCount} hr${booking.bookingCount > 1 ? 's' : ''}`;
-    }
-    return calculateDuration(booking.startTime, booking.endTime);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-20 font-sans text-gray-900 overflow-x-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* --- HEADER --- */}
-        <div className="mb-8 md:mb-10 text-center md:text-left">
+        <div className="mb-8 md:mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <button 
+              onClick={() => router.push('/bookings')}
+              className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900"
+            >
+              <ChevronRight className="w-4 h-4 rotate-180" />
+              Back to Bookings
+            </button>
+          </div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-2">
             Secure Checkout
           </h1>
-          <p className="text-gray-500 text-sm md:text-base font-medium">Finalize your booking details and gear up for the game.</p>
+          <p className="text-gray-500 text-sm md:text-base font-medium">Complete your booking for <span className="font-semibold text-gray-700">{booking.turf.name}</span></p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -167,38 +314,19 @@ export default function CheckoutPage() {
             
             {/* 1. PAYMENT STRATEGY */}
             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800 border-b border-gray-100 pb-3">Payment Strategy</h2>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800 border-b border-gray-100 pb-3">Payment Plan</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Full Amount */}
-                <div 
-                  onClick={() => setStrategy('full')}
-                  className={`relative p-5 rounded-lg border-2 cursor-pointer transition-all hover:bg-green-50/30 ${
-                    strategy === 'full' ? 'border-[#1abc60] bg-green-50/20' : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
-                      <CreditCard className="w-5 h-5" />
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${strategy === 'full' ? 'border-[#1abc60]' : 'border-gray-300'}`}>
-                      {strategy === 'full' && <div className="w-2.5 h-2.5 rounded-full bg-[#1abc60]" />}
-                    </div>
-                  </div>
-                  <h3 className="text-base font-bold text-gray-900 mb-1">Pay Full Amount</h3>
-                  <p className="text-2xl font-bold text-gray-900 mb-2">₹{booking.totalAmount.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 font-medium">Zero worries, full access guaranteed.</p>
-                </div>
-
-                {/* Partial Amount */}
                 <div 
                   onClick={() => setStrategy('partial')}
-                  className={`relative p-5 rounded-lg border-2 cursor-pointer transition-all hover:bg-green-50/30 ${
-                    strategy === 'partial' ? 'border-[#1abc60] bg-green-50/20' : 'border-gray-200 bg-white'
+                  className={`rounded-xl border-2 p-6 cursor-pointer transition-all relative overflow-hidden ${
+                    strategy === 'partial' ? 'border-[#1abc60] bg-green-50/30' : 'border-gray-200 bg-white hover:border-gray-300'
                   }`}
                 >
-                  <div className="absolute -top-3 right-4 px-3 py-1 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm">
-                    Popular
-                  </div>
+                  {strategy === 'partial' && (
+                    <div className="absolute -top-3 right-4 px-3 py-1 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm">
+                      Recommended
+                    </div>
+                  )}
                   <div className="flex justify-between items-start mb-4">
                     <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
                       <Wallet className="w-5 h-5" />
@@ -210,6 +338,25 @@ export default function CheckoutPage() {
                   <h3 className="text-base font-bold text-gray-900 mb-1">Pay 25% Now</h3>
                   <p className="text-2xl font-bold text-gray-900 mb-2">₹{Math.round(booking.totalAmount * 0.25).toLocaleString()}</p>
                   <p className="text-xs text-gray-500 font-medium">Balance ₹{Math.round(booking.totalAmount * 0.75).toLocaleString()} due at ground.</p>
+                </div>
+
+                <div 
+                  onClick={() => setStrategy('full')}
+                  className={`rounded-xl border-2 p-6 cursor-pointer transition-all ${
+                    strategy === 'full' ? 'border-[#1abc60] bg-green-50/30' : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${strategy === 'full' ? 'border-[#1abc60]' : 'border-gray-300'}`}>
+                      {strategy === 'full' && <div className="w-2.5 h-2.5 rounded-full bg-[#1abc60]" />}
+                    </div>
+                  </div>
+                  <h3 className="text-base font-bold text-gray-900 mb-1">Pay Full Amount</h3>
+                  <p className="text-2xl font-bold text-gray-900 mb-2">₹{(booking.totalAmount + booking.convenienceFee).toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 font-medium">Complete payment online. No dues at venue.</p>
                 </div>
               </div>
             </div>
@@ -239,7 +386,7 @@ export default function CheckoutPage() {
                     <button
                       onClick={() => {
                         if (!useCoins) {
-                          const maxCoinsNeeded = Math.ceil(booking.totalAmount / coinValue);
+                          const maxCoinsNeeded = Math.ceil((booking.totalAmount + booking.convenienceFee) / coinValue);
                           setAppliedCoins(Math.min(user?.coins || 0, maxCoinsNeeded));
                         }
                         setUseCoins(!useCoins);
@@ -296,55 +443,61 @@ export default function CheckoutPage() {
                     onClick={() => setSplitWithSquad(!splitWithSquad)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1abc60] focus:ring-offset-2 ${splitWithSquad ? 'bg-[#1abc60]' : 'bg-gray-300'}`}
                   >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${splitWithSquad ? 'translate-x-6' : 'translate-x-1'}`}></span>
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${splitWithSquad ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
               </div>
 
-              <AnimatePresence>
-                {splitWithSquad && (
-                  <motion.div 
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="flex flex-col sm:flex-row gap-6 items-center bg-gray-50 rounded-lg p-5 border border-gray-100 overflow-hidden"
-                  >
-                    <div className="flex-1 w-full space-y-2">
-                      <label className="text-xs text-gray-600 font-semibold uppercase tracking-wider block">Number of Players</label>
-                      <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 focus-within:ring-2 focus-within:ring-[#1abc60]/20 focus-within:border-[#1abc60] transition-all p-1">
-                        <input 
-                          type="number" 
-                          value={numPlayers}
-                          onChange={(e) => setNumPlayers(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="!flex-1 !bg-transparent !px-3 !py-2 !text-lg !font-bold !text-gray-900 !outline-none !border-none !w-full"
-                        />
-                        <div className="px-3 py-1.5 bg-gray-100 rounded text-gray-600 font-semibold text-xs uppercase tracking-wider">Players</div>
-                      </div>
+              {splitWithSquad && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <h3 className="text-sm font-bold text-gray-900">Total per Player</h3>
+                      <p className="text-xs text-gray-500">Based on {numPlayers} players</p>
                     </div>
-                    <div className="w-full sm:w-[200px] bg-white rounded-lg p-4 text-center border border-gray-200 shadow-sm shrink-0">
-                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Each Player Pays</p>
-                      <p className="text-2xl font-bold text-[#1abc60]">₹{perPlayer.toFixed(2)}</p>
+                    <div className="text-2xl font-bold text-gray-900">
+                      ₹{Math.round(payableToday / numPlayers).toLocaleString()}
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              
-              <button 
-                className="!w-full !py-3 !bg-gray-50 hover:!bg-gray-100 !text-gray-700 !rounded-lg !font-semibold !text-sm !transition-colors !flex !items-center !justify-center !gap-2 !border !border-gray-200 !cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                Add Participant Manually
-              </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-700">Number of Players</label>
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={() => setNumPlayers(Math.max(2, numPlayers - 1))}
+                        className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                      >
+                        <span className="text-xl">-</span>
+                      </button>
+                      <input 
+                        type="number" 
+                        min={2} 
+                        max={12}
+                        value={numPlayers}
+                        onChange={(e) => setNumPlayers(Math.max(2, Math.min(12, parseInt(e.target.value) || 4)))}
+                        className="w-20 text-center text-lg font-bold text-gray-900 border-none outline-none"
+                      />
+                      <button 
+                        onClick={() => setNumPlayers(Math.min(12, numPlayers + 1))}
+                        className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* 3. CHOOSE PAYMENT METHOD */}
+            {/* 3. PAYMENT METHOD */}
             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-5">
               <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800 border-b border-gray-100 pb-3">Payment Method</h2>
               <div className="space-y-3">
                 {[
                   { id: 'upi', name: 'UPI Payment', icon: Smartphone, desc: 'Google Pay, PhonePe, Paytm' },
-                  { id: 'card', name: 'Credit / Debit Card', icon: CreditCard, desc: 'Visa, Mastercard, RuPay' },
-                  { id: 'netbanking', name: 'Net Banking', icon: Landmark, desc: '' }
+                  { id: 'card', name: 'Credit/Debit Card', icon: CreditCard, desc: 'Visa, Mastercard, RuPay' },
+                  { id: 'netbanking', name: 'Net Banking', icon: Landmark, desc: 'All major Indian banks' },
+                  { id: 'wallet', name: 'Digital Wallets', icon: Wallet, desc: 'Amazon Pay, Mobikwik' }
                 ].map((method) => (
                   <div 
                     key={method.id}
@@ -410,6 +563,7 @@ export default function CheckoutPage() {
           {/* --- RIGHT SIDEBAR SUMMARY --- */}
           <div className="w-full lg:w-[380px] shrink-0 lg:sticky lg:top-24 space-y-6">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+              
               <div className="p-6 space-y-6">
                 
                 <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">Booking Summary</h3>
@@ -421,7 +575,7 @@ export default function CheckoutPage() {
                       <Settings className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Sport & Court</p>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Sport & Court</p>
                       <h4 className="text-sm font-bold text-gray-900">
                         {booking.sport} ({booking.courts.join(', ')})
                       </h4>
@@ -433,7 +587,7 @@ export default function CheckoutPage() {
                       <Calendar className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Date</p>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Date</p>
                       <h4 className="text-sm font-bold text-gray-900">{booking.date}</h4>
                     </div>
                   </div>
@@ -443,7 +597,7 @@ export default function CheckoutPage() {
                       <Clock className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
                         Time Slot{booking.isMultiple ? 's' : ''}
                       </p>
                       <div className="space-y-0.5">
@@ -455,12 +609,12 @@ export default function CheckoutPage() {
                           ))
                         ) : (
                           <h4 className="text-sm font-bold text-gray-900 uppercase">
-                            {booking.startTime} - {booking.endTime} <span className="text-gray-500 font-medium normal-case">({getDurationLabel()})</span>
+                            {booking.startTime} - {booking.endTime} <span className="text-gray-500 font-medium normal-case">({calculateDuration(booking.startTime, booking.endTime)})</span>
                           </h4>
                         )}
                         {booking.isMultiple && (
                           <p className="text-xs font-semibold text-[#1abc60] mt-1">
-                            Total Duration: {getDurationLabel()}
+                            Total Duration: {calculateDuration(booking.startTime, booking.endTime)}
                           </p>
                         )}
                       </div>

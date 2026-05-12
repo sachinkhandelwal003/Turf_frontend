@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
 import Link from 'next/link'; 
-import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X, Loader2, Search } from 'lucide-react';
+import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X, Loader2, Search, Trophy } from 'lucide-react';
 import api from '@/app/services/api';
 import { useSearchParams } from 'next/navigation';
 
@@ -26,6 +26,7 @@ interface Venue {
   featured: boolean;
   reviewsCount?: number;
   sportTypes?: string[];
+  hasTournament?: boolean;
 }
 
 // ============= Subcomponents =============
@@ -88,7 +89,12 @@ const VenueCard = ({ venue }: { venue: Venue }) => {
                 Featured
               </span>
             )}
-            <div className="bg-white/95 backdrop-blur-sm text-gray-800 text-[11px] font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+            {venue.hasTournament && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
+                <Trophy className="w-3 h-3" /> Tournament
+              </span>
+            )}
+            <div className="bg-white/95 backdrop-blur-sm text-gray-800 text-[11px] font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm ml-auto">
               <RatingStars rating={venue.rating} />
               <span className="ml-0.5">{venue.rating}</span>
               {venue.reviewsCount && (
@@ -253,6 +259,29 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: any) => {
   );
 };
 
+// ============= Constants =============
+const DUMMY_TURFS = [
+  {
+    _id: "dummy-venue-1",
+    name: "Champions Sports Hub",
+    location: {
+      address: "Plot 45, Near Mansarovar Metro Station",
+      city: "Jaipur",
+      landmark: "Mansarovar Plaza",
+      mapUrl: "https://maps.google.com/?q=Mansarovar+Jaipur"
+    },
+    pricePerHour: 1200,
+    sports: ["Football", "Cricket", "Badminton"],
+    amenities: ["Changing Rooms", "Floodlights", "Parking", "Drinking Water", "First Aid"],
+    description: "A premium FIFA-certified synthetic turf suitable for high-intensity football and box cricket. Equipped with professional-grade LED lighting for night matches.",
+    images: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80"],
+    isActive: true,
+    rating: 4.8,
+    reviewsCount: 124,
+    isFeatured: true
+  }
+];
+
 // ============= Main Component =============
 function GroundContent() {
   const searchParams = useSearchParams();
@@ -267,9 +296,11 @@ function GroundContent() {
   const [minRating, setMinRating] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(5000);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [showOnlyTournaments, setShowOnlyTournaments] = useState(false);
   
-  // Available sports from fetched venues
+  // Available sports and tournaments
   const [availableSports, setAvailableSports] = useState<string[]>([]);
+  const [tournaments, setTournaments] = useState<any[]>([]);
 
   // Handle sport query param
   useEffect(() => {
@@ -279,36 +310,58 @@ function GroundContent() {
     }
   }, [searchParams]);
 
-  // Fetch venues
-  const fetchVenues = useCallback(async () => {
+  // Fetch venues and tournaments
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/turfs');
-      if (res.data.success) {
-        const mappedVenues = res.data.turfs
+      const [turfRes, tournamentRes] = await Promise.all([
+        api.get('/turfs'),
+        api.get('/tournaments')
+      ]);
+
+      let activeTournaments: any[] = [];
+      if (tournamentRes.data.success) {
+        activeTournaments = tournamentRes.data.tournaments;
+        setTournaments(activeTournaments);
+      }
+
+      if (turfRes.data.success) {
+        const rawTurfs = turfRes.data.turfs || [];
+        const combinedTurfs = [...rawTurfs, ...DUMMY_TURFS];
+        
+        const mappedVenues = combinedTurfs
           .filter((t: any) => t.isActive !== false) // Filter inactive if needed
-          .map((t: any) => ({
-            id: t._id,
-            title: t.name,
-            location: `${t.location.landmark ? t.location.landmark + ', ' : ''}${t.location.city}`,
-            fullAddress: `${t.location.address || ''} ${t.location.landmark || ''} ${t.location.city || ''}`,
-            rating: t.rating || Math.floor(Math.random() * (50 - 40 + 1) + 40) / 10 || 4.5, // Dynamic fallback
-            reviewsCount: t.reviewsCount || Math.floor(Math.random() * 500) + 50,
-            price: t.pricePerHour,
-            category: t.sports?.[0] || 'Sports',
-            isActive: t.isActive !== undefined ? t.isActive : true,
-            amenities: t.amenities?.map((a: any) => {
-              const name = typeof a === 'string' ? a : (a?.name || 'Amenity');
-              return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-            }) || [],
-            sportTypes: t.sports || [],
-            image: t.images && t.images.length > 0 
-              ? (t.images[0].startsWith('http') 
-                  ? t.images[0] 
-                  : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${t.images[0]}`)
-              : '/Perreferred1.png',
-            featured: t.isFeatured || t.rating >= 4.5 || false
-          }));
+          .map((t: any) => {
+            const hasTournament = activeTournaments.some(tour => 
+              tour.location?.venue?.toLowerCase() === t.name?.toLowerCase() &&
+              tour.status?.toLowerCase() !== 'finished' && 
+              tour.status?.toLowerCase() !== 'cancelled'
+            );
+
+            return {
+              id: t._id,
+              title: t.name,
+              location: `${t.location.landmark ? t.location.landmark + ', ' : ''}${t.location.city}`,
+              fullAddress: `${t.location.address || ''} ${t.location.landmark || ''} ${t.location.city || ''}`,
+              rating: t.rating || Math.floor(Math.random() * (50 - 40 + 1) + 40) / 10 || 4.5,
+              reviewsCount: t.reviewsCount || Math.floor(Math.random() * 500) + 50,
+              price: t.pricePerHour,
+              category: t.sports?.[0] || 'Sports',
+              isActive: t.isActive !== undefined ? t.isActive : true,
+              amenities: t.amenities?.map((a: any) => {
+                const name = typeof a === 'string' ? a : (a?.name || 'Amenity');
+                return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+              }) || [],
+              sportTypes: t.sports || [],
+              image: t.images && t.images.length > 0 
+                ? (t.images[0].startsWith('http') 
+                    ? t.images[0] 
+                    : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${t.images[0]}`)
+                : '/Perreferred1.png',
+              featured: t.isFeatured || t.rating >= 4.5 || false,
+              hasTournament
+            };
+          });
         
         setVenues(mappedVenues);
         
@@ -320,15 +373,15 @@ function GroundContent() {
         setAvailableSports(Array.from(sports).sort());
       }
     } catch (error) {
-      console.error("Failed to fetch grounds:", error);
+      console.error("Failed to fetch data:", error);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchVenues();
-  }, [fetchVenues]);
+    fetchData();
+  }, [fetchData]);
 
   // Filter Logic
   const filteredVenues = useMemo(() => {
@@ -343,8 +396,9 @@ function GroundContent() {
       
       const matchesRating = venue.rating >= minRating;
       const matchesPrice = venue.price <= maxPrice;
+      const matchesTournament = !showOnlyTournaments || venue.hasTournament;
       
-      return matchesSearch && matchesCategory && matchesRating && matchesPrice && venue.isActive;
+      return matchesSearch && matchesCategory && matchesRating && matchesPrice && venue.isActive && matchesTournament;
     });
     
     // Sort by rating and featured
@@ -382,6 +436,7 @@ function GroundContent() {
     setSelectedCategories([]);
     setMinRating(0);
     setMaxPrice(5000);
+    setShowOnlyTournaments(false);
     setCurrentPage(1);
   };
 
@@ -413,19 +468,19 @@ function GroundContent() {
         {/* Sidebar Filters */}
         <aside 
           className={`
-            fixed top-0 left-0 h-full w-[85%] max-w-[340px] bg-white z-[60] overflow-y-auto transition-transform duration-300 ease-in-out
-            lg:static lg:h-auto lg:w-[300px] xl:w-[340px] lg:z-10 lg:translate-x-0
-            py-8 px-6
-            lg:rounded-r-[24px] lg:shadow-[4px_0_24px_rgba(0,0,0,0.02)] lg:border lg:border-gray-100
+            fixed top-0 left-0 h-full w-[85%] max-w-[320px] bg-white z-[60] overflow-y-auto transition-transform duration-300 ease-in-out
+            lg:static lg:h-auto lg:w-[300px] xl:w-[320px] lg:z-10 lg:translate-x-0
+            py-8 px-6 md:pl-8 lg:pl-10
+            lg:rounded-r-2xl lg:shadow-[4px_0_24px_rgba(0,0,0,0.02)] lg:border lg:border-gray-200 lg:border-l-0
             ${isMobileFilterOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
           `}
         >
           {/* Header with Close Button */}
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-lg font-bold text-gray-800 tracking-wide">Filters</h2>
+            <h2 className="text-lg font-bold text-gray-900 tracking-wide uppercase">Filters</h2>
             <button 
               onClick={() => setIsMobileFilterOpen(false)}
-              className="lg:hidden bg-gray-100 hover:bg-gray-200 p-2 rounded-full text-gray-600 transition-colors cursor-pointer"
+              className="lg:hidden !bg-gray-100 hover:!bg-gray-200 !p-2 !rounded-full !border-none !text-gray-600 transition-colors cursor-pointer"
               aria-label="Close filters"
             >
               <X className="w-5 h-5" />
@@ -434,7 +489,7 @@ function GroundContent() {
 
           {/* Search Bar */}
           <div className="mb-8">
-            <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-3">Search Venue</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Search Venue</h3>
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#1abc60] transition-colors z-10" />
               <input 
@@ -442,18 +497,18 @@ function GroundContent() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name, city, or landmark..."
-                className="w-full bg-white border border-gray-200 text-gray-800 text-sm rounded-lg pl-9 pr-3 py-2.5 outline-none focus:border-[#1abc60] focus:ring-2 focus:ring-[#1abc60]/20 transition-all"
+                className="!w-full !bg-white !border !border-gray-300 !text-gray-800 !text-sm !rounded-lg !pl-9 !pr-3 !py-2.5 !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !transition-all !shadow-sm"
               />
             </div>
           </div>
 
           {/* Price Range */}
           <div className="mb-8">
-            <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-4">Max Price per Hour</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Max Price per Hour (₹)</h3>
             <div className="px-1">
               <div className="relative h-1.5 bg-gray-200 rounded-full mb-4">
                 <div 
-                  className="absolute h-full bg-gradient-to-r from-[#1abc60] to-[#16a085] rounded-full" 
+                  className="absolute h-full bg-[#1abc60] rounded-full" 
                   style={{ left: '0%', right: `${100 - (maxPrice / 5000) * 100}%` }} 
                 />
                 <input 
@@ -466,52 +521,54 @@ function GroundContent() {
                   className="absolute w-full h-full opacity-0 cursor-pointer z-10"
                 />
                 <div 
-                  className="absolute top-1/2 -translate-y-1/2 h-4 w-4 bg-[#1abc60] rounded-full shadow-md pointer-events-none border-2 border-white" 
+                  className="absolute top-1/2 -translate-y-1/2 h-4 w-4 bg-[#1abc60] rounded-full shadow-md pointer-events-none" 
                   style={{ left: `calc(${(maxPrice / 5000) * 100}% - 8px)` }} 
                 />
               </div>
-              <div className="flex justify-between items-center">
-                <div>
-                  <span className="text-xs font-bold text-gray-800">₹500</span>
-                  <span className="text-[10px] text-gray-500 ml-0.5">/hr</span>
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-[#1abc60]">₹{maxPrice}</span>
-                  <span className="text-[10px] text-gray-500 ml-0.5">/hr</span>
-                </div>
+              <div className="flex justify-between text-xs font-semibold text-gray-600">
+                <span>₹500</span>
+                <span>₹{maxPrice}</span>
               </div>
             </div>
           </div>
 
+          {/* Tournament Filter */}
+          <div className="mb-8">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Tournaments</h3>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input type="checkbox" className="hidden" checked={showOnlyTournaments} onChange={() => setShowOnlyTournaments(!showOnlyTournaments)} />
+              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${showOnlyTournaments ? '!bg-[#1abc60] !border-[#1abc60]' : '!bg-white !border-gray-300'}`}>
+                {showOnlyTournaments && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+              </div>
+              <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">Tournament Available</span>
+            </label>
+          </div>
+
           {/* Sport Categories */}
           <div className="mb-8">
-            <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-4">Sport Categories</h3>
-            <div className="flex flex-wrap gap-2">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Sport Categories</h3>
+            <div className="flex flex-col gap-3">
               {categoriesToShow.map((sport) => (
-                <button
-                  key={sport}
-                  onClick={() => toggleCategory(sport)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                    selectedCategories.includes(sport)
-                      ? 'bg-[#1abc60] text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {sport}
-                </button>
+                <label key={sport} className="flex items-center gap-3 cursor-pointer group">
+                  <input type="checkbox" className="hidden" checked={selectedCategories.includes(sport)} onChange={() => toggleCategory(sport)} />
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedCategories.includes(sport) ? '!bg-[#1abc60] !border-[#1abc60]' : '!bg-white !border-gray-300'}`}>
+                    {selectedCategories.includes(sport) && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">{sport}</span>
+                </label>
               ))}
             </div>
           </div>
 
           {/* Minimum Rating */}
           <div className="mb-8">
-            <h3 className="text-[11px] font-extrabold text-gray-800 uppercase tracking-wider mb-4">Minimum Rating</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Minimum Rating</h3>
             <div className="flex gap-2">
               {[3.5, 4.0, 4.5].map((rating) => (
                 <button 
                   key={rating}
                   onClick={() => setMinRating(minRating === rating ? 0 : rating)}
-                  className={`flex-1 py-2 text-sm font-bold rounded-xl border transition-all cursor-pointer ${
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg border transition-all cursor-pointer ${
                     minRating === rating 
                       ? 'border-[#1abc60] text-[#1abc60] bg-[#e8f8ef]' 
                       : 'border-gray-200 text-gray-700 bg-white hover:border-gray-300 hover:bg-gray-50'
@@ -524,18 +581,18 @@ function GroundContent() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-6 border-t border-gray-100">
+          <div className="flex items-center justify-between pt-6 border-t border-gray-200">
             <button 
               onClick={clearFilters}
-              className="text-xs font-bold text-gray-500 uppercase tracking-wider hover:text-gray-900 transition-colors bg-transparent border-none cursor-pointer"
+              className="text-sm font-semibold !text-gray-500 hover:!text-gray-900 transition-colors !bg-transparent !border-none cursor-pointer !p-0"
             >
               Clear All
             </button>
             <button 
               onClick={() => setIsMobileFilterOpen(false)} 
-              className="bg-[#1abc60] hover:bg-[#169c4e] text-white text-sm font-bold uppercase px-6 py-2.5 rounded-xl transition-colors tracking-wide shadow-sm cursor-pointer"
+              className="!bg-[#1abc60] hover:!bg-[#169c4e] transition-colors !text-white text-sm font-semibold px-5 py-2.5 rounded-lg !border-none shadow-sm cursor-pointer"
             >
-              Show Results
+              Apply
             </button>
           </div>
         </aside>

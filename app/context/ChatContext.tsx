@@ -75,7 +75,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       const fetchedConversations = data.conversations || [];
       setConversations(fetchedConversations);
       
-      const supportConv = fetchedConversations.find((c: Conversation) => c.type === "user_superadmin");
+      const preferredType = user?.role === 'admin' ? 'superadmin_admin' : 'user_superadmin';
+      const supportConv = fetchedConversations.find((c: Conversation) => c.type === preferredType);
       if (supportConv && !selectedConversation) {
         setSelectedConversation(supportConv);
       }
@@ -124,13 +125,20 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         });
       }
       
-      setConversations((prev) => 
-        prev.map((conv) => 
-          conv._id === newMessage.conversationId 
-            ? { ...conv, lastMessage: newMessage.text, updatedAt: new Date().toISOString() } 
-            : conv
-        ).sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())
-      );
+      setConversations((prev) => {
+        const exists = prev.some(c => c._id === newMessage.conversationId);
+        if (exists) {
+          return prev.map((conv) => 
+            conv._id === newMessage.conversationId 
+              ? { ...conv, lastMessage: newMessage.text, updatedAt: new Date().toISOString() } 
+              : conv
+          ).sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+        } else {
+          // If it's a new conversation, fetch the list again
+          fetchConversations();
+          return prev;
+        }
+      });
     });
 
     socket.on("message_deleted", (messageId: string) => {
@@ -216,14 +224,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   }, [socket, userId]);
 
   const startConversationWithSuperAdmin = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || !user) return;
 
     try {
       const { superadmin } = await getSuperAdmin();
       if (!superadmin) return;
 
       const response = await createConversation({
-        type: "user_superadmin",
+        type: user.role === "admin" ? "superadmin_admin" : "user_superadmin",
         participants: [userId, superadmin._id],
         createdBy: userId
       });
@@ -239,7 +247,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Failed to start conversation with superadmin:", error);
     }
-  }, [userId]);
+  }, [userId, user]);
 
   const startConversationWithAdmin = useCallback(async (adminId: string) => {
     if (!userId) return;

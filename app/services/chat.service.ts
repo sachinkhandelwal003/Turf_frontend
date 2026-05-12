@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API = "http://localhost:5001/api/chat";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
+const API = `${API_URL}/chat`;
 
 
 // GET TOKEN

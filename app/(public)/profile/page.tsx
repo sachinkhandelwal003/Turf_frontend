@@ -25,21 +25,28 @@ interface Booking {
       address: string;
     };
     images: string[];
+    pricePerHour?: number;
   };
   tournament?: {
     _id: string;
     title: string;
     image?: string;
+    entryFee?: number; // Added for conceptual calculation
   };
   sport: string;
   date: string;
   startTime: string;
   endTime: string;
   price: number;
+  totalAmount?: number;
+  paidAmount?: number;
+  balanceAmount?: number;
   status: string;
   paymentStatus: string;
   bookingId: string;
   courts?: string[];
+  slots?: string[];
+  isMultiple?: boolean;
   createdAt: string;
   updatedAt: string;
   hasReviewed?: boolean;
@@ -82,6 +89,8 @@ export default function ProfilePage() {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [showCoinPopup, setShowCoinPopup] = useState(false);
+  const [rewardAmount, setRewardAmount] = useState(0);
 
   // Refs for file inputs
   const profileInputRef = useRef<HTMLInputElement>(null);
@@ -220,14 +229,25 @@ export default function ProfilePage() {
         rating: reviewRating,
         comment: reviewComment,
       });
-      
+
       if (res.data.success) {
         toast.success('Review submitted successfully!');
         setReviewModal({ open: false, booking: null });
         setSelectedBooking(null);
-        setBookings(bookings.map(b => 
+
+        const reviewedCount = bookings.filter(b => b.hasReviewed).length;
+        const isFirstReview = reviewedCount === 0;
+        const coinsEarned = isFirstReview ? 100 : 50;
+
+        setBookings(bookings.map(b =>
           b._id === reviewModal.booking?._id ? { ...b, hasReviewed: true } : b
         ));
+
+        if (coinsEarned > 0) {
+          setRewardAmount(coinsEarned);
+          setShowCoinPopup(true);
+          await refreshUser();
+        }
       }
     } catch (error: unknown) {
       const apiError = getApiError(error);
@@ -270,6 +290,60 @@ export default function ProfilePage() {
   }
 
   if (!user) return null;
+
+  const getDurationInHours = (start: string, end: string) => {
+    try {
+      const [sh, sm] = (start || "00:00").split(':').map(Number);
+      const [eh, em] = (end || "00:00").split(':').map(Number);
+      const diff = (eh * 60 + em) - (sh * 60 + sm);
+      return diff > 0 ? diff / 60 : 1;
+    } catch (e) {
+      return 1;
+    }
+  };
+
+  const parseSafeNumber = (val: any) => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      const parsed = parseFloat(val.replace(/[^0-9.]/g, ''));
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
+  const getBookingTotal = (booking: Booking) => {
+    // 1. Try direct amounts from booking object
+    const directAmount = parseSafeNumber(booking.totalAmount || booking.price || booking.paidAmount);
+    if (directAmount > 0) return directAmount;
+
+    // 2. Tournament fallback
+    if (isTournamentBooking(booking)) {
+      const tournFee = parseSafeNumber((booking as any).tournament?.entryFee);
+      if (tournFee > 0) return tournFee;
+    }
+
+    // 3. Ground fallback conceptual calculation
+    try {
+      const basePrice = parseSafeNumber(booking.turf?.pricePerHour);
+      // If pricePerHour is 0, use a sensible default based on sport or a flat 500
+      const effectivePrice = basePrice > 0 ? basePrice : 500; 
+      
+      const numCourts = booking.courts?.length || 1;
+
+      if (booking.isMultiple && booking.slots) {
+        const totalHours = booking.slots.reduce((sum, slot) => {
+          const [s, e] = slot.split(' - ');
+          return sum + getDurationInHours(s, e);
+        }, 0);
+        return totalHours * effectivePrice * numCourts;
+      }
+
+      const duration = getDurationInHours(booking.startTime, booking.endTime);
+      return Math.max(1, duration) * effectivePrice * numCourts;
+    } catch (e) {
+      return 500; // Last resort absolute default
+    }
+  };
 
   const getImageUrl = (path: string) => {
     if (!path) return '';
@@ -473,7 +547,9 @@ export default function ProfilePage() {
                   <p className="!text-xs !font-semibold !text-gray-500 !uppercase">Total Bookings</p>
                 </div>
                 <div className="!p-4 !bg-emerald-50 !rounded-lg !border !border-emerald-100">
-                  <p className="!text-2xl !font-bold !text-[#1abc60] !mb-1">₹{bookings.reduce((sum, b) => sum + b.price, 0)}</p>
+                  <p className="!text-2xl !font-bold !text-[#1abc60] !mb-1">
+                    ₹{bookings.reduce((sum, b) => sum + parseSafeNumber(b.paidAmount || getBookingTotal(b)), 0)}
+                  </p>
                   <p className="!text-xs !font-semibold !text-emerald-700 !uppercase">Total Spent</p>
                 </div>
                 <div className="!col-span-2 !p-4 !bg-yellow-50 !rounded-lg !border !border-yellow-100 !flex !items-center !justify-between">
@@ -640,8 +716,17 @@ export default function ProfilePage() {
                                     </div>
                                   </div>
                                   <div className="!text-right !shrink-0">
-                                    <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-wider !mb-0.5">Paid</p>
-                                    <p className="!text-base !font-bold !text-gray-900">₹{booking.price}</p>
+                                    <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-wider !mb-0.5">
+                                      {parseSafeNumber(booking.balanceAmount) > 0 ? "Paid Today" : "Total Paid"}
+                                    </p>
+                                    <p className="!text-base !font-bold !text-gray-900">
+                                      ₹{parseSafeNumber(booking.paidAmount) || getBookingTotal(booking)}
+                                    </p>
+                                    {parseSafeNumber(booking.balanceAmount) > 0 ? (
+                                      <p className="!text-[9px] !font-bold !text-red-500 !uppercase !mt-0.5">
+                                        ₹{booking.balanceAmount} Balance
+                                      </p>
+                                    ) : null}
                                   </div>
                                 </div>
 
@@ -930,9 +1015,20 @@ export default function ProfilePage() {
                   )}
                   <div className="!space-y-1">
                     <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
-                      <CreditCard className="!w-3.5 !h-3.5" /> Paid
+                      <CreditCard className="!w-3.5 !h-3.5" /> Total Price
                     </p>
-                    <p className="!text-sm !font-bold !text-[#1abc60]">₹{selectedBooking.price}</p>
+                    <p className="!text-sm !font-bold !text-gray-900">₹{getBookingTotal(selectedBooking)}</p>
+                  </div>
+                  <div className="!space-y-1">
+                    <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                      <CheckCircle2 className="!w-3.5 !h-3.5" /> Paid Amount
+                    </p>
+                    <p className="!text-sm !font-bold !text-[#1abc60]">₹{parseSafeNumber(selectedBooking.paidAmount) || getBookingTotal(selectedBooking)}</p>
+                    {parseSafeNumber(selectedBooking.balanceAmount) > 0 ? (
+                      <p className="!text-[10px] !font-bold !text-red-500 !mt-1">
+                        (₹{selectedBooking.balanceAmount} due at venue)
+                      </p>
+                    ) : null}
                   </div>
                   <div className="!space-y-1">
                     <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
@@ -1063,6 +1159,85 @@ export default function ProfilePage() {
                 >
                   {submittingReview ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <Send className="!w-4 !h-4" />}
                   Submit Review
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Coin Reward Popup */}
+      <AnimatePresence>
+        {showCoinPopup && (
+          <div className="!fixed !inset-0 !z-[150] !flex !items-center !justify-center !p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCoinPopup(false)}
+              className="!absolute !inset-0 !bg-gray-900/60 !backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 20 }}
+              className="!relative !w-full !max-w-sm !bg-white !rounded-3xl !shadow-2xl !p-8 !text-center !overflow-hidden !border !border-yellow-100"
+            >
+              {/* Confetti Background Effect */}
+              <div className="!absolute !inset-0 !pointer-events-none">
+                <div className="!absolute !top-0 !left-1/4 !w-2 !h-2 !bg-yellow-400 !rounded-full !animate-ping" style={{ animationDelay: '0.1s' }} />
+                <div className="!absolute !top-1/4 !right-1/4 !w-2 !h-2 !bg-[#1abc60] !rounded-full !animate-ping" style={{ animationDelay: '0.3s' }} />
+                <div className="!absolute !bottom-1/4 !left-1/3 !w-2 !h-2 !bg-blue-400 !rounded-full !animate-ping" style={{ animationDelay: '0.5s' }} />
+              </div>
+
+              <div className="!relative !z-10 !space-y-6">
+                <div className="!relative !inline-block">
+                  <motion.div
+                    animate={{ 
+                      rotate: [0, 10, -10, 10, 0],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{ 
+                      repeat: Infinity,
+                      duration: 2,
+                      ease: "easeInOut"
+                    }}
+                    className="!w-24 !h-24 !bg-gradient-to-tr !from-yellow-400 !to-amber-100 !rounded-full !flex !items-center !justify-center !mx-auto !shadow-lg !border-4 !border-white"
+                  >
+                    <Award className="!w-12 !h-12 !text-yellow-700" />
+                  </motion.div>
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5, type: "spring" }}
+                    className="!absolute !-bottom-2 !-right-2 !bg-[#1abc60] !text-white !p-2 !rounded-full !shadow-md !border-2 !border-white"
+                  >
+                    <CheckCircle2 className="!w-5 !h-5" />
+                  </motion.div>
+                </div>
+
+                <div className="!space-y-2">
+                  <h3 className="!text-2xl !font-black !text-gray-900 !leading-tight">Reward Earned!</h3>
+                  <p className="!text-sm !font-medium !text-gray-500">
+                    {rewardAmount >= 100 ? "Amazing! You just earned 100+ rewards!" : "Thank you for your valuable feedback."}
+                  </p>
+                </div>
+
+                <div className="!bg-yellow-50 !rounded-2xl !p-4 !border !border-yellow-100 !flex !items-center !justify-center !gap-3">
+                  <div className="!w-10 !h-10 !bg-yellow-400 !rounded-full !flex !items-center !justify-center !shadow-inner">
+                    <span className="!text-white !font-black !text-xl">₹</span>
+                  </div>
+                  <div className="!text-left">
+                    <p className="!text-[10px] !font-bold !text-yellow-700 !uppercase !tracking-widest">Coins Added</p>
+                    <p className="!text-2xl !font-black !text-yellow-700">+{rewardAmount}</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowCoinPopup(false)}
+                  className="!w-full !bg-gray-900 !text-white !py-4 !rounded-2xl !font-bold !text-sm !shadow-xl hover:!bg-black !transition-all active:!scale-95 !border-none !cursor-pointer"
+                >
+                  Awesome!
                 </button>
               </div>
             </motion.div>

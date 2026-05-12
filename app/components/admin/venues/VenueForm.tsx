@@ -30,6 +30,7 @@ interface FormShape {
   mapUrl: string;
   pricePerHour: string;
   peakHourSurcharge: string;
+  priceHikes: { startTime: string; endTime: string; extraPrice: number }[];
   weekdayOpen: string;
   weekdayClose: string;
   weekendOpen: string;
@@ -56,6 +57,7 @@ const defaultForm: FormShape = {
   mapUrl: '',
   pricePerHour: '',
   peakHourSurcharge: '',
+  priceHikes: [],
   weekdayOpen: '06:00',
   weekdayClose: '23:00',
   weekendOpen: '08:00',
@@ -202,6 +204,9 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           mapUrl: target.location?.mapUrl || '',
           pricePerHour: String(target.pricePerHour || ''),
           peakHourSurcharge: String(target.peakHourSurcharge || ''),
+          priceHikes: Array.isArray(target.priceHikes) 
+            ? target.priceHikes 
+            : (typeof target.priceHikes === 'string' ? JSON.parse(target.priceHikes) : []),
           weekdayOpen: weekdayHours?.open || '06:00',
           weekdayClose: weekdayHours?.close || '23:00',
           weekendOpen: weekendHours?.open || '08:00',
@@ -439,6 +444,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       payload.append('operatingHours', JSON.stringify(effectiveOperatingHours()));
       payload.append('availableSlots', JSON.stringify(apiCarryForward.availableSlots));
       payload.append('rates', JSON.stringify(apiCarryForward.rates));
+      payload.append('priceHikes', JSON.stringify(form.priceHikes));
       payload.append(
         'courts',
         JSON.stringify(
@@ -667,6 +673,95 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Peak Hour Price Hikes */}
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <IndianRupee className="h-4 w-4 text-[#1abc60]" />
+                <h3 className="text-sm font-semibold text-gray-900">Peak Hour Charges (Time-based)</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setForm(prev => ({
+                    ...prev,
+                    priceHikes: [...prev.priceHikes, { startTime: '18:00', endTime: '22:00', extraPrice: 0 }]
+                  }));
+                }}
+                className="!flex !items-center !gap-1.5 !rounded-lg !bg-[#1abc60]/10 !px-3 !py-1.5 !text-xs !font-bold !text-[#1abc60] hover:!bg-[#1abc60]/20 !transition-all !cursor-pointer"
+              >
+                + Add Peak Range
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Set extra charges for specific time windows (e.g. festivals or late night games).
+            </p>
+
+            <div className="space-y-3">
+              {form.priceHikes.map((hike, idx) => (
+                <div key={idx} className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm relative group">
+                  <div className="flex-1 min-w-[120px] space-y-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">Start Time</label>
+                    <select
+                      value={hike.startTime}
+                      onChange={(e) => {
+                        const newHikes = [...form.priceHikes];
+                        newHikes[idx].startTime = e.target.value;
+                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                      }}
+                      className="!w-full !rounded-md !border !border-gray-300 !bg-white !px-3 !py-1.5 !text-sm !text-gray-900 focus:!outline-none"
+                    >
+                      {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex-1 min-w-[120px] space-y-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">End Time</label>
+                    <select
+                      value={hike.endTime}
+                      onChange={(e) => {
+                        const newHikes = [...form.priceHikes];
+                        newHikes[idx].endTime = e.target.value;
+                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                      }}
+                      className="!w-full !rounded-md !border !border-gray-300 !bg-white !px-3 !py-1.5 !text-sm !text-gray-900 focus:!outline-none"
+                    >
+                      {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex-1 min-w-[120px] space-y-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">Extra Price (₹)</label>
+                    <input
+                      type="number"
+                      value={hike.extraPrice}
+                      onChange={(e) => {
+                        const newHikes = [...form.priceHikes];
+                        newHikes[idx].extraPrice = Number(e.target.value);
+                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                      }}
+                      className="!w-full !rounded-md !border !border-gray-300 !bg-white !px-3 !py-1.5 !text-sm !font-bold !text-[#1abc60] focus:!outline-none"
+                      placeholder="0"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newHikes = form.priceHikes.filter((_, i) => i !== idx);
+                      setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                    }}
+                    className="!p-1.5 !text-gray-400 hover:!text-red-500 hover:!bg-white !rounded-md !transition-all !self-end !mb-0.5 !cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {form.priceHikes.length === 0 && (
+                <div className="rounded-xl border border-dashed border-gray-200 py-6 text-center">
+                  <p className="text-xs italic text-gray-400 font-medium">No custom peak hour charges added yet.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -940,22 +1035,52 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                 if (!day || !day.isOpen) {
                   return <p className="text-xs text-gray-500">This day is marked closed. No slots will be generated.</p>;
                 }
+
+                const dayRate = apiCarryForward.rates?.find((r: any) => r.day === slotPreviewDay)?.price;
+                const baseHourlyRate = Number(dayRate ?? form.pricePerHour ?? 0);
+
                 const slots = buildTimeSlots(day.open, day.close, slotDuration);
                 if (!slots.length) {
                   return <p className="text-xs text-gray-500">No slots for this range. Check open/close times and slot duration.</p>;
                 }
                 return (
                   <div className="flex flex-wrap gap-2">
-                    {slots.slice(0, 18).map((s) => (
-                      <span
-                        key={`${s.startTime}-${s.endTime}`}
-                        className="bg-white border border-gray-200 text-gray-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg"
-                      >
-                        {to12h(s.startTime)} - {to12h(s.endTime)} · {courtsCount} court{courtsCount !== 1 ? 's' : ''}
-                      </span>
-                    ))}
+                    {slots.slice(0, 18).map((s) => {
+                      const cur = parseTimeToMinutes(s.startTime);
+                      const hike = form.priceHikes?.find((h: any) => {
+                        const hStart = parseTimeToMinutes(h.startTime);
+                        const hEnd = parseTimeToMinutes(h.endTime);
+                        return cur < hEnd && (cur + slotDuration) > hStart;
+                      });
+                      
+                      const extra = (hike && !isNaN(Number(hike.extraPrice))) ? Number(hike.extraPrice) : 0;
+                      const totalPrice = (baseHourlyRate * (slotDuration / 60)) + extra;
+
+                      return (
+                        <div
+                          key={`${s.startTime}-${s.endTime}`}
+                          className={`flex flex-col gap-0.5 bg-white border px-2.5 py-1.5 rounded-lg shadow-sm ${
+                            extra > 0 ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200'
+                          }`}
+                        >
+                          <span className="text-gray-700 text-[11px] font-bold">
+                            {to12h(s.startTime)} - {to12h(s.endTime)}
+                          </span>
+                          {extra > 0 && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-amber-600 font-black">
+                                +₹{extra.toLocaleString()}
+                              </span>
+                              <span className="text-[9px] text-amber-500 font-bold uppercase">
+                                Peak
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                     {slots.length > 18 && (
-                      <span className="text-[11px] font-semibold text-gray-500 px-2 py-1">
+                      <span className="text-[11px] font-semibold text-gray-500 px-2 py-1 self-center">
                         +{slots.length - 18} more
                       </span>
                     )}

@@ -23,6 +23,7 @@ interface Booking {
       city: string;
     };
     images: string[];
+    pricePerHour?: number; // Added for conceptual calculation
   };
   user: {
     name: string;
@@ -37,10 +38,17 @@ interface Booking {
   slots?: string[];
   price: number;
   totalAmount?: number;
+  paidAmount?: number; // Added for dynamic display
+  balanceAmount?: number; // Added for dynamic display
   courts: string[];
   paymentStatus?: string;
   paymentMethod?: string;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  tournament?: { // Added for tournament bookings
+    _id: string;
+    title: string;
+    entryFee?: number;
+  };
 }
 
 interface Turf {
@@ -217,7 +225,8 @@ function AdminBookingsContent() {
 
   const fetchTurfs = async () => {
     try {
-      const res = await api.get('/turfs/my/all');
+      const endpoint = isSuperadmin ? '/turfs' : '/turfs/my/all';
+      const res = await api.get(endpoint);
       if (res.data.success) {
         setAvailableTurfs(res.data.turfs || []);
       }
@@ -327,6 +336,49 @@ function AdminBookingsContent() {
     return `${baseUrl}${path}`;
   };
 
+  const parseSafeNumber = (val: any) => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      const parsed = parseFloat(val.replace(/[^0-9.]/g, ''));
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
+  const getBookingTotal = (booking: Booking) => {
+    // 1. Try direct amounts from booking object
+    const amount = parseSafeNumber(booking.totalAmount || booking.price || (parseSafeNumber(booking.paidAmount) + parseSafeNumber(booking.balanceAmount)));
+    if (amount > 0) return amount;
+    
+    // 2. Concept-based fallback calculation
+    try {
+      // Find the turf to get its price per hour
+      const turf = availableTurfs.find(t => t.name === booking.turf.name || t._id === (booking.turf as any)._id);
+      const basePrice = Number(turf?.pricePerHour || 1000); // Default to 1000 if not found
+      
+      const numCourts = booking.courts?.length || 1;
+      
+      if (booking.slots && booking.slots.length > 0) {
+        const totalMinutes = booking.slots.reduce((sum, slot) => {
+          const [s, e] = slot.split(' - ');
+          const [sh, sm] = (s || "00:00").split(':').map(Number);
+          const [eh, em] = (e || "00:00").split(':').map(Number);
+          return sum + ((eh * 60 + em) - (sh * 60 + sm));
+        }, 0);
+        const durationHours = Math.max(1, totalMinutes / 60);
+        return durationHours * basePrice * numCourts;
+      }
+      
+      const [sh, sm] = (booking.startTime || "00:00").split(':').map(Number);
+      const [eh, em] = (booking.endTime || "00:00").split(':').map(Number);
+      const totalMinutes = (eh * 60 + em) - (sh * 60 + sm);
+      const durationHours = Math.max(1, totalMinutes / 60);
+      return durationHours * basePrice * numCourts;
+    } catch (e) {
+      return 1000; // Final absolute fallback
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     try {
       const options: Intl.DateTimeFormatOptions = { 
@@ -389,13 +441,16 @@ function AdminBookingsContent() {
 
   const getSlotMinutes = (slotValue: string) => {
     const [start, end] = slotValue.split(" - ");
+    if (!start || !end) return 0;
     const [sh, sm] = start.split(":").map(Number);
     const [eh, em] = end.split(":").map(Number);
+    if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return 0;
     return (eh * 60 + em) - (sh * 60 + sm);
   };
 
   const getBookedCourtsForRange = (timeVal: string) => {
     const [start, end] = timeVal.split(" - ");
+    if (!start || !end) return new Set<string>();
     const booked = new Set<string>();
     bookedSlotsForOffline.forEach((b) => {
       if (start < b.endTime && end > b.startTime) {
@@ -410,13 +465,13 @@ function AdminBookingsContent() {
     if (!turf) return 0;
     const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
     const dayRate = turf.rates?.find((r: any) => r.day === dayName)?.price;
-    return Number(dayRate ?? turf.pricePerHour ?? 0);
+    return parseSafeNumber(dayRate ?? turf.pricePerHour ?? 0);
   };
 
   const calculatedOfflineTotal =
-    getEffectiveSlotPrice(offlineData.turfId, offlineData.date) *
+    (getEffectiveSlotPrice(offlineData.turfId, offlineData.date) || 0) *
     (offlineData.slots.reduce((sum, slot) => sum + Math.max(0, getSlotMinutes(slot)), 0) / 60) *
-    offlineData.courts.length;
+    (offlineData.courts.length || 0);
 
   useEffect(() => {
     if (!offlineData.slots.length || !offlineData.courts.length) return;
@@ -691,7 +746,7 @@ function AdminBookingsContent() {
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                           {booking.paymentStatus === 'paid' ? 'Paid via ' + (booking.paymentMethod || 'online') : 'Payment Pending'}
                         </p>
-                        <p className="text-lg font-black text-gray-900">₹{booking.totalAmount || booking.price}</p>
+                        <p className="text-lg font-black text-gray-900">₹{getBookingTotal(booking)}</p>
                       </div>
                     </div>
 

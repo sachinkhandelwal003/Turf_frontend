@@ -38,6 +38,12 @@ interface Rate {
   isPeak: boolean;
 }
 
+interface PriceHike {
+  startTime: string;
+  endTime: string;
+  extraPrice: number;
+}
+
 interface OperatingHour {
   day: string;
   open: string;
@@ -69,6 +75,7 @@ interface Turf {
   pricePerHour: number;
   slotDuration?: number;
   rates: Rate[];
+  priceHikes?: PriceHike[];
   operatingHours: OperatingHour[];
   courts: Court[];
   sports: string[];
@@ -86,6 +93,7 @@ interface TurfFormData {
   pricePerHour: number;
   slotDuration: number;
   rates: Rate[];
+  priceHikes: PriceHike[];
   operatingHours: OperatingHour[];
   courts: Court[];
   sports: string[];
@@ -102,6 +110,35 @@ interface ValidationErrors {
 
 // ============= Constants =============
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
+
+const DUMMY_VENUES: Turf[] = [
+  {
+    _id: "dummy-venue-1",
+    name: "Champions Sports Hub",
+    location: {
+      address: "Plot 45, Near Mansarovar Metro Station",
+      city: "Jaipur",
+      landmark: "Mansarovar Plaza",
+      mapUrl: "https://maps.google.com/?q=Mansarovar+Jaipur"
+    },
+    pricePerHour: 1200,
+    slotDuration: 60,
+    rates: DAYS.map(day => ({ day, price: 1200, isPeak: false })),
+    operatingHours: DAYS.map(day => ({ day, open: "06:00", close: "23:00", isOpen: true })),
+    courts: [
+      { name: "Court 1", courtType: "Synthetic" },
+      { name: "Court 2", courtType: "Synthetic" }
+    ],
+    sports: ["Football", "Cricket", "Badminton"],
+    amenities: ["Changing Rooms", "Floodlights", "Parking", "Drinking Water", "First Aid"],
+    description: "A premium FIFA-certified synthetic turf suitable for high-intensity football and box cricket. Equipped with professional-grade LED lighting for night matches.",
+    images: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80"],
+    isActive: true,
+    rating: 4.8,
+    reviewsCount: 124
+  }
+];
+
 const SLOT_DURATIONS = [
   { value: 30, label: "30 Minutes" },
   { value: 60, label: "60 Minutes" },
@@ -127,6 +164,7 @@ const getEmptyFormData = (): TurfFormData => ({
   pricePerHour: 0,
   slotDuration: 60,
   rates: DAYS.map(day => ({ day, price: 0, isPeak: false })),
+  priceHikes: [],
   operatingHours: DAYS.map(day => ({ day, open: "06:00", close: "22:00", isOpen: true })),
   courts: [{ name: "Court 1", courtType: "Synthetic" }],
   sports: [],
@@ -150,6 +188,9 @@ const transformTurfToFormData = (turf: Turf): TurfFormData => ({
   rates: turf.rates && turf.rates.length > 0 
     ? turf.rates 
     : DAYS.map(day => ({ day, price: turf.pricePerHour, isPeak: false })),
+  priceHikes: Array.isArray(turf.priceHikes) 
+    ? turf.priceHikes 
+    : (typeof turf.priceHikes === 'string' ? JSON.parse(turf.priceHikes) : []),
   operatingHours: turf.operatingHours.length > 0 
     ? turf.operatingHours 
     : DAYS.map(day => ({ day, open: "06:00", close: "22:00", isOpen: true })),
@@ -604,15 +645,18 @@ export default function AdminTurfPage() {
     try {
       const res = await api.get("/turfs/my/all");
       if (res.data.success) {
-        setTurfs(res.data.turfs);
+        // Merge fetched turfs with dummy venues
+        const fetchedTurfs = res.data.turfs || [];
+        setTurfs([...fetchedTurfs, ...DUMMY_VENUES]);
       } else {
         throw new Error(res.data.message || 'Failed to fetch turfs');
       }
     } catch (error: unknown) {
       console.error("Fetch error:", error);
+      // Fallback to dummy venues if API fails
+      setTurfs(DUMMY_VENUES);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || "Failed to fetch turfs");
-      setTurfs([]);
+      toast.error((error as any).response?.data?.message || "Failed to fetch turfs, showing demo data");
     } finally {
       setLoading(false);
     }
@@ -640,6 +684,7 @@ export default function AdminTurfPage() {
       data.append("amenities", JSON.stringify(formData.amenities));
       data.append("description", formData.description);
       data.append("rates", JSON.stringify(formData.rates));
+      data.append("priceHikes", JSON.stringify(formData.priceHikes));
       data.append("operatingHours", JSON.stringify(formData.operatingHours));
       data.append("courts", JSON.stringify(formData.courts));
       data.append("rating", String(formData.rating));
@@ -1329,6 +1374,90 @@ export default function AdminTurfPage() {
                                 </div>
                               </div>
                             ))}
+                          </div>
+
+                          <div className="pt-6 border-t border-gray-100">
+                            <div className="flex items-center justify-between mb-4">
+                              <div>
+                                <h4 className="text-sm font-bold text-gray-900">Peak Hour Price Hikes</h4>
+                                <p className="text-xs text-gray-500">Apply extra charges for specific time slots (e.g., festivals or peak hours).</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  updateField("priceHikes", [
+                                    ...(formData.priceHikes || []),
+                                    { startTime: "17:00", endTime: "22:00", extraPrice: 0 }
+                                  ]);
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1abc60]/10 text-[#1abc60] rounded-lg text-xs font-bold hover:bg-[#1abc60]/20 transition-all"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                Add Price Hike
+                              </button>
+                            </div>
+
+                            <div className="space-y-3">
+                              {(formData.priceHikes || []).map((hike, idx) => (
+                                <div key={idx} className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-gray-200 bg-gray-50 shadow-sm relative group">
+                                  <div className="flex-1 min-w-[120px] space-y-1">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase">Start Time</label>
+                                    <input
+                                      type="time"
+                                      value={hike.startTime}
+                                      onChange={(e) => {
+                                        const newHikes = [...formData.priceHikes];
+                                        newHikes[idx].startTime = e.target.value;
+                                        updateField("priceHikes", newHikes);
+                                      }}
+                                      className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm outline-none focus:ring-1 focus:ring-[#1abc60]"
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-[120px] space-y-1">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase">End Time</label>
+                                    <input
+                                      type="time"
+                                      value={hike.endTime}
+                                      onChange={(e) => {
+                                        const newHikes = [...formData.priceHikes];
+                                        newHikes[idx].endTime = e.target.value;
+                                        updateField("priceHikes", newHikes);
+                                      }}
+                                      className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm outline-none focus:ring-1 focus:ring-[#1abc60]"
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-[120px] space-y-1">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase">Extra Price (₹)</label>
+                                    <input
+                                      type="number"
+                                      value={hike.extraPrice}
+                                      onChange={(e) => {
+                                        const newHikes = [...formData.priceHikes];
+                                        newHikes[idx].extraPrice = Number(e.target.value);
+                                        updateField("priceHikes", newHikes);
+                                      }}
+                                      className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-bold text-[#1abc60] outline-none focus:ring-1 focus:ring-[#1abc60]"
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newHikes = formData.priceHikes.filter((_, i) => i !== idx);
+                                      updateField("priceHikes", newHikes);
+                                    }}
+                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-white rounded-md transition-all self-end mb-0.5"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ))}
+                              {(!formData.priceHikes || formData.priceHikes.length === 0) && (
+                                <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl">
+                                  <p className="text-xs text-gray-400 font-medium italic">No custom price hikes configured.</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </motion.div>
                       )}

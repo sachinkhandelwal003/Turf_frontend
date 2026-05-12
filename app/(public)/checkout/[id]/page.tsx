@@ -48,6 +48,8 @@ export default function CheckoutPage() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [showCoinPopup, setShowCoinPopup] = useState(false);
+  const [rewardAmount, setRewardAmount] = useState(0);
   
   // Payment States
   const [strategy, setStrategy] = useState<'full' | 'partial'>('partial');
@@ -158,12 +160,46 @@ export default function CheckoutPage() {
     }
   };
 
+  const getDurationInHours = (start: string, end: string) => {
+    try {
+      const [sh, sm] = (start || "00:00").split(':').map(Number);
+      const [eh, em] = (end || "00:00").split(':').map(Number);
+      const diff = (eh * 60 + em) - (sh * 60 + sm);
+      return diff > 0 ? diff / 60 : 1;
+    } catch (e) {
+      return 1;
+    }
+  };
+
+  const calculateAutoPrice = () => {
+    if (!booking) return 0;
+    
+    // Use the price from the turf, or fallback to a sensible default (e.g., 1000/hr)
+    const basePrice = booking.turf?.pricePerHour || 1000;
+    const numCourts = booking.courts?.length || 1;
+    
+    if (booking.isMultiple && booking.slots) {
+      const totalHours = booking.slots.reduce((sum, slot) => {
+        const [s, e] = slot.split(' - ');
+        return sum + getDurationInHours(s, e);
+      }, 0);
+      return Math.max(basePrice, totalHours * basePrice) * numCourts;
+    }
+    
+    const duration = getDurationInHours(booking.startTime, booking.endTime);
+    return Math.max(1, duration) * basePrice * numCourts;
+  };
+
+  const totalAmount = booking?.totalAmount || booking?.price || calculateAutoPrice();
+  const convenienceFee = booking?.convenienceFee || (totalAmount > 0 ? 25 : 0); // Default fee if missing
+
   const discountAmount = useCoins ? appliedCoins * coinValue : 0;
   const payableToday = strategy === 'partial' 
-    ? Math.round((booking?.totalAmount || 0) * 0.25) - discountAmount 
-    : (booking?.totalAmount || 0) + (booking?.convenienceFee || 0) - discountAmount;
+    ? Math.round(totalAmount * 0.25) - discountAmount 
+    : totalAmount + convenienceFee - discountAmount;
+    
   const balanceDue = strategy === 'partial' 
-    ? Math.round((booking?.totalAmount || 0) * 0.75) 
+    ? Math.round(totalAmount * 0.75) 
     : 0;
 
   const handlePayment = async () => {
@@ -214,7 +250,27 @@ export default function CheckoutPage() {
               if (res.data.success) {
                 toast.success('✅ Payment Successful!');
                 await refreshUser();
-                router.push(`/payment-success/${id}`);
+                
+                // Ground booking coin logic: 1st=100, 2nd=50
+                try {
+                  const bookingsRes = await api.get('/bookings/my');
+                  if (bookingsRes.data.success) {
+                    const bookingCount = bookingsRes.data.bookings.length;
+                    if (bookingCount === 1) {
+                      setRewardAmount(100);
+                      setShowCoinPopup(true);
+                    } else if (bookingCount === 2) {
+                      setRewardAmount(50);
+                      setShowCoinPopup(true);
+                    }
+                  }
+                } catch (e) {
+                  console.error('Error fetching bookings for reward logic');
+                }
+
+                if (!showCoinPopup) {
+                  router.push(`/payment-success/${id}`);
+                }
               } else {
                 toast.error(res.data.msg || 'Payment verification failed');
                 setProcessing(false);
@@ -264,7 +320,27 @@ export default function CheckoutPage() {
       if (res.data.success) {
         toast.success('Payment Successful!');
         await refreshUser();
-        router.push(`/payment-success/${id}`);
+        
+        // Ground booking coin logic: 1st=100, 2nd=50
+        try {
+          const bookingsRes = await api.get('/bookings/my');
+          if (bookingsRes.data.success) {
+            const bookingCount = bookingsRes.data.bookings.length;
+            if (bookingCount === 1) {
+              setRewardAmount(100);
+              setShowCoinPopup(true);
+            } else if (bookingCount === 2) {
+              setRewardAmount(50);
+              setShowCoinPopup(true);
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching bookings for reward logic');
+        }
+
+        if (!showCoinPopup) {
+          router.push(`/payment-success/${id}`);
+        }
       } else {
         toast.error(res.data.msg || 'Payment failed');
       }
@@ -336,8 +412,8 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <h3 className="text-base font-bold text-gray-900 mb-1">Pay 25% Now</h3>
-                  <p className="text-2xl font-bold text-gray-900 mb-2">₹{Math.round(booking.totalAmount * 0.25).toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 font-medium">Balance ₹{Math.round(booking.totalAmount * 0.75).toLocaleString()} due at ground.</p>
+                  <p className="text-2xl font-bold text-gray-900 mb-2">₹{Math.round(totalAmount * 0.25).toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 font-medium">Balance ₹{Math.round(totalAmount * 0.75).toLocaleString()} due at ground.</p>
                 </div>
 
                 <div 
@@ -355,7 +431,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <h3 className="text-base font-bold text-gray-900 mb-1">Pay Full Amount</h3>
-                  <p className="text-2xl font-bold text-gray-900 mb-2">₹{(booking.totalAmount + booking.convenienceFee).toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-gray-900 mb-2">₹{(totalAmount + convenienceFee).toLocaleString()}</p>
                   <p className="text-xs text-gray-500 font-medium">Complete payment online. No dues at venue.</p>
                 </div>
               </div>
@@ -386,8 +462,10 @@ export default function CheckoutPage() {
                     <button
                       onClick={() => {
                         if (!useCoins) {
-                          const maxCoinsNeeded = Math.ceil((booking.totalAmount + booking.convenienceFee) / coinValue);
+                          const maxCoinsNeeded = Math.ceil((totalAmount + convenienceFee) / coinValue);
                           setAppliedCoins(Math.min(user?.coins || 0, maxCoinsNeeded));
+                        } else {
+                          setAppliedCoins(0);
                         }
                         setUseCoins(!useCoins);
                       }}

@@ -106,15 +106,8 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
   const fetchConversations = useCallback(async () => {
     if (!userId) return;
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"}/chat/conversations/${userId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      const data = await response.json();
-      const fetchedConversations = data.conversations || [];
+      const response = await api.get(`/chat/conversations/${userId}`);
+      const fetchedConversations = response.data.conversations || [];
       setConversations(fetchedConversations);
       
       const supportConv = fetchedConversations.find((c: Conversation) => c.type === "user_superadmin");
@@ -131,15 +124,8 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
   const fetchMessages = useCallback(async () => {
     if (!selectedConversation) return;
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"}/chat/messages/${selectedConversation._id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      const data = await response.json();
-      setMessages(data.messages || []);
+      const response = await api.get(`/chat/messages/${selectedConversation._id}`);
+      setMessages(response.data.messages || []);
     } catch (error) {
       console.error("Failed to fetch messages:", error);
     }
@@ -173,13 +159,20 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
         });
       }
       
-      setConversations((prev) => 
-        prev.map((conv) => 
-          conv._id === newMessage.conversationId 
-            ? { ...conv, lastMessage: newMessage.text, updatedAt: new Date().toISOString() } 
-            : conv
-        ).sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())
-      );
+      setConversations((prev) => {
+        const exists = prev.some(c => c._id === newMessage.conversationId);
+        if (exists) {
+          return prev.map((conv) => 
+            conv._id === newMessage.conversationId 
+              ? { ...conv, lastMessage: newMessage.text, updatedAt: new Date().toISOString() } 
+              : conv
+          ).sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+        } else {
+          // If it's a new conversation, fetch the list again
+          fetchConversations();
+          return prev;
+        }
+      });
     });
 
     socket.on("message_deleted", (messageId: string) => {
@@ -227,16 +220,10 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
     if (file) formData.append("file", file);
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"}/chat/message`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        }
-      );
-      const data = await response.json();
+      const response = await api.post("/chat/message", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const data = response.data;
       if (data.message) {
         socket.emit("send_message", data.message);
         setMessages((prev) => [...prev, data.message]);
@@ -249,14 +236,7 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
   const deleteMessage = useCallback(async (messageId: string) => {
     if (!socket) return;
     try {
-      const token = localStorage.getItem("token");
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"}/chat/message/${messageId}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await api.delete(`/chat/message/${messageId}`);
       socket.emit("delete_message", { messageId, conversationId: selectedConversation?._id });
       
       setMessages((prev) => 
@@ -270,19 +250,8 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
   const reactToMessage = useCallback(async (messageId: string, emoji: string) => {
     if (!socket || !userId) return;
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"}/chat/message/${messageId}/react`,
-        {
-          method: "POST",
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ userId, emoji }),
-        }
-      );
-      const data = await response.json();
+      const response = await api.post(`/chat/message/${messageId}/react`, { userId, emoji });
+      const data = response.data;
       if (data.message) {
         socket.emit("react_message", data.message);
         setMessages((prev) => 
@@ -298,23 +267,22 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
     if (!userId) return;
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api"}/chat/conversation`,
-        {
-          method: "POST",
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            type: "user_superadmin",
-            participants: [userId],
-            createdBy: userId,
-          }),
-        }
-      );
-      const data = await response.json();
+      // Use the api service for consistency and automatic base URL/auth handling
+      const saResponse = await api.get("/chat/superadmin");
+      const superadmin = saResponse.data.superadmin;
+
+      if (!superadmin) {
+        console.error("Superadmin not found in response:", saResponse.data);
+        return;
+      }
+
+      const response = await api.post("/chat/conversation", {
+        type: "user_superadmin",
+        participants: [userId, superadmin._id],
+        createdBy: userId,
+      });
+
+      const data = response.data;
       if (data.conversation) {
         setSelectedConversation(data.conversation);
         setConversations((prev) => {
@@ -324,7 +292,7 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
         });
       }
     } catch (error) {
-      console.error("Failed to start conversation:", error);
+      console.error("Failed to start conversation with superadmin:", error);
     }
   }, [userId]);
 

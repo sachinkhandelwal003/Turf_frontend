@@ -18,6 +18,7 @@ export default function ChatLayout({ userId }: { userId: string }) {
     selectedConversation,
     setSelectedConversation,
     startConversationWithAdmin,
+    startConversationWithSuperAdmin,
     isLoading
   } = useChat();
 
@@ -34,24 +35,47 @@ export default function ChatLayout({ userId }: { userId: string }) {
   }, [selectedConversation]);
 
   useEffect(() => {
-    if (currentUser?.role === 'superadmin' && showAdminList) {
+    if ((currentUser?.role === 'superadmin' || currentUser?.role === 'admin') && showAdminList) {
       const fetchAdmins = async () => {
         const data = await getAllAdmins();
-        setAdmins(data.admins || []);
+        // If current user is admin, only show superadmins in the list
+        if (currentUser?.role === 'admin') {
+          const superAdmins = data.admins?.filter((a: User) => a.role === 'superadmin') || [];
+          setAdmins(superAdmins);
+        } else {
+          setAdmins(data.admins || []);
+        }
       };
       fetchAdmins();
     }
   }, [currentUser, showAdminList]);
 
   const filteredConversations = conversations.filter(conv => {
-    const matchesFilter = filter === "all" || conv.type === filter;
-    
     const otherParticipant = conv.participants?.find(p => p._id !== userId);
+
+    // Admin restriction: only show chats with superadmins
+    if (currentUser?.role === 'admin') {
+      // Ensure the other participant is a superadmin or the conversation type is superadmin_admin
+      const isSuperAdminChat = otherParticipant?.role === 'superadmin' || conv.type === 'superadmin_admin';
+      if (!isSuperAdminChat) {
+        return false;
+      }
+    }
+
+    // Role-based filters for superadmin
+    if (currentUser?.role === 'superadmin') {
+      if (filter === 'only_admins' && otherParticipant?.role !== 'admin') return false;
+      if (filter === 'only_users' && otherParticipant?.role !== 'user') return false;
+    }
+
+    const matchesFilter = filter === "all" || 
+      (filter !== 'only_admins' && filter !== 'only_users' && conv.type === filter);
+    
     const matchesSearch = !searchQuery || 
       otherParticipant?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conv.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesFilter && matchesSearch;
+    return (matchesFilter || (currentUser?.role === 'superadmin' && (filter === 'only_admins' || filter === 'only_users'))) && matchesSearch;
   });
 
   if (isLoading) {
@@ -67,11 +91,11 @@ export default function ChatLayout({ userId }: { userId: string }) {
       <div className={`${showSidebar ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-80 border-r border-gray-100 bg-white shrink-0 h-full`}>
         <div className="h-[73px] px-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
           <h2 className="font-bold text-lg text-gray-800">Messages</h2>
-          {currentUser?.role === 'superadmin' && (
+          {(currentUser?.role === 'superadmin' || currentUser?.role === 'admin') && (
             <button 
               onClick={() => setShowAdminList(true)}
               className="p-2 hover:bg-gray-100 rounded-lg text-[#1abc60] transition-colors border border-gray-200"
-              title="New Chat with Admin"
+              title={currentUser?.role === 'superadmin' ? "New Chat with Admin" : "New Chat with Super Admin"}
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -91,22 +115,38 @@ export default function ChatLayout({ userId }: { userId: string }) {
           <select 
             value={filter} 
             onChange={(e) => setFilter(e.target.value)}
-            className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1abc60] bg-white"
+            className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1abc60] bg-white font-medium text-gray-700"
           >
             <option value="all">All Chats</option>
-            <option value="user_support">User Support</option>
-            <option value="user_superadmin">User to SuperAdmin</option>
-            <option value="admin_internal">Internal Admin</option>
-            <option value="superadmin_admin">SuperAdmin to Admin</option>
+            {currentUser?.role === 'superadmin' && (
+              <>
+                <option value="only_admins">Only Admins</option>
+                <option value="only_users">Only Users</option>
+              </>
+            )}
           </select>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <ConversationList
-            conversations={filteredConversations}
-            onSelect={setSelectedConversation}
-            selectedId={selectedConversation?._id}
-            currentUserId={userId}
-          />
+          {filteredConversations.length === 0 && currentUser?.role === 'admin' ? (
+            <div className="p-8 text-center">
+              <p className="text-sm text-gray-500 mb-4">No conversations found</p>
+              <button
+                onClick={() => startConversationWithSuperAdmin()}
+                className="w-full py-2 px-4 bg-[#1abc60] text-white rounded-lg text-sm font-medium hover:bg-[#16a351] transition-colors flex items-center justify-center gap-2"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Chat with Super Admin
+              </button>
+            </div>
+          ) : (
+            <ConversationList
+              conversations={filteredConversations}
+              onSelect={setSelectedConversation}
+              selectedId={selectedConversation?._id}
+              currentUserId={userId}
+              currentUserRole={currentUser?.role}
+            />
+          )}
         </div>
       </div>
 
@@ -126,10 +166,21 @@ export default function ChatLayout({ userId }: { userId: string }) {
               </div>
               <div className="min-w-0">
                 <h2 className="text-base font-bold text-gray-900 truncate">
-                  {selectedConversation.participants.find(p => p._id !== userId)?.name || "Chat"}
+                  {currentUser?.role === 'admin' && selectedConversation.type === 'superadmin_admin' 
+                    ? "Backend Contact" 
+                    : (selectedConversation.participants.find(p => p._id !== userId)?.name || "Chat")}
                 </h2>
-                <p className="text-[10px] text-gray-500 capitalize">
-                  {selectedConversation.type.replace(/_/g, " ")}
+                <p className="text-[10px] text-gray-500 capitalize flex items-center gap-1">
+                  {currentUser?.role === 'superadmin' && (
+                    <span className="font-bold text-[#1abc60] border border-[#1abc60]/20 px-1 rounded bg-[#1abc60]/5">
+                      {selectedConversation.participants.find(p => p._id !== userId)?.role || "User"}
+                    </span>
+                  )}
+                  <span>
+                    {selectedConversation.type === 'superadmin_admin' && currentUser?.role === 'admin' 
+                      ? "System Support" 
+                      : selectedConversation.type.replace(/_/g, " ")}
+                  </span>
                 </p>
               </div>
             </div>
@@ -153,6 +204,14 @@ export default function ChatLayout({ userId }: { userId: string }) {
               </div>
               <p className="text-lg font-medium text-gray-900">Your Messages</p>
               <p className="text-sm text-gray-500 mt-1">Select a conversation from the list to start chatting.</p>
+              {currentUser?.role === 'admin' && conversations.length === 0 && (
+                <button 
+                  onClick={() => startConversationWithSuperAdmin()}
+                  className="mt-6 px-6 py-2 bg-[#1abc60] text-white rounded-lg font-medium hover:bg-[#16a351] transition-colors"
+                >
+                  Chat with Super Admin
+                </button>
+              )}
               <button 
                 onClick={() => setShowSidebar(true)}
                 className="mt-6 md:hidden px-6 py-2 bg-[#1abc60] text-white rounded-lg font-medium"
@@ -168,7 +227,9 @@ export default function ChatLayout({ userId }: { userId: string }) {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
             <div className="p-4 border-b flex items-center justify-between bg-[#1abc60] text-white">
-              <h3 className="font-bold">Select an Admin</h3>
+              <h3 className="font-bold">
+                {currentUser?.role === 'superadmin' ? "Select an Admin" : "Select a Super Admin"}
+              </h3>
               <button onClick={() => setShowAdminList(false)} className="hover:bg-white/10 p-1 rounded-full">
                 <Plus className="w-6 h-6 rotate-45" />
               </button>

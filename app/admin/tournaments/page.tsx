@@ -52,6 +52,7 @@ interface Tournament {
   };
   registeredTeams: any[];
   maxTeams?: number;
+  entryFee?: number;
   image?: string;
 }
 
@@ -244,9 +245,14 @@ export default function TournamentsListPage() {
               {/* Card Content */}
               <div className="p-5 flex flex-col flex-1">
                 <div className="mb-4">
-                  <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1.5 group-hover:text-[#1abc60] transition-colors line-clamp-1">
-                    {tournament.title}
-                  </h3>
+                  <div className="flex justify-between items-start gap-2 mb-1.5">
+                    <h3 className="text-lg font-bold text-gray-900 leading-tight group-hover:text-[#1abc60] transition-colors line-clamp-1">
+                      {tournament.title}
+                    </h3>
+                    <div className="bg-emerald-50 text-[#1abc60] px-2 py-1 rounded-md border border-emerald-100 shrink-0">
+                      <span className="text-xs font-bold">₹{tournament.entryFee || 0}</span>
+                    </div>
+                  </div>
                   <div className="flex items-start gap-1.5 text-gray-500">
                     <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                     <span className="text-sm font-medium line-clamp-1">

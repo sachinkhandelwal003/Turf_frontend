@@ -23,6 +23,7 @@ interface Booking {
       city: string;
     };
     images: string[];
+    pricePerHour?: number; // Added for conceptual calculation
   };
   sport: string;
   date: string;
@@ -35,6 +36,13 @@ interface Booking {
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   courts: string[];
+  slots?: string[];
+  isMultiple?: boolean;
+  tournament?: { // Added for tournament bookings
+    _id: string;
+    title: string;
+    entryFee?: number;
+  };
 }
 
 export default function MyBookingsPage() {
@@ -58,6 +66,52 @@ export default function MyBookingsPage() {
       toast.error("Failed to load bookings");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getDurationInHours = (start: string, end: string) => {
+    try {
+      const [sh, sm] = (start || "00:00").split(':').map(Number);
+      const [eh, em] = (end || "00:00").split(':').map(Number);
+      const diff = (eh * 60 + em) - (sh * 60 + sm);
+      return diff > 0 ? diff / 60 : 1;
+    } catch (e) {
+      return 1;
+    }
+  };
+
+  const parseSafeNumber = (val: any) => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      const parsed = parseFloat(val.replace(/[^0-9.]/g, ''));
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
+  const getBookingTotal = (booking: Booking) => {
+    // 1. Try direct amounts from booking object
+    const directAmount = parseSafeNumber(booking.totalAmount || booking.price || booking.paidAmount);
+    if (directAmount > 0) return directAmount;
+
+    // 2. Fallback conceptual calculation
+    try {
+      const basePrice = parseSafeNumber(booking.turf?.pricePerHour);
+      const effectivePrice = basePrice > 0 ? basePrice : 500; // Final absolute fallback
+      
+      const numCourts = booking.courts?.length || 1;
+
+      if (booking.isMultiple && booking.slots) {
+        const totalHours = booking.slots.reduce((sum, slot) => {
+          const [s, e] = slot.split(' - ');
+          return sum + getDurationInHours(s, e);
+        }, 0);
+        return totalHours * effectivePrice * numCourts;
+      }
+
+      return getDurationInHours(booking.startTime, booking.endTime) * effectivePrice * numCourts;
+    } catch (e) {
+      return 500; // Last resort default
     }
   };
 
@@ -219,8 +273,20 @@ export default function MyBookingsPage() {
                           </div>
 
                           <div className="flex flex-wrap items-center justify-between gap-6">
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-2xl font-black text-gray-900">₹ {(booking.totalAmount || 0).toLocaleString()}</span>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total:</span>
+                                <span className="text-xl font-black text-gray-900">₹ {getBookingTotal(booking).toLocaleString()}</span>
+                              </div>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-[10px] font-black text-[#1abc60] uppercase tracking-widest">Paid:</span>
+                                <span className="text-2xl font-black text-[#1abc60]">₹ {parseSafeNumber(booking.paidAmount).toLocaleString()}</span>
+                              </div>
+                              {parseSafeNumber(booking.balanceAmount) > 0 ? (
+                                <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">
+                                  Balance: ₹{parseSafeNumber(booking.balanceAmount).toLocaleString()} due at ground
+                                </p>
+                              ) : null}
                             </div>
                             <div className="flex gap-3">
                               {activeTab === 'completed' && (

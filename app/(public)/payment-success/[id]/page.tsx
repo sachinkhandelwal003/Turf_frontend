@@ -22,6 +22,13 @@ interface Booking {
       city: string;
     };
     images: string[];
+    isMultiple?: boolean;
+    slots?: string[];
+    bookingCount?: number;
+    price: number;
+    paidAmount: number;
+    totalAmount: number;
+    paymentMethod: string;
   };
   sport: string;
   date: string;
@@ -96,6 +103,53 @@ export default function PaymentSuccessPage() {
       toast.error("Booking not found");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getDurationInHours = (start: string, end: string) => {
+    try {
+      const [sh, sm] = (start || "00:00").split(':').map(Number);
+      const [eh, em] = (end || "00:00").split(':').map(Number);
+      const diff = (eh * 60 + em) - (sh * 60 + sm);
+      return diff > 0 ? diff / 60 : 1;
+    } catch (e) {
+      return 1;
+    }
+  };
+
+  const parseSafeNumber = (val: any) => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      const parsed = parseFloat(val.replace(/[^0-9.]/g, ''));
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
+  const getBookingTotal = (booking: Booking) => {
+    // 1. Try direct amounts from booking object
+    const directAmount = parseSafeNumber(booking.totalAmount || booking.paidAmount || booking.price);
+    if (directAmount > 0) return directAmount;
+
+    // 2. Fallback conceptual calculation
+    try {
+      const basePrice = parseSafeNumber(booking.turf?.pricePerHour);
+      const effectivePrice = basePrice > 0 ? basePrice : 1000; // Sensible default
+      
+      const numCourts = booking.courts?.length || 1;
+
+      if (booking.isMultiple && booking.slots) {
+        const totalHours = booking.slots.reduce((sum, slot) => {
+          const [s, e] = slot.split(' - ');
+          return sum + getDurationInHours(s, e);
+        }, 0);
+        return Math.max(effectivePrice, totalHours * effectivePrice) * numCourts;
+      }
+
+      const duration = getDurationInHours(booking.startTime, booking.endTime);
+      return Math.max(1, duration) * effectivePrice * numCourts;
+    } catch (e) {
+      return 1000; // Last resort default
     }
   };
 
@@ -250,8 +304,8 @@ export default function PaymentSuccessPage() {
                 <div>
                   <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Amount Paid</p>
                   <p className="text-sm font-bold text-gray-900 uppercase">
-                    ₹{(isTournament ? tournament?.entryFee : booking?.paidAmount)?.toLocaleString()} 
-                    <span className="text-gray-400 font-medium text-xs ml-1 normal-case">via {(isTournament ? 'UPI' : booking?.paymentMethod?.toUpperCase()) || 'UPI'}</span>
+                    ₹{(isTournament ? tournament?.entryFee : (parseSafeNumber(booking?.paidAmount) || getBookingTotal(booking as Booking))).toLocaleString()} 
+                    <span className="text-gray-400 font-medium text-xs ml-1 normal-case">via {(isTournament ? 'UPI' : (booking?.paymentMethod || 'UPI').toUpperCase())}</span>
                   </p>
                 </div>
               </div>

@@ -39,6 +39,7 @@ interface Registration {
   registeredAt: string;
   tournamentTitle: string;
   tournamentId: string;
+  entryFee?: number;
   members?: { name: string; role: string }[];
   paymentDetails?: {
     paymentId: string;
@@ -238,7 +239,10 @@ export default function TournamentRegistrationsPage() {
                           <span className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{reg.paymentDetails.paymentMethod}</span>
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-400 font-bold italic">No payment info</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-gray-400">₹{(reg as any).entryFee || '0'}</span>
+                          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tight italic">Pending</span>
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">

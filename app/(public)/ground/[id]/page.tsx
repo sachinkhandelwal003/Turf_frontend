@@ -12,8 +12,41 @@ import {
 import api from '@/app/services/api';
 import { toast } from 'sonner';
 
-// === NO STATIC DATA ===
-// Dynamic data is fetched from API
+// === DUMMY DATA FOR DEMO ===
+const DUMMY_TURFS = [
+  {
+    _id: "dummy-venue-1",
+    name: "Champions Sports Hub",
+    location: {
+      address: "Plot 45, Near Mansarovar Metro Station",
+      city: "Jaipur",
+      landmark: "Mansarovar Plaza",
+      mapUrl: "https://maps.google.com/?q=Mansarovar+Jaipur"
+    },
+    pricePerHour: 1200,
+    slotDuration: 60,
+    sports: ["Football", "Cricket", "Badminton"],
+    amenities: ["Changing Rooms", "Floodlights", "Parking", "Drinking Water", "First Aid"],
+    description: "A premium FIFA-certified synthetic turf suitable for high-intensity football and box cricket. Equipped with professional-grade LED lighting for night matches.",
+    images: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80"],
+    isActive: true,
+    rating: 4.8,
+    reviewsCount: 124,
+    courts: [{ name: "Court 1", courtType: "Synthetic" }, { name: "Court 2", courtType: "Synthetic" }],
+    priceHikes: [
+      { startTime: "18:00", endTime: "22:00", extraPrice: 200 }
+    ],
+    operatingHours: [
+      { day: "Monday", open: "06:00", close: "23:00", isOpen: true },
+      { day: "Tuesday", open: "06:00", close: "23:00", isOpen: true },
+      { day: "Wednesday", open: "06:00", close: "23:00", isOpen: true },
+      { day: "Thursday", open: "06:00", close: "23:00", isOpen: true },
+      { day: "Friday", open: "06:00", close: "23:00", isOpen: true },
+      { day: "Saturday", open: "06:00", close: "23:00", isOpen: true },
+      { day: "Sunday", open: "06:00", close: "23:00", isOpen: true }
+    ]
+  }
+];
 
 export default function VenueDetailsPage() {
   const params = useParams();
@@ -25,7 +58,39 @@ export default function VenueDetailsPage() {
 
   useEffect(() => {
     const fetchVenue = async () => {
-      if (!id || id === 'undefined' || id.length < 10) return;
+      if (!id || id === 'undefined') return;
+
+      // Handle dummy data
+      if (id.startsWith('dummy-')) {
+        const dummy = DUMMY_TURFS.find(t => t._id === id);
+        if (dummy) {
+          const mappedVenue = {
+            id: dummy._id,
+            title: dummy.name,
+            rating: dummy.rating,
+            reviews: dummy.reviewsCount,
+            location: dummy.location.city,
+            address: `${dummy.location.address}, ${dummy.location.landmark}, ${dummy.location.city}`,
+            mapUrl: dummy.location.mapUrl,
+            price: dummy.pricePerHour,
+            slotDuration: dummy.slotDuration,
+            image: dummy.images[0],
+            images: dummy.images,
+            sports: dummy.sports,
+            amenities: dummy.amenities,
+            about: dummy.description,
+            courts: dummy.courts,
+            priceHikes: dummy.priceHikes || [],
+            operatingHours: dummy.operatingHours
+          };
+          setVenue(mappedVenue);
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (id.length < 10) return;
+
       try {
         const res = await api.get(`/turfs/${id}`);
         if (res.data.success) {
@@ -58,7 +123,9 @@ export default function VenueDetailsPage() {
             courts: t.courts || [],
             operatingHours: t.operatingHours || [],
             rates: t.rates || [],
-            priceHikes: t.priceHikes || [],
+            priceHikes: Array.isArray(t.priceHikes) 
+              ? t.priceHikes 
+              : (typeof t.priceHikes === 'string' ? JSON.parse(t.priceHikes) : []),
             availableSlots: t.availableSlots || []
           };
           setVenue(mappedVenue);
@@ -86,7 +153,7 @@ export default function VenueDetailsPage() {
 
   useEffect(() => {
     const fetchAvailability = async () => {
-      if (!id || !selectedDate) return;
+      if (!id || id === 'undefined' || id.startsWith('dummy-') || id.length < 10) return;
       setIsAvailabilityLoading(true);
       try {
         const res = await api.get(`/bookings/check-availability?turfId=${id}&date=${selectedDate}`);
@@ -102,21 +169,21 @@ export default function VenueDetailsPage() {
     fetchAvailability();
   }, [id, selectedDate]);
 
+  const formatMinutes = (mins: number) =>
+    String(Math.floor(mins / 60)).padStart(2, "0") + ":" + String(mins % 60).padStart(2, "0");
+  const parseTimeToMinutes = (time: string) => {
+    const [h, m] = (time || "00:00").split(":").map((v) => Number(v));
+    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+  };
+  const to12hLabel = (time: string) => {
+    const [hh, mm] = time.split(":").map((v) => Number(v));
+    const h = hh % 12 || 12;
+    const ampm = hh < 12 ? "AM" : "PM";
+    return `${h}:${String(mm || 0).padStart(2, "0")} ${ampm}`;
+  };
+
   const getTimeSlots = () => {
     if (!venue) return { "MORNING": [], "AFTERNOON": [], "EVENING": [] };
-
-    const formatMinutes = (mins: number) =>
-      String(Math.floor(mins / 60)).padStart(2, "0") + ":" + String(mins % 60).padStart(2, "0");
-    const parseTimeToMinutes = (time: string) => {
-      const [h, m] = (time || "00:00").split(":").map((v) => Number(v));
-      return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
-    };
-    const to12hLabel = (time: string) => {
-      const [hh, mm] = time.split(":").map((v) => Number(v));
-      const h = hh % 12 || 12;
-      const ampm = hh < 12 ? "AM" : "PM";
-      return `${h}:${String(mm || 0).padStart(2, "0")} ${ampm}`;
-    };
 
     const checkIsBooked = (timeVal: string) => {
       const [start, end] = timeVal.split(" - ");
@@ -148,6 +215,9 @@ export default function VenueDetailsPage() {
       return groups;
     }
 
+    const dayRate = venue?.rates?.find((r: any) => r.day === dayName)?.price;
+    const baseHourlyRate = Number(dayRate ?? venue?.price ?? 0);
+
     const open = operatingDay.open || "06:00";
     const close = operatingDay.close || "23:00";
     const duration = Number(venue?.slotDuration || 60);
@@ -164,11 +234,26 @@ export default function VenueDetailsPage() {
       const type = cur < 12 * 60 ? "MORNING" : cur >= 17 * 60 ? "EVENING" : "AFTERNOON";
 
       const bookedCourts = checkIsBooked(timeVal);
+      
+      // Check for price hikes (peak hours)
+      const hike = venue?.priceHikes?.find((h: any) => {
+        const hStart = parseTimeToMinutes(h.startTime);
+        const hEnd = parseTimeToMinutes(h.endTime);
+        return cur < hEnd && (cur + d) > hStart;
+      });
+
+      const extra = (hike && !isNaN(Number(hike.extraPrice))) ? Number(hike.extraPrice) : 0;
+      const slotPrice = (baseHourlyRate * (d / 60)) + extra;
+
       groups[type].push({
         time: label,
         status: bookedCourts.length >= (venue?.courts?.length || 1) ? "disabled" : "available",
         value: timeVal,
-        bookedCourts
+        bookedCourts,
+        basePrice: baseHourlyRate * (d / 60),
+        extraPrice: extra,
+        totalPrice: slotPrice,
+        isPeak: extra > 0
       });
       cur += d;
     }
@@ -226,15 +311,35 @@ export default function VenueDetailsPage() {
       const dayName = new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" });
       const dayRate = venue?.rates?.find((r: any) => r.day === dayName)?.price;
       const effectiveHourlyRate = Number(dayRate ?? venue?.price ?? 0);
+      
       const totalMinutes = selectedTimes.reduce((sum, slot) => sum + Math.max(0, getSlotMinutes(slot)), 0);
-      const totalHours = totalMinutes / 60;
+      const basePrice = (effectiveHourlyRate * (totalMinutes / 60)) * selectedCourts.length;
+
+      // Calculate total extra price for peak hours
+      const extraPriceTotal = selectedTimes.reduce((sum, timeVal) => {
+        const [start] = timeVal.split(" - ");
+        const cur = parseTimeToMinutes(start);
+        const slotDuration = venue?.slotDuration || 60;
+        
+        const hike = venue?.priceHikes?.find((h: any) => {
+          const hStart = parseTimeToMinutes(h.startTime);
+          const hEnd = parseTimeToMinutes(h.endTime);
+          return cur < hEnd && (cur + slotDuration) > hStart;
+        });
+        
+        const extra = (hike && !isNaN(Number(hike.extraPrice))) ? Number(hike.extraPrice) : 0;
+        return sum + extra;
+      }, 0);
+
+      const finalPrice = basePrice + (extraPriceTotal * selectedCourts.length);
+
       const res = await api.post("/bookings", {
         turfId: id,
         sport: venue?.sports?.[0] || "Sport",
         date: selectedDate,
         slots: selectedTimes,
         courts: selectedCourts,
-        price: effectiveHourlyRate * totalHours * selectedCourts.length,
+        price: finalPrice,
       });
 
       if (res.data.success) {
@@ -620,17 +725,28 @@ export default function VenueDetailsPage() {
                               setSelectedTimes([...selectedTimes, val]);
                             }
                           }}
-                          className={`!w-full !py-3.5 !px-4 !rounded-xl !text-sm !transition-all !text-left flex justify-between items-center !m-0 !shadow-none !cursor-pointer !border
+                          className={`!w-full !py-3 !px-4 !rounded-xl !text-sm !transition-all !text-left flex justify-between items-center !m-0 !shadow-none !cursor-pointer !border
                             ${isDisabled 
                               ? '!bg-gray-50 !text-gray-400 !border-gray-100 !cursor-not-allowed !font-medium' 
                               : selectedTimes.includes(slot.value || slot.time)
-                                ? '!bg-white !text-[#1abc60] !border-[#1abc60] !font-bold'
+                                ? '!bg-[#1abc60]/5 !text-[#1abc60] !border-[#1abc60] !font-bold'
                                 : '!bg-white !text-gray-700 !border-gray-200 hover:!border-[#1abc60] hover:!text-[#1abc60] !font-medium'
                             }
                           `}
                         >
-                          {slot.time}
-                          {selectedTimes.includes(slot.value || slot.time) && <CheckCircle2 className="w-4 h-4 text-[#1abc60]" />}
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-gray-900">{slot.time}</span>
+                              <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-100 font-black whitespace-nowrap">
+                                + ₹ 300 Peak
+                              </span>
+                            </div>
+                          </div>
+                          {selectedTimes.includes(slot.value || slot.time) && (
+                            <div className="bg-[#1abc60] p-1 rounded-full">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                            </div>
+                          )}
                         </button>
                       );
                     })}

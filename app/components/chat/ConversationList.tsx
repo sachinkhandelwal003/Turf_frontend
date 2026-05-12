@@ -5,6 +5,7 @@ interface Props {
   onSelect: (conversation: Conversation) => void;
   selectedId?: string;
   currentUserId?: string;
+  currentUserRole?: string;
 }
 
 export default function ConversationList({
@@ -12,6 +13,7 @@ export default function ConversationList({
   onSelect,
   selectedId,
   currentUserId,
+  currentUserRole,
 }: Props) {
   if (conversations.length === 0) {
     return (
@@ -45,14 +47,21 @@ export default function ConversationList({
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-baseline mb-0.5">
                 <h3 className={`font-semibold text-sm truncate ${isActive ? "text-[#1abc60]" : "text-gray-900"}`}>
-                  {otherParticipant?.name || "Support Chat"}
+                  {currentUserRole === 'admin' && conversation.type === 'superadmin_admin' 
+                    ? "Backend Contact" 
+                    : (otherParticipant?.name || "Support Chat")}
                 </h3>
                 <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">
                   {conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 truncate">
-                {conversation.lastMessage || "No messages yet"}
+              <p className="text-xs text-gray-500 truncate flex items-center gap-1">
+                <span className="font-medium text-[10px] uppercase px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 shrink-0">
+                  {otherParticipant?.role || "User"}
+                </span>
+                <span className="truncate">
+                  {conversation.lastMessage || "No messages yet"}
+                </span>
               </p>
             </div>
           </div>

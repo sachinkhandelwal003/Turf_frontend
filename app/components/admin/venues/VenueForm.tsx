@@ -29,8 +29,9 @@ interface FormShape {
   postcode: string;
   mapUrl: string;
   pricePerHour: string;
+  upiId: string;
   peakHourSurcharge: string;
-  priceHikes: { startTime: string; endTime: string; extraPrice: number }[];
+  slotPricings: { startTime: string; endTime: string; price: number; isPeak: boolean }[];
   weekdayOpen: string;
   weekdayClose: string;
   weekendOpen: string;
@@ -56,8 +57,9 @@ const defaultForm: FormShape = {
   postcode: '',
   mapUrl: '',
   pricePerHour: '',
+  upiId: '',
   peakHourSurcharge: '',
-  priceHikes: [],
+  slotPricings: [],
   weekdayOpen: '06:00',
   weekdayClose: '23:00',
   weekendOpen: '08:00',
@@ -203,10 +205,11 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           postcode: target.location?.postcode || '',
           mapUrl: target.location?.mapUrl || '',
           pricePerHour: String(target.pricePerHour || ''),
+          upiId: target.upiId || '',
           peakHourSurcharge: String(target.peakHourSurcharge || ''),
-          priceHikes: Array.isArray(target.priceHikes) 
-            ? target.priceHikes 
-            : (typeof target.priceHikes === 'string' ? JSON.parse(target.priceHikes) : []),
+          slotPricings: Array.isArray(target.slotPricings)
+            ? target.slotPricings
+            : [],
           weekdayOpen: weekdayHours?.open || '06:00',
           weekdayClose: weekdayHours?.close || '23:00',
           weekendOpen: weekendHours?.open || '08:00',
@@ -255,6 +258,27 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
 
     loadVenue();
   }, [mode, turfId]);
+
+  useEffect(() => {
+    setApiCarryForward(prev => {
+      const currentCourts = [...prev.courts];
+      if (currentCourts.length === courtsCount) return prev;
+      
+      let nextCourts = [];
+      if (currentCourts.length < courtsCount) {
+        nextCourts = [
+          ...currentCourts,
+          ...Array.from({ length: courtsCount - currentCourts.length }).map((_, idx) => ({
+            name: `Court ${currentCourts.length + idx + 1}`,
+            courtType: form.surfaceType || surfaceOptions[0] || 'Synthetic'
+          }))
+        ];
+      } else {
+        nextCourts = currentCourts.slice(0, courtsCount);
+      }
+      return { ...prev, courts: nextCourts };
+    });
+  }, [courtsCount, form.surfaceType]);
 
   const toggleListValue = (field: 'sports' | 'amenities', value: string) => {
     setForm((prev) => {
@@ -428,6 +452,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       payload.append('sports', JSON.stringify(form.sports));
       payload.append('amenities', JSON.stringify(form.amenities));
       payload.append('pricePerHour', String(Number(form.pricePerHour || 0)));
+      payload.append('upiId', form.upiId || '');
       payload.append('peakHourSurcharge', String(Number(form.peakHourSurcharge || 0)));
       payload.append('surfaceType', resolvedSurfaceType);
       payload.append(
@@ -444,15 +469,10 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       payload.append('operatingHours', JSON.stringify(effectiveOperatingHours()));
       payload.append('availableSlots', JSON.stringify(apiCarryForward.availableSlots));
       payload.append('rates', JSON.stringify(apiCarryForward.rates));
-      payload.append('priceHikes', JSON.stringify(form.priceHikes));
+      payload.append('slotPricings', JSON.stringify(form.slotPricings));
       payload.append(
         'courts',
-        JSON.stringify(
-          Array.from({ length: Math.max(1, courtsCount) }).map((_, idx) => ({
-            name: `Court ${idx + 1}`,
-            courtType: resolvedSurfaceType,
-          }))
-        )
+        JSON.stringify(apiCarryForward.courts)
       );
       
       payload.append('existingImages', JSON.stringify(existingImages));
@@ -676,80 +696,93 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
             </div>
           </div>
 
-          {/* Peak Hour Price Hikes */}
+          {/* Dynamic Slot-wise Pricing */}
           <div className="mt-8 pt-6 border-t border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <IndianRupee className="h-4 w-4 text-[#1abc60]" />
-                <h3 className="text-sm font-semibold text-gray-900">Peak Hour Charges (Time-based)</h3>
+                <Clock className="h-4 w-4 text-[#1abc60]" />
+                <h3 className="text-sm font-semibold text-gray-900">Dynamic Slot-wise Pricing</h3>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   setForm(prev => ({
                     ...prev,
-                    priceHikes: [...prev.priceHikes, { startTime: '18:00', endTime: '22:00', extraPrice: 0 }]
+                    slotPricings: [...prev.slotPricings, { startTime: '06:00', endTime: '07:00', price: Number(prev.pricePerHour) || 0, isPeak: false }]
                   }));
                 }}
                 className="!flex !items-center !gap-1.5 !rounded-lg !bg-[#1abc60]/10 !px-3 !py-1.5 !text-xs !font-bold !text-[#1abc60] hover:!bg-[#1abc60]/20 !transition-all !cursor-pointer"
               >
-                + Add Peak Range
+                + Add Custom Slot Price
               </button>
             </div>
             <p className="text-xs text-gray-500 mb-4">
-              Set extra charges for specific time windows (e.g. festivals or late night games).
+              Set specific prices for individual time slots. This will override the base rate for these slots.
             </p>
 
             <div className="space-y-3">
-              {form.priceHikes.map((hike, idx) => (
+              {form.slotPricings.map((slot, idx) => (
                 <div key={idx} className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm relative group">
-                  <div className="flex-1 min-w-[120px] space-y-1">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">Start Time</label>
+                  <div className="flex-1 min-w-[100px] space-y-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">Start</label>
                     <select
-                      value={hike.startTime}
+                      value={slot.startTime}
                       onChange={(e) => {
-                        const newHikes = [...form.priceHikes];
-                        newHikes[idx].startTime = e.target.value;
-                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                        const newSlots = [...form.slotPricings];
+                        newSlots[idx].startTime = e.target.value;
+                        setForm(prev => ({ ...prev, slotPricings: newSlots }));
                       }}
-                      className="!w-full !rounded-md !border !border-gray-300 !bg-white !px-3 !py-1.5 !text-sm !text-gray-900 focus:!outline-none"
+                      className="!w-full !rounded-md !border !border-gray-300 !bg-white !px-2 !py-1.5 !text-xs focus:!outline-none"
                     >
                       {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                   </div>
-                  <div className="flex-1 min-w-[120px] space-y-1">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">End Time</label>
+                  <div className="flex-1 min-w-[100px] space-y-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">End</label>
                     <select
-                      value={hike.endTime}
+                      value={slot.endTime}
                       onChange={(e) => {
-                        const newHikes = [...form.priceHikes];
-                        newHikes[idx].endTime = e.target.value;
-                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                        const newSlots = [...form.slotPricings];
+                        newSlots[idx].endTime = e.target.value;
+                        setForm(prev => ({ ...prev, slotPricings: newSlots }));
                       }}
-                      className="!w-full !rounded-md !border !border-gray-300 !bg-white !px-3 !py-1.5 !text-sm !text-gray-900 focus:!outline-none"
+                      className="!w-full !rounded-md !border !border-gray-300 !bg-white !px-2 !py-1.5 !text-xs focus:!outline-none"
                     >
                       {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                   </div>
-                  <div className="flex-1 min-w-[120px] space-y-1">
+                  <div className="flex-1 min-w-[100px] space-y-1">
                     <label className="text-[10px] font-bold text-gray-500 uppercase">Extra Price (₹)</label>
                     <input
                       type="number"
-                      value={hike.extraPrice}
+                      value={slot.price}
                       onChange={(e) => {
-                        const newHikes = [...form.priceHikes];
-                        newHikes[idx].extraPrice = Number(e.target.value);
-                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                        const newSlots = [...form.slotPricings];
+                        newSlots[idx].price = Number(e.target.value);
+                        setForm(prev => ({ ...prev, slotPricings: newSlots }));
                       }}
                       className="!w-full !rounded-md !border !border-gray-300 !bg-white !px-3 !py-1.5 !text-sm !font-bold !text-[#1abc60] focus:!outline-none"
-                      placeholder="0"
+                      placeholder="e.g. 200"
                     />
+                  </div>
+                  <div className="flex items-center gap-2 pt-4">
+                    <input
+                      type="checkbox"
+                      checked={slot.isPeak}
+                      onChange={(e) => {
+                        const newSlots = [...form.slotPricings];
+                        newSlots[idx].isPeak = e.target.checked;
+                        setForm(prev => ({ ...prev, slotPricings: newSlots }));
+                      }}
+                      className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60]"
+                    />
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">Peak</label>
                   </div>
                   <button
                     type="button"
                     onClick={() => {
-                      const newHikes = form.priceHikes.filter((_, i) => i !== idx);
-                      setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                      const newSlots = form.slotPricings.filter((_, i) => i !== idx);
+                      setForm(prev => ({ ...prev, slotPricings: newSlots }));
                     }}
                     className="!p-1.5 !text-gray-400 hover:!text-red-500 hover:!bg-white !rounded-md !transition-all !self-end !mb-0.5 !cursor-pointer"
                   >
@@ -757,11 +790,6 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                   </button>
                 </div>
               ))}
-              {form.priceHikes.length === 0 && (
-                <div className="rounded-xl border border-dashed border-gray-200 py-6 text-center">
-                  <p className="text-xs italic text-gray-400 font-medium">No custom peak hour charges added yet.</p>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -898,6 +926,20 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
               <p className="text-xs text-gray-500">Standard rate applied to regular slots.</p>
             </div>
             <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">UPI ID for Payments</label>
+              <div className="relative">
+                <Landmark className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input 
+                  type="text"
+                  value={form.upiId} 
+                  onChange={(e) => setForm((prev) => ({ ...prev, upiId: e.target.value }))} 
+                  placeholder="e.g. owner@okaxis" 
+                  className="!w-full !pl-9 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400" 
+                />
+              </div>
+              <p className="text-xs text-gray-500">Used for generating payment QR codes during offline bookings.</p>
+            </div>
+            <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Peak Hour Surcharge</label>
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -914,35 +956,71 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Courts & Slot Duration</h3>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Number of Courts</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={courtsCount}
-                  onChange={(e) => setCourtsCount(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
-                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
-                />
-                <p className="text-xs text-gray-500">Availability per slot will be based on this court count.</p>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">Courts Configuration</h3>
+            <div className="space-y-4">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Number of Courts</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={courtsCount}
+                    onChange={(e) => setCourtsCount(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                    className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
+                  />
+                  <p className="text-xs text-gray-500">Add or remove courts for your venue.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Slot Duration (minutes)</label>
+                  <select
+                    value={slotDuration}
+                    onChange={(e) => setSlotDuration(Math.max(15, Number(e.target.value) || 60))}
+                    className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
+                  >
+                    {[30, 45, 60, 90, 120].map((m) => (
+                      <option key={m} value={m}>
+                        {m} minutes
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Slot Duration (minutes)</label>
-                <select
-                  value={slotDuration}
-                  onChange={(e) => setSlotDuration(Math.max(15, Number(e.target.value) || 60))}
-                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
-                >
-                  {[30, 45, 60, 90, 120].map((m) => (
-                    <option key={m} value={m}>
-                      {m} minutes
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500">Slots are generated from operating hours using this duration.</p>
+              {/* Individual Court Editor */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                {apiCarryForward.courts.map((court, idx) => (
+                  <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Court #{idx + 1}</span>
+                    </div>
+                    <input 
+                      type="text"
+                      value={court.name}
+                      onChange={(e) => {
+                        const newCourts = [...apiCarryForward.courts];
+                        newCourts[idx].name = e.target.value;
+                        setApiCarryForward({ ...apiCarryForward, courts: newCourts });
+                      }}
+                      placeholder="Court Name"
+                      className="!w-full !px-2 !py-1.5 !bg-white !border !border-gray-200 !rounded-lg !text-xs !font-medium focus:!ring-1 focus:!ring-[#1abc60]"
+                    />
+                    <select
+                      value={court.courtType}
+                      onChange={(e) => {
+                        const newCourts = [...apiCarryForward.courts];
+                        newCourts[idx].courtType = e.target.value;
+                        setApiCarryForward({ ...apiCarryForward, courts: newCourts });
+                      }}
+                      className="!w-full !px-2 !py-1.5 !bg-white !border !border-gray-200 !rounded-lg !text-[10px] !font-bold uppercase focus:!ring-1 focus:!ring-[#1abc60] cursor-pointer"
+                    >
+                      {surfaceOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

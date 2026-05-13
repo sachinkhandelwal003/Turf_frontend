@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from 'react';
 import { Search, Smartphone, Flag } from 'lucide-react';
+import GroundOwnerModal from '../layout/GroundOwnerModal';
 
 const steps = [
   {
@@ -24,6 +26,8 @@ const steps = [
 ];
 
 export default function ProcessAndPartner() {
+  const [isGroundOwnerModalOpen, setIsGroundOwnerModalOpen] = useState(false);
+
   return (
     <section className="bg-white py-20">
       <div className="max-w-[1200px] mx-auto px-4">
@@ -77,13 +81,21 @@ export default function ProcessAndPartner() {
               Join the GameOn ecosystem. List your venue, manage bookings effortlessly, and grow your revenue today.
             </p>
             {/* FIX: Button rounded-full tha, isko design ke hisaab se normal rounded kiya hai agar chahe toh */}
-            <button className="bg-[#1abc60] hover:bg-[#169c4e] !text-white font-bold py-3.5 px-10 rounded-[10px] transition-all duration-300 shadow-md text-[15px] border-none">
+            <button 
+              onClick={() => setIsGroundOwnerModalOpen(true)}
+              className="bg-[#1abc60] hover:bg-[#169c4e] !text-white font-bold py-3.5 px-10 rounded-[10px] transition-all duration-300 shadow-md text-[15px] border-none"
+            >
               List Your Venue Now
             </button>
           </div>
         </div>
 
       </div>
+
+      <GroundOwnerModal 
+        isOpen={isGroundOwnerModalOpen} 
+        onClose={() => setIsGroundOwnerModalOpen(false)} 
+      />
     </section>
   );
 }

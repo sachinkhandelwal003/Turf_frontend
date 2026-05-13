@@ -46,6 +46,8 @@ interface DashboardStats {
     total: number;
     bookings: number;
     tournaments: number;
+    wallet: number;
+    offline: number;
   };
   roles: number;
 }
@@ -72,13 +74,19 @@ interface RecentTurf {
 }
 
 export default function AdminDashboard() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isSuperadmin } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
   const [recentTurfs, setRecentTurfs] = useState<RecentTurf[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Filters State
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedTurf, setSelectedTurf] = useState('');
+  const [cities, setCities] = useState<string[]>([]);
+  const [allTurfs, setAllTurfs] = useState<{ _id: string, name: string, city: string }[]>([]);
 
   const handleDeleteUser = async (id: string) => {
     if (id === (currentUser as any).id) {
@@ -111,13 +119,38 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+    if (isSuperadmin) {
+      fetchAllTurfs();
+    }
+  }, [selectedCity, selectedTurf]);
+
+  const fetchAllTurfs = async () => {
+    try {
+      const res = await api.get('/turfs');
+      if (res.data.success) {
+        const turfs = res.data.turfs.map((t: any) => ({
+          _id: t._id,
+          name: t.name,
+          city: t.location.city
+        }));
+        setAllTurfs(turfs);
+        const uniqueCities = Array.from(new Set(turfs.map((t: any) => t.city))) as string[];
+        setCities(uniqueCities);
+      }
+    } catch (error) {
+      console.error('Error fetching all turfs for filters:', error);
+    }
+  };
 
   const fetchDashboardData = async () => {
     setRefreshing(true);
     try {
       setError(null);
-      const res = await api.get('/dashboard/stats');
+      const params = new URLSearchParams();
+      if (selectedCity) params.append('city', selectedCity);
+      if (selectedTurf) params.append('turfId', selectedTurf);
+
+      const res = await api.get(`/dashboard/stats?${params.toString()}`);
       if (res.data.success) {
         setStats(res.data.stats);
         setRecentTurfs(res.data.recentTurfs || []);
@@ -136,7 +169,7 @@ export default function AdminDashboard() {
         turfs: { total: 0, pending: 0, approved: 0, rejected: 0 },
         bookings: { total: 0, confirmed: 0, pending: 0, cancelled: 0 },
         tournaments: { total: 0, pending: 0, approved: 0, rejected: 0 },
-        revenue: { total: 0, bookings: 0, tournaments: 0 },
+        revenue: { total: 0, bookings: 0, tournaments: 0, wallet: 0, offline: 0 },
         roles: 0
       });
     } finally {
@@ -222,7 +255,38 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Admin Dashboard</h1>
           <p className="text-gray-500 mt-1 text-sm">Welcome back, {currentUser?.name}. Here's your system overview.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {isSuperadmin && (
+            <>
+              <select
+                value={selectedCity}
+                onChange={(e) => {
+                  setSelectedCity(e.target.value);
+                  setSelectedTurf(''); // Reset turf when city changes
+                }}
+                className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors shadow-sm outline-none focus:ring-2 focus:ring-[#1abc60]"
+              >
+                <option value="">All Cities</option>
+                {cities.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+
+              <select
+                value={selectedTurf}
+                onChange={(e) => setSelectedTurf(e.target.value)}
+                className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors shadow-sm outline-none focus:ring-2 focus:ring-[#1abc60]"
+              >
+                <option value="">All Grounds</option>
+                {allTurfs
+                  .filter(t => !selectedCity || t.city === selectedCity)
+                  .map(turf => (
+                    <option key={turf._id} value={turf._id}>{turf.name}</option>
+                  ))
+                }
+              </select>
+            </>
+          )}
           <button
             onClick={fetchDashboardData}
             disabled={refreshing}
@@ -235,8 +299,10 @@ export default function AdminDashboard() {
       </div>
 
       {/* --- REVENUE KPIs --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {[
+          { title: 'Wallet Revenue', value: stats.revenue?.wallet || 0, sub: 'Online payments', icon: Shield, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100 hover:border-blue-300' },
+          { title: 'Offline Booking', value: stats.revenue?.offline || 0, sub: 'Cash payments', icon: MapPin, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100 hover:border-emerald-300' },
           { title: 'Tournament Revenue', value: stats.revenue?.tournaments || 0, sub: 'From tournament entries', icon: Trophy, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100 hover:border-amber-300' },
           { title: 'Booking Head Count', value: stats.bookings?.total || 0, sub: 'Total bookings placed', icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100 hover:border-purple-300', isCount: true },
         ].map((stat, i) => (

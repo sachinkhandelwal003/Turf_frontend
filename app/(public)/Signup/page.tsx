@@ -58,6 +58,18 @@ export default function SignUp() {
       return toast.error("Please fill in all fields.");
     }
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      return toast.error("Please enter a valid email address.");
+    }
+
+    // Phone validation (10 digits Indian)
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      return toast.error("Please enter a valid 10-digit Indian phone number.");
+    }
+
     setIsLoading(true);
 
     try {

@@ -19,6 +19,8 @@ import {
   Calendar,
   Star,
   MessageSquare,
+  CreditCard,
+  QrCode,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -69,7 +71,10 @@ const baseMenuItems: MenuItem[] = [
     ],
   },
   { href: '/admin/chat', label: 'Chat', icon: MessageSquare, permission: 'view_chat' },
+  { href: '/admin/billing', label: 'Billing', icon: CreditCard, permission: 'view_billing' },
+  { href: '/admin/payment-settings', label: 'QR Settings', icon: QrCode, permission: 'manage_payment_settings' },
   { href: '/admin/settings', label: 'Settings', icon: Settings, permission: 'manage_settings' },
+  { href: '/admin/venue-leads', label: 'Venue Leads', icon: Users, permission: 'superadmin_only' },
 ];
 
 const superadminMenuItems: MenuItem[] = [];
@@ -119,10 +124,23 @@ export default function AdminSidebar({ sidebarOpen = false, setSidebarOpen }: Ad
     return `${baseUrl}${path}`;
   };
 
-  const canAccess = (permission: string) => isSuperadmin || hasPermission(permission);
+  const canAccess = (permission: string) => {
+    if (permission === 'superadmin_only') return isSuperadmin;
+    return isSuperadmin || hasPermission(permission);
+  };
 
   const menuItems = (isSuperadmin ? [...baseMenuItems, ...superadminMenuItems] : baseMenuItems)
       .filter(item => {
+        // Hide QR Settings for Super Admin
+        if (item.href === '/admin/payment-settings' && isSuperadmin) {
+          return false;
+        }
+        
+        // Ensure QR Settings shows for Admins
+        if (item.href === '/admin/payment-settings' && !isSuperadmin) {
+          return true; // We want to force show this for admins
+        }
+
         if (item.href === '/admin/bookings') {
           return canAccess('view_bookings') || canAccess('manage_bookings');
         }

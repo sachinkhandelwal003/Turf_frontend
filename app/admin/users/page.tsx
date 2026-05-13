@@ -108,6 +108,19 @@ export default function AdminUsersPage() {
     if (newUser.password !== newUser.confirmPassword) {
       return toast.error('Passwords do not match');
     }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newUser.email)) {
+      return toast.error("Please enter a valid email address.");
+    }
+
+    // Phone validation (10 digits Indian)
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(newUser.phone)) {
+      return toast.error("Please enter a valid 10-digit Indian phone number.");
+    }
+
     setIsCreating(true);
     try {
       const selectedRoleData = roles.find(r => r.name === newUser.role);

@@ -123,9 +123,7 @@ export default function VenueDetailsPage() {
             courts: t.courts || [],
             operatingHours: t.operatingHours || [],
             rates: t.rates || [],
-            priceHikes: Array.isArray(t.priceHikes) 
-              ? t.priceHikes 
-              : (typeof t.priceHikes === 'string' ? JSON.parse(t.priceHikes) : []),
+            slotPricings: t.slotPricings || [],
             availableSlots: t.availableSlots || []
           };
           setVenue(mappedVenue);
@@ -235,25 +233,38 @@ export default function VenueDetailsPage() {
 
       const bookedCourts = checkIsBooked(timeVal);
       
-      // Check for price hikes (peak hours)
-      const hike = venue?.priceHikes?.find((h: any) => {
-        const hStart = parseTimeToMinutes(h.startTime);
-        const hEnd = parseTimeToMinutes(h.endTime);
-        return cur < hEnd && (cur + d) > hStart;
+      // 1. Check for slot-specific dynamic pricing (Highest priority)
+      const customSlot = venue?.slotPricings?.find((s: any) => {
+        const sStart = parseTimeToMinutes(s.startTime);
+        const sEnd = parseTimeToMinutes(s.endTime);
+        // Match exact or overlapping slot
+        return (cur < sEnd && (cur + d) > sStart);
       });
 
-      const extra = (hike && !isNaN(Number(hike.extraPrice))) ? Number(hike.extraPrice) : 0;
-      const slotPrice = (baseHourlyRate * (d / 60)) + extra;
+      let slotPrice = 0;
+      let extra = 0;
+      let isPeak = false;
+
+      const basePriceForDuration = (baseHourlyRate * (d / 60));
+
+      if (customSlot) {
+        extra = Number(customSlot.price || 0);
+        slotPrice = basePriceForDuration + extra;
+        isPeak = customSlot.isPeak;
+      } else {
+        slotPrice = basePriceForDuration;
+        isPeak = false;
+      }
 
       groups[type].push({
         time: label,
         status: bookedCourts.length >= (venue?.courts?.length || 1) ? "disabled" : "available",
         value: timeVal,
         bookedCourts,
-        basePrice: baseHourlyRate * (d / 60),
+        basePrice: basePriceForDuration,
         extraPrice: extra,
         totalPrice: slotPrice,
-        isPeak: extra > 0
+        isPeak: isPeak
       });
       cur += d;
     }
@@ -313,25 +324,26 @@ export default function VenueDetailsPage() {
       const effectiveHourlyRate = Number(dayRate ?? venue?.price ?? 0);
       
       const totalMinutes = selectedTimes.reduce((sum, slot) => sum + Math.max(0, getSlotMinutes(slot)), 0);
-      const basePrice = (effectiveHourlyRate * (totalMinutes / 60)) * selectedCourts.length;
-
-      // Calculate total extra price for peak hours
-      const extraPriceTotal = selectedTimes.reduce((sum, timeVal) => {
-        const [start] = timeVal.split(" - ");
+      
+      // Calculate total price based on slotPricings or baseRate
+      const finalPrice = selectedTimes.reduce((sum, timeVal) => {
+        const [start, end] = timeVal.split(" - ");
         const cur = parseTimeToMinutes(start);
-        const slotDuration = venue?.slotDuration || 60;
-        
-        const hike = venue?.priceHikes?.find((h: any) => {
-          const hStart = parseTimeToMinutes(h.startTime);
-          const hEnd = parseTimeToMinutes(h.endTime);
-          return cur < hEnd && (cur + slotDuration) > hStart;
-        });
-        
-        const extra = (hike && !isNaN(Number(hike.extraPrice))) ? Number(hike.extraPrice) : 0;
-        return sum + extra;
-      }, 0);
+        const endMins = parseTimeToMinutes(end);
+        const slotDuration = endMins - cur;
 
-      const finalPrice = basePrice + (extraPriceTotal * selectedCourts.length);
+        const customSlot = venue?.slotPricings?.find((s: any) => {
+          const sStart = parseTimeToMinutes(s.startTime);
+          const sEnd = parseTimeToMinutes(s.endTime);
+          return cur < sEnd && (cur + slotDuration) > sStart;
+        });
+
+        const basePrice = (effectiveHourlyRate * (slotDuration / 60));
+        const extraPrice = customSlot ? Number(customSlot.price || 0) : 0;
+        const slotPrice = basePrice + extraPrice;
+          
+        return sum + (slotPrice * selectedCourts.length);
+      }, 0);
 
       const res = await api.post("/bookings", {
         turfId: id,
@@ -408,6 +420,10 @@ export default function VenueDetailsPage() {
   };
 
   const embedUrl = venue ? toEmbedUrl(venue.mapUrl) : '';
+
+  const dayNameForDisplay = new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" });
+  const currentDayRate = venue?.rates?.find((r: any) => r.day === dayNameForDisplay)?.price;
+  const displayPrice = Number(currentDayRate ?? venue?.price ?? 0);
 
   return (
     <div className="min-h-screen bg-white pb-20 pt-[100px] font-sans">
@@ -530,7 +546,7 @@ export default function VenueDetailsPage() {
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
               <div className="flex items-baseline justify-between mb-6">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-bold text-gray-900">₹{venue.price}</span>
+                  <span className="text-3xl font-bold text-gray-900">₹{displayPrice}</span>
                   <span className="text-sm text-gray-500 font-medium">/ hour</span>
                 </div>
                 {venue.peakHourSurcharge > 0 && (
@@ -734,13 +750,20 @@ export default function VenueDetailsPage() {
                             }
                           `}
                         >
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
                               <span className="font-bold text-gray-900">{slot.time}</span>
-                              <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-100 font-black whitespace-nowrap">
-                                + ₹ 300 Peak
+                              <span className="text-sm font-black text-[#1abc60]">
+                                ₹{slot.totalPrice}
                               </span>
                             </div>
+                            {slot.isPeak && (
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[9px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-100 font-black uppercase tracking-tighter">
+                                  Peak Hour (+₹{slot.extraPrice})
+                                </span>
+                              </div>
+                            )}
                           </div>
                           {selectedTimes.includes(slot.value || slot.time) && (
                             <div className="bg-[#1abc60] p-1 rounded-full">

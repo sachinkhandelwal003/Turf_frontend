@@ -259,28 +259,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: any) => {
   );
 };
 
-// ============= Constants =============
-const DUMMY_TURFS = [
-  {
-    _id: "dummy-venue-1",
-    name: "Champions Sports Hub",
-    location: {
-      address: "Plot 45, Near Mansarovar Metro Station",
-      city: "Jaipur",
-      landmark: "Mansarovar Plaza",
-      mapUrl: "https://maps.google.com/?q=Mansarovar+Jaipur"
-    },
-    pricePerHour: 1200,
-    sports: ["Football", "Cricket", "Badminton"],
-    amenities: ["Changing Rooms", "Floodlights", "Parking", "Drinking Water", "First Aid"],
-    description: "A premium FIFA-certified synthetic turf suitable for high-intensity football and box cricket. Equipped with professional-grade LED lighting for night matches.",
-    images: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80"],
-    isActive: true,
-    rating: 4.8,
-    reviewsCount: 124,
-    isFeatured: true
-  }
-];
 
 // ============= Main Component =============
 function GroundContent() {
@@ -327,7 +305,7 @@ function GroundContent() {
 
       if (turfRes.data.success) {
         const rawTurfs = turfRes.data.turfs || [];
-        const combinedTurfs = [...rawTurfs, ...DUMMY_TURFS];
+        const combinedTurfs = [...rawTurfs];
         
         const mappedVenues = combinedTurfs
           .filter((t: any) => t.isActive !== false) // Filter inactive if needed

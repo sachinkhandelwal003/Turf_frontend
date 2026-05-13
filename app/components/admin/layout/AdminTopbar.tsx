@@ -1,9 +1,9 @@
 'use client';
 
 import { useAuth } from '@/app/context/AuthContext';
-import { Bell, User, LogOut, Menu, Crown, Search, Settings, Coins } from 'lucide-react';
+import { Bell, User, LogOut, Menu, Crown, Search, Settings, Coins, MapPin, User as UserIcon, ArrowRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import api from '@/app/services/api';
@@ -14,15 +14,33 @@ interface AdminTopbarProps {
 
 export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
   const { user, logout, isSuperadmin } = useAuth();
+  const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [coinValue, setCoinValue] = useState<number | null>(null);
+  const [leadsCount, setLeadsCount] = useState<number>(0);
+  const [recentLeads, setRecentLeads] = useState<any[]>([]);
   const pathname = usePathname();
 
   useEffect(() => {
     if (isSuperadmin) {
       fetchSettings();
+      fetchLeads();
     }
   }, [isSuperadmin]);
+
+  const fetchLeads = async () => {
+    try {
+      const res = await api.get('/venue-leads');
+      if (res.data.success) {
+        const pendingLeads = res.data.leads.filter((lead: any) => lead.status === 'pending');
+        setLeadsCount(pendingLeads.length);
+        setRecentLeads(pendingLeads.slice(0, 5)); // Show top 5 pending leads
+      }
+    } catch (error) {
+      console.error("Failed to fetch leads count:", error);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -75,10 +93,85 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
             )}
 
             {/* Notifications */}
-            <button className="relative p-2 !bg-transparent !border-none !shadow-none !text-slate-400 hover:!text-slate-900 transition-all group mr-2">
-              <Bell className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-[#1abc60] rounded-full border-2 border-white animate-pulse"></span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 !bg-transparent !border-none !shadow-none !text-slate-400 hover:!text-slate-900 transition-all group mr-2"
+              >
+                <Bell className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+                {leadsCount > 0 && (
+                  <span className="absolute top-0 right-0 w-5 h-5 bg-[#1abc60] text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white animate-pulse">
+                    {leadsCount}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showNotifications && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl shadow-slate-200 border border-slate-100 py-3 z-50 overflow-hidden"
+                    >
+                      <div className="px-5 py-3 border-b border-slate-50 flex justify-between items-center">
+                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">Notifications</h3>
+                        <span className="px-2 py-0.5 bg-[#1abc60]/10 text-[#1abc60] text-[10px] font-bold rounded-full">
+                          {leadsCount} New
+                        </span>
+                      </div>
+
+                      <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                        {recentLeads.length > 0 ? (
+                          recentLeads.map((lead) => (
+                            <div 
+                              key={lead._id}
+                              onClick={() => {
+                                router.push('/admin/venue-leads');
+                                setShowNotifications(false);
+                              }}
+                              className="px-5 py-4 hover:bg-slate-50 border-b border-slate-50 cursor-pointer transition-colors group"
+                            >
+                              <div className="flex gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-[#1abc60]/10 flex items-center justify-center text-[#1abc60] shrink-0 group-hover:bg-[#1abc60] group-hover:text-white transition-colors">
+                                  <UserIcon className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-bold text-slate-900 truncate tracking-tight">{lead.groundName}</p>
+                                  <p className="text-[11px] font-medium text-slate-500 truncate mb-1">By {lead.ownerName}</p>
+                                  <div className="flex items-center gap-1 text-[10px] font-bold text-[#1abc60] uppercase tracking-wide">
+                                    <MapPin className="w-3 h-3" /> {lead.location}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-5 py-10 text-center">
+                            <Bell className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+                            <p className="text-sm font-bold text-slate-400">No new enquiries</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-2">
+                        <button
+                          onClick={() => {
+                            router.push('/admin/venue-leads');
+                            setShowNotifications(false);
+                          }}
+                          className="w-full py-2.5 text-center bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all"
+                        >
+                          View All Enquiries <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* User Profile */}
             <div className="relative">

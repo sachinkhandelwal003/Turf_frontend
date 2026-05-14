@@ -7,7 +7,8 @@ import {
   CreditCard, Wallet, Landmark, 
   Smartphone, ChevronRight, Loader2, Info,
   Users as UsersIcon, CheckCircle2, AlertCircle,
-  Calendar, Clock, Settings, Plus, Ticket, Award, Coins
+  Calendar, Clock, Settings, Plus, Ticket, Award, Coins,
+  Minus
 } from 'lucide-react';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
@@ -87,7 +88,6 @@ export default function CheckoutPage() {
       if (localSettings) {
         try {
           const parsed = JSON.parse(localSettings);
-          console.log('✅ GROUND: LOCALSTORAGE LOAD:', parsed);
           if (parsed.razorpay) {
             setRazorpaySettings({
               enabled: !!parsed.razorpay.enabled,
@@ -119,7 +119,6 @@ export default function CheckoutPage() {
   const fetchSettings = async () => {
     try {
       const res = await api.get('/settings');
-      console.log('GROUND: Settings API response:', res.data);
       if (res.data && res.data.settings) {
         const apiSettings = res.data.settings;
         const apiRazorpay = apiSettings.razorpay || {};
@@ -174,7 +173,6 @@ export default function CheckoutPage() {
   const calculateAutoPrice = () => {
     if (!booking) return 0;
     
-    // Use the price from the turf, or fallback to a sensible default (e.g., 1000/hr)
     const basePrice = booking.turf?.pricePerHour || 1000;
     const numCourts = booking.courts?.length || 1;
     
@@ -191,7 +189,7 @@ export default function CheckoutPage() {
   };
 
   const totalAmount = booking?.totalAmount || booking?.price || calculateAutoPrice();
-  const convenienceFee = booking?.convenienceFee || (totalAmount > 0 ? 25 : 0); // Default fee if missing
+  const convenienceFee = booking?.convenienceFee || (totalAmount > 0 ? 25 : 0); 
 
   const discountAmount = useCoins ? appliedCoins * coinValue : 0;
   const payableToday = strategy === 'partial' 
@@ -203,20 +201,8 @@ export default function CheckoutPage() {
     : 0;
 
   const handlePayment = async () => {
-    console.log('=== GROUND CHECKOUT PAYMENT START ===');
-    console.log('1. Razorpay settings:', razorpaySettings);
-    console.log('2. Key ID:', razorpaySettings.keyId);
-    console.log('3. Enabled:', razorpaySettings.enabled);
-    console.log('4. Razorpay loaded:', razorpayLoaded);
-    console.log('5. Window.Razorpay:', !!window.Razorpay);
-    console.log('6. Split enabled:', splitWithSquad);
-    console.log('7. Players:', numPlayers);
-    console.log('8. Amount:', payableToday);
-
     if (razorpaySettings.enabled && razorpaySettings.keyId && razorpayLoaded && window.Razorpay) {
-      console.log('✅ Opening Razorpay Checkout NOW!');
       setProcessing(true);
-      
       try {
         const options = {
           key: razorpaySettings.keyId,
@@ -229,11 +215,8 @@ export default function CheckoutPage() {
             email: user?.email || '',
             contact: user?.phone || ''
           },
-          theme: {
-            color: '#1abc60'
-          },
+          theme: { color: '#1abc60' },
           handler: async (response: any) => {
-            console.log('✅ Razorpay Success Response:', response);
             try {
               const res = await api.post(`/bookings/${id}/pay`, {
                 paymentMethod,
@@ -245,13 +228,10 @@ export default function CheckoutPage() {
                 numPlayers: splitWithSquad ? numPlayers : undefined
               });
 
-              console.log('Booking API Response:', res.data);
-
               if (res.data.success) {
-                toast.success('✅ Payment Successful!');
+                toast.success('Payment Successful!');
                 await refreshUser();
                 
-                // Ground booking coin logic: 1st=100, 2nd=50
                 try {
                   const bookingsRes = await api.get('/bookings/my');
                   if (bookingsRes.data.success) {
@@ -265,7 +245,7 @@ export default function CheckoutPage() {
                     }
                   }
                 } catch (e) {
-                  console.error('Error fetching bookings for reward logic');
+                  console.error('Reward error');
                 }
 
                 if (!showCoinPopup) {
@@ -276,7 +256,6 @@ export default function CheckoutPage() {
                 setProcessing(false);
               }
             } catch (error: any) {
-              console.error('API Error:', error);
               toast.error('Payment successful! Booking pending verification.');
               await refreshUser();
               router.push(`/payment-success/${id}`);
@@ -284,23 +263,19 @@ export default function CheckoutPage() {
           }
         };
 
-        console.log('Razorpay Options:', options);
         const razorpay = new window.Razorpay(options);
         razorpay.open();
         
         razorpay.on('payment.failed', (response: any) => {
-          console.error('❌ Payment failed:', response);
           toast.error('Payment failed. Please try again.');
           setProcessing(false);
         });
         
       } catch (error) {
-        console.error('❌ Razorpay init error:', error);
         toast.error('Razorpay failed. Trying backup payment...');
         await handleFallbackPayment();
       }
     } else {
-      console.log('⚠️ Using fallback payment method');
       await handleFallbackPayment();
     }
   };
@@ -308,7 +283,6 @@ export default function CheckoutPage() {
   const handleFallbackPayment = async () => {
     setProcessing(true);
     try {
-      console.log('Fallback payment processing...');
       const res = await api.post(`/bookings/${id}/pay`, {
         paymentMethod,
         paymentId: `PAY-${Date.now()}`,
@@ -321,7 +295,6 @@ export default function CheckoutPage() {
         toast.success('Payment Successful!');
         await refreshUser();
         
-        // Ground booking coin logic: 1st=100, 2nd=50
         try {
           const bookingsRes = await api.get('/bookings/my');
           if (bookingsRes.data.success) {
@@ -335,7 +308,7 @@ export default function CheckoutPage() {
             }
           }
         } catch (e) {
-          console.error('Error fetching bookings for reward logic');
+          console.error('Reward logic error');
         }
 
         if (!showCoinPopup) {
@@ -345,7 +318,6 @@ export default function CheckoutPage() {
         toast.error(res.data.msg || 'Payment failed');
       }
     } catch (error: any) {
-      console.error('Fallback error:', error);
       toast.error(error.response?.data?.error || 'Payment failed. Please try again.');
     } finally {
       setProcessing(false);
@@ -354,8 +326,8 @@ export default function CheckoutPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
+      <div className="!min-h-screen !flex !items-center !justify-center !bg-[#f8fafc]">
+        <Loader2 className="!w-10 !h-10 !animate-spin !text-[#1abc60]" />
       </div>
     );
   }
@@ -363,101 +335,98 @@ export default function CheckoutPage() {
   if (!booking) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-20 font-sans text-gray-900 overflow-x-hidden">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="!min-h-screen !bg-[#f8fafc] !pt-28 !pb-20 !font-sans !text-gray-900 !overflow-x-hidden">
+      <div className="!max-w-6xl !mx-auto !px-4 sm:!px-6 lg:!px-8">
         
         {/* --- HEADER --- */}
-        <div className="mb-8 md:mb-10">
-          <div className="flex items-center gap-3 mb-4">
-            <button 
-              onClick={() => router.push('/bookings')}
-              className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900"
-            >
-              <ChevronRight className="w-4 h-4 rotate-180" />
-              Back to Bookings
-            </button>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-2">
+        <div className="!mb-8 md:!mb-10">
+          <button 
+            onClick={() => router.push('/bookings')}
+            className="!flex !items-center !gap-1.5 !text-sm !font-bold !text-gray-500 hover:!text-gray-900 !mb-4 !transition-colors !bg-transparent !border-none !cursor-pointer !p-0"
+          >
+            <ChevronRight className="!w-4 !h-4 !rotate-180" />
+            Back to Bookings
+          </button>
+          <h1 className="!text-3xl md:!text-4xl !font-bold !tracking-tight !text-gray-900 !mb-2 !m-0">
             Secure Checkout
           </h1>
-          <p className="text-gray-500 text-sm md:text-base font-medium">Complete your booking for <span className="font-semibold text-gray-700">{booking.turf.name}</span></p>
+          <p className="!text-gray-500 !text-sm md:!text-base !font-medium !m-0">Complete your booking for <span className="!font-bold !text-gray-800">{booking.turf.name}</span></p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+        <div className="!flex !flex-col lg:!flex-row !gap-8 !items-start">
           
           {/* --- LEFT CONTENT: FORM SECTIONS --- */}
-          <div className="flex-1 space-y-8 w-full">
+          <div className="!flex-1 !space-y-6 !w-full">
             
             {/* 1. PAYMENT STRATEGY */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800 border-b border-gray-100 pb-3">Payment Plan</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="!bg-white !p-6 md:!p-8 !rounded-[24px] !border !border-gray-200 !shadow-sm !space-y-6">
+              <h2 className="!text-sm !font-bold !uppercase !tracking-wider !text-gray-500 !m-0">Payment Plan</h2>
+              <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                
+                {/* Partial Pay Option */}
                 <div 
                   onClick={() => setStrategy('partial')}
-                  className={`rounded-xl border-2 p-6 cursor-pointer transition-all relative overflow-hidden ${
-                    strategy === 'partial' ? 'border-[#1abc60] bg-green-50/30' : 'border-gray-200 bg-white hover:border-gray-300'
+                  className={`!rounded-[16px] !border-2 !p-6 !cursor-pointer !transition-all !relative !overflow-hidden ${
+                    strategy === 'partial' ? '!border-[#1abc60] !bg-[#1abc60]/5' : '!border-gray-200 !bg-white hover:!border-gray-300'
                   }`}
                 >
                   {strategy === 'partial' && (
-                    <div className="absolute -top-3 right-4 px-3 py-1 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm">
+                    <div className="!absolute !top-0 !right-0 !bg-[#1abc60] !text-white !text-[10px] !font-bold !uppercase !tracking-wider !px-3 !py-1 !rounded-bl-[12px]">
                       Recommended
                     </div>
                   )}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
-                      <Wallet className="w-5 h-5" />
+                  <div className="!flex !justify-between !items-start !mb-4">
+                    <div className="!w-10 !h-10 !rounded-full !bg-white !border !border-gray-200 !flex !items-center !justify-center !text-gray-600 !shadow-sm">
+                      <Wallet className="!w-5 !h-5" />
                     </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${strategy === 'partial' ? 'border-[#1abc60]' : 'border-gray-300'}`}>
-                      {strategy === 'partial' && <div className="w-2.5 h-2.5 rounded-full bg-[#1abc60]" />}
+                    <div className={`!w-5 !h-5 !rounded-full !border-2 !flex !items-center !justify-center ${strategy === 'partial' ? '!border-[#1abc60]' : '!border-gray-300'}`}>
+                      {strategy === 'partial' && <div className="!w-2.5 !h-2.5 !rounded-full !bg-[#1abc60]" />}
                     </div>
                   </div>
-                  <h3 className="text-base font-bold text-gray-900 mb-1">Pay 25% Now</h3>
-                  <p className="text-2xl font-bold text-gray-900 mb-2">₹{Math.round(totalAmount * 0.25).toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 font-medium">Balance ₹{Math.round(totalAmount * 0.75).toLocaleString()} due at ground.</p>
+                  <h3 className="!text-base !font-bold !text-gray-900 !mb-1 !m-0">Pay 25% Advance</h3>
+                  <p className="!text-2xl !font-bold !text-gray-900 !mb-2 !m-0">₹{Math.round(totalAmount * 0.25).toLocaleString()}</p>
+                  <p className="!text-xs !text-gray-500 !font-medium !m-0">Balance <span className="!font-bold text-gray-700">₹{Math.round(totalAmount * 0.75).toLocaleString()}</span> due at ground.</p>
                 </div>
 
+                {/* Full Pay Option */}
                 <div 
                   onClick={() => setStrategy('full')}
-                  className={`rounded-xl border-2 p-6 cursor-pointer transition-all ${
-                    strategy === 'full' ? 'border-[#1abc60] bg-green-50/30' : 'border-gray-200 bg-white hover:border-gray-300'
+                  className={`!rounded-[16px] !border-2 !p-6 !cursor-pointer !transition-all ${
+                    strategy === 'full' ? '!border-[#1abc60] !bg-[#1abc60]/5' : '!border-gray-200 !bg-white hover:!border-gray-300'
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
-                      <CheckCircle2 className="w-5 h-5" />
+                  <div className="!flex !justify-between !items-start !mb-4">
+                    <div className="!w-10 !h-10 !rounded-full !bg-white !border !border-gray-200 !flex !items-center !justify-center !text-gray-600 !shadow-sm">
+                      <CheckCircle2 className="!w-5 !h-5" />
                     </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${strategy === 'full' ? 'border-[#1abc60]' : 'border-gray-300'}`}>
-                      {strategy === 'full' && <div className="w-2.5 h-2.5 rounded-full bg-[#1abc60]" />}
+                    <div className={`!w-5 !h-5 !rounded-full !border-2 !flex !items-center !justify-center ${strategy === 'full' ? '!border-[#1abc60]' : '!border-gray-300'}`}>
+                      {strategy === 'full' && <div className="!w-2.5 !h-2.5 !rounded-full !bg-[#1abc60]" />}
                     </div>
                   </div>
-                  <h3 className="text-base font-bold text-gray-900 mb-1">Pay Full Amount</h3>
-                  <p className="text-2xl font-bold text-gray-900 mb-2">₹{(totalAmount + convenienceFee).toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 font-medium">Complete payment online. No dues at venue.</p>
+                  <h3 className="!text-base !font-bold !text-gray-900 !mb-1 !m-0">Pay Full Amount</h3>
+                  <p className="!text-2xl !font-bold !text-gray-900 !mb-2 !m-0">₹{(totalAmount + convenienceFee).toLocaleString()}</p>
+                  <p className="!text-xs !text-gray-500 !font-medium !m-0">Complete payment online. No dues at venue.</p>
                 </div>
+
               </div>
             </div>
 
             {/* COIN COUPON SECTION */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-yellow-50 flex items-center justify-center text-yellow-600">
-                    <Award className="w-5 h-5" />
-                  </div>
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800">Coin Coupon</h2>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1 bg-yellow-50 rounded-full border border-yellow-100">
-                  <Coins className="w-3.5 h-3.5 text-yellow-600" />
-                  <span className="text-xs font-bold text-yellow-700">{user?.coins || 0} Available</span>
+            <div className="!bg-white !p-6 md:!p-8 !rounded-[24px] !border !border-gray-200 !shadow-sm !space-y-5">
+              <div className="!flex !items-center !justify-between">
+                <h2 className="!text-sm !font-bold !uppercase !tracking-wider !text-gray-500 !m-0">Apply Rewards</h2>
+                <div className="!flex !items-center !gap-1.5 !px-3 !py-1 !bg-amber-50 !rounded-full !border !border-amber-200">
+                  <Coins className="!w-3.5 !h-3.5 !text-amber-600" />
+                  <span className="!text-xs !font-bold !text-amber-700">{user?.coins || 0} Available</span>
                 </div>
               </div>
 
               {user?.coins && user.coins > 0 ? (
-                <div className={`p-4 rounded-xl border-2 transition-all ${useCoins ? 'border-yellow-400 bg-yellow-50/30' : 'border-gray-100 bg-gray-50/30'}`}>
-                  <div className="flex items-center justify-between mb-4">
+                <div className={`!p-5 !rounded-xl !border-2 !transition-all ${useCoins ? '!border-amber-400 !bg-amber-50/50' : '!border-gray-200 !bg-gray-50/50'}`}>
+                  <div className="!flex !items-center !justify-between !gap-4">
                     <div>
-                      <h3 className="text-sm font-bold text-gray-900">Redeem Your Coins</h3>
-                      <p className="text-xs text-gray-500 mt-0.5">Use your earned coins for an instant discount.</p>
+                      <h3 className="!text-sm !font-bold !text-gray-900 !m-0">Redeem GameOn Coins</h3>
+                      <p className="!text-xs !text-gray-500 !font-medium !mt-1 !m-0">Use your earned coins for an instant discount.</p>
                     </div>
                     <button
                       onClick={() => {
@@ -469,97 +438,97 @@ export default function CheckoutPage() {
                         }
                         setUseCoins(!useCoins);
                       }}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border-none cursor-pointer ${
+                      className={`!px-5 !py-2 !rounded-lg !text-xs !font-bold !transition-all !border-none !cursor-pointer !shrink-0 ${
                         useCoins 
-                          ? 'bg-yellow-500 text-white shadow-sm' 
-                          : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                          ? '!bg-amber-500 !text-white !shadow-md' 
+                          : '!bg-white !text-gray-700 !border !border-gray-300 hover:!bg-gray-50'
                       }`}
                     >
                       {useCoins ? 'Applied' : 'Apply Now'}
                     </button>
                   </div>
                   
-                  {useCoins && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="flex flex-col gap-2 pt-3 border-t border-yellow-200/50"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-yellow-800">Coins Redeemed:</span>
-                        <span className="text-sm font-bold text-yellow-700">{appliedCoins} Coins</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-yellow-800">Discount Applied:</span>
-                        <span className="text-sm font-black text-yellow-700">- ₹{discountAmount.toFixed(2)}</span>
-                      </div>
-                    </motion.div>
-                  )}
+                  <AnimatePresence>
+                    {useCoins && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="!flex !flex-col !gap-2 !pt-4 !mt-4 !border-t !border-amber-200/60"
+                      >
+                        <div className="!flex !items-center !justify-between">
+                          <span className="!text-xs !font-bold !text-amber-800">Coins Redeemed:</span>
+                          <span className="!text-sm !font-bold !text-amber-700">{appliedCoins} Coins</span>
+                        </div>
+                        <div className="!flex !items-center !justify-between">
+                          <span className="!text-xs !font-bold !text-amber-800">Discount Applied:</span>
+                          <span className="!text-sm !font-bold !text-amber-600">- ₹{discountAmount.toFixed(2)}</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 flex items-center gap-3">
-                  <Ticket className="w-5 h-5 text-gray-400" />
-                  <p className="text-xs font-medium text-gray-500">You don't have any coins to redeem yet. Book more to earn!</p>
+                <div className="!p-4 !rounded-xl !bg-gray-50 !border !border-gray-200 !flex !items-center !gap-3">
+                  <Ticket className="!w-5 !h-5 !text-gray-400" />
+                  <p className="!text-xs !font-medium !text-gray-500 !m-0">You don't have any coins to redeem yet. Book more to earn!</p>
                 </div>
               )}
             </div>
 
             {/* 2. SPLIT WITH SQUAD */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-green-50 flex items-center justify-center text-[#1abc60]">
-                    <UsersIcon className="w-4 h-4" />
+            <div className="!bg-white !p-6 md:!p-8 !rounded-[24px] !border !border-gray-200 !shadow-sm !space-y-6">
+              <div className="!flex !items-center !justify-between">
+                <div className="!flex !items-center !gap-3">
+                  <div className="!w-10 !h-10 !rounded-xl !bg-emerald-50 !flex !items-center !justify-center !text-[#1abc60]">
+                    <UsersIcon className="!w-5 !h-5" />
                   </div>
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800">Split with Squad</h2>
+                  <h2 className="!text-sm !font-bold !uppercase !tracking-wider !text-gray-900 !m-0">Split with Squad</h2>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-semibold uppercase tracking-wider ${splitWithSquad ? 'text-[#1abc60]' : 'text-gray-400'}`}>
+                
+                {/* Modern Toggle Switch */}
+                <div className="!flex !items-center !gap-3">
+                  <span className={`!text-xs !font-bold !uppercase !tracking-wider ${splitWithSquad ? '!text-[#1abc60]' : '!text-gray-400'}`}>
                     {splitWithSquad ? 'Enabled' : 'Disabled'}
                   </span>
                   <button 
                     onClick={() => setSplitWithSquad(!splitWithSquad)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1abc60] focus:ring-offset-2 ${splitWithSquad ? 'bg-[#1abc60]' : 'bg-gray-300'}`}
+                    className={`!relative !inline-flex !h-6 !w-11 !items-center !rounded-full !transition-colors focus:!outline-none !cursor-pointer !border-none ${splitWithSquad ? '!bg-[#1abc60]' : '!bg-gray-300'}`}
                   >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${splitWithSquad ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <span className={`!inline-block !h-4 !w-4 !transform !rounded-full !bg-white !transition-transform ${splitWithSquad ? '!translate-x-6' : '!translate-x-1'}`} />
                   </button>
                 </div>
               </div>
 
               {splitWithSquad && (
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="!space-y-5 !pt-2">
+                  <div className="!flex !items-center !justify-between !p-5 !bg-gray-50 !rounded-xl !border !border-gray-100">
                     <div>
-                      <h3 className="text-sm font-bold text-gray-900">Total per Player</h3>
-                      <p className="text-xs text-gray-500">Based on {numPlayers} players</p>
+                      <h3 className="!text-sm !font-bold !text-gray-900 !m-0">Total per Player</h3>
+                      <p className="!text-xs !font-medium !text-gray-500 !mt-1 !m-0">Based on {numPlayers} players sharing the cost</p>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="!text-2xl !font-bold !text-[#1abc60]">
                       ₹{Math.round(payableToday / numPlayers).toLocaleString()}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-gray-700">Number of Players</label>
-                    <div className="flex items-center gap-3">
+                  <div className="!flex !items-center !justify-between">
+                    <label className="!text-sm !font-bold !text-gray-700">Number of Players</label>
+                    <div className="!flex !items-center !gap-3 !bg-white !border !border-gray-200 !p-1.5 !rounded-xl">
                       <button 
                         onClick={() => setNumPlayers(Math.max(2, numPlayers - 1))}
-                        className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                        className="!w-8 !h-8 !rounded-lg !bg-gray-50 hover:!bg-gray-100 !flex !items-center !justify-center !text-gray-600 !transition-colors !border-none !cursor-pointer"
                       >
-                        <span className="text-xl">-</span>
+                        <Minus className="!w-4 !h-4" />
                       </button>
-                      <input 
-                        type="number" 
-                        min={2} 
-                        max={12}
-                        value={numPlayers}
-                        onChange={(e) => setNumPlayers(Math.max(2, Math.min(12, parseInt(e.target.value) || 4)))}
-                        className="w-20 text-center text-lg font-bold text-gray-900 border-none outline-none"
-                      />
+                      <span className="!w-6 !text-center !text-base !font-bold !text-gray-900">
+                        {numPlayers}
+                      </span>
                       <button 
                         onClick={() => setNumPlayers(Math.min(12, numPlayers + 1))}
-                        className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                        className="!w-8 !h-8 !rounded-lg !bg-gray-50 hover:!bg-gray-100 !flex !items-center !justify-center !text-gray-600 !transition-colors !border-none !cursor-pointer"
                       >
-                        <Plus className="w-5 h-5" />
+                        <Plus className="!w-4 !h-4" />
                       </button>
                     </div>
                   </div>
@@ -568,37 +537,37 @@ export default function CheckoutPage() {
             </div>
 
             {/* 3. PAYMENT METHOD */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-5">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800 border-b border-gray-100 pb-3">Payment Method</h2>
-              <div className="space-y-3">
+            <div className="!bg-white !p-6 md:!p-8 !rounded-[24px] !border !border-gray-200 !shadow-sm !space-y-6">
+              <h2 className="!text-sm !font-bold !uppercase !tracking-wider !text-gray-500 !m-0">Select Payment Method</h2>
+              <div className="!space-y-3">
                 {[
                   { id: 'upi', name: 'UPI Payment', icon: Smartphone, desc: 'Google Pay, PhonePe, Paytm' },
-                  { id: 'card', name: 'Credit/Debit Card', icon: CreditCard, desc: 'Visa, Mastercard, RuPay' },
+                  { id: 'card', name: 'Credit / Debit Card', icon: CreditCard, desc: 'Visa, Mastercard, RuPay' },
                   { id: 'netbanking', name: 'Net Banking', icon: Landmark, desc: 'All major Indian banks' },
                   { id: 'wallet', name: 'Digital Wallets', icon: Wallet, desc: 'Amazon Pay, Mobikwik' }
                 ].map((method) => (
                   <div 
                     key={method.id}
-                    className={`rounded-lg border transition-all overflow-hidden bg-white ${
-                      paymentMethod === method.id ? 'border-[#1abc60] ring-1 ring-[#1abc60]' : 'border-gray-200 hover:border-gray-300'
+                    className={`!rounded-xl !border !transition-all !overflow-hidden !bg-white ${
+                      paymentMethod === method.id ? '!border-[#1abc60] !ring-1 !ring-[#1abc60]' : '!border-gray-200 hover:!border-gray-300'
                     }`}
                   >
                     <button
                       onClick={() => setPaymentMethod(method.id)}
                       className="!w-full !flex !items-center !gap-4 !p-4 !bg-transparent !border-none !cursor-pointer"
                     >
-                      <div className="w-10 h-10 rounded-md bg-gray-50 flex items-center justify-center border border-gray-100 shrink-0">
-                        <method.icon className="w-5 h-5 text-gray-600" />
+                      <div className="!w-10 !h-10 !rounded-lg !bg-gray-50 !flex !items-center !justify-center !border !border-gray-200 !shrink-0">
+                        <method.icon className="!w-5 !h-5 !text-gray-600" />
                       </div>
-                      <div className="flex-1 text-left">
-                        <h4 className="text-sm font-bold text-gray-900">{method.name}</h4>
-                        {method.desc && <p className="text-xs text-gray-500 font-medium mt-0.5">{method.desc}</p>}
+                      <div className="!flex-1 !text-left">
+                        <h4 className="!text-sm !font-bold !text-gray-900 !m-0">{method.name}</h4>
+                        {method.desc && <p className="!text-xs !font-medium !text-gray-500 !mt-0.5 !m-0">{method.desc}</p>}
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
-                        paymentMethod === method.id ? 'border-[#1abc60]' : 'border-gray-300'
+                      <div className={`!w-5 !h-5 !rounded-full !border-2 !flex !items-center !justify-center !transition-all !shrink-0 ${
+                        paymentMethod === method.id ? '!border-[#1abc60]' : '!border-gray-300'
                       }`}>
                         {paymentMethod === method.id && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#1abc60]" />
+                          <div className="!w-2.5 !h-2.5 !rounded-full !bg-[#1abc60]" />
                         )}
                       </div>
                     </button>
@@ -609,23 +578,23 @@ export default function CheckoutPage() {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          className="px-4 pb-4 space-y-3 overflow-hidden bg-gray-50/50 pt-2 border-t border-gray-100"
+                          className="!px-4 !pb-4 !space-y-3 !overflow-hidden !bg-gray-50/50 !pt-2 !border-t !border-gray-100"
                         >
                           <input 
                             type="text" 
                             placeholder="Card Number" 
-                            className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm" 
+                            className="!w-full !px-4 !py-3 !bg-white !border !border-gray-300 !rounded-xl !text-sm !font-medium !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm !transition-all" 
                           />
-                          <div className="flex gap-3">
+                          <div className="!flex !gap-3">
                             <input 
                               type="text" 
                               placeholder="MM/YY" 
-                              className="!flex-1 !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm" 
+                              className="!flex-1 !px-4 !py-3 !bg-white !border !border-gray-300 !rounded-xl !text-sm !font-medium !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm !transition-all" 
                             />
                             <input 
                               type="text" 
                               placeholder="CVV" 
-                              className="!flex-1 !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm" 
+                              className="!flex-1 !px-4 !py-3 !bg-white !border !border-gray-300 !rounded-xl !text-sm !font-medium !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !shadow-sm !transition-all" 
                             />
                           </div>
                         </motion.div>
@@ -639,59 +608,60 @@ export default function CheckoutPage() {
           </div>
 
           {/* --- RIGHT SIDEBAR SUMMARY --- */}
-          <div className="w-full lg:w-[380px] shrink-0 lg:sticky lg:top-24 space-y-6">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+          <div className="!w-full lg:!w-[400px] !shrink-0 lg:!sticky lg:!top-24 !space-y-6">
+            
+            {/* Invoice / Summary Card */}
+            <div className="!bg-white !rounded-[24px] !border !border-gray-200 !shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] !overflow-hidden !flex !flex-col">
               
-              <div className="p-6 space-y-6">
-                
-                <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">Booking Summary</h3>
+              <div className="!p-6 md:!p-8 !space-y-6">
+                <h3 className="!text-lg !font-bold !text-gray-900 !border-b !border-gray-100 !pb-4 !m-0">Order Summary</h3>
                 
                 {/* Info Items */}
-                <div className="space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-md bg-gray-50 flex items-center justify-center text-gray-500 shrink-0 border border-gray-100">
-                      <Settings className="w-4 h-4" />
+                <div className="!space-y-5">
+                  <div className="!flex !items-start !gap-4">
+                    <div className="!w-10 !h-10 !rounded-xl !bg-gray-50 !flex !items-center !justify-center !text-gray-500 !shrink-0 !border !border-gray-200">
+                      <Settings className="!w-4 !h-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Sport & Court</p>
-                      <h4 className="text-sm font-bold text-gray-900">
-                        {booking.sport} ({booking.courts.join(', ')})
+                      <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-widest !mb-1 !m-0">Sport & Court</p>
+                      <h4 className="!text-sm !font-bold !text-gray-900 !m-0">
+                        {booking.sport} <span className="!text-gray-500 !font-medium">({booking.courts.join(', ')})</span>
                       </h4>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-md bg-gray-50 flex items-center justify-center text-gray-500 shrink-0 border border-gray-100">
-                      <Calendar className="w-4 h-4" />
+                  <div className="!flex !items-start !gap-4">
+                    <div className="!w-10 !h-10 !rounded-xl !bg-gray-50 !flex !items-center !justify-center !text-gray-500 !shrink-0 !border !border-gray-200">
+                      <Calendar className="!w-4 !h-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Date</p>
-                      <h4 className="text-sm font-bold text-gray-900">{booking.date}</h4>
+                      <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-widest !mb-1 !m-0">Date</p>
+                      <h4 className="!text-sm !font-bold !text-gray-900 !m-0">{booking.date}</h4>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-md bg-gray-50 flex items-center justify-center text-gray-500 shrink-0 border border-gray-100">
-                      <Clock className="w-4 h-4" />
+                  <div className="!flex !items-start !gap-4">
+                    <div className="!w-10 !h-10 !rounded-xl !bg-gray-50 !flex !items-center !justify-center !text-gray-500 !shrink-0 !border !border-gray-200">
+                      <Clock className="!w-4 !h-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
+                      <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-widest !mb-1 !m-0">
                         Time Slot{booking.isMultiple ? 's' : ''}
                       </p>
-                      <div className="space-y-0.5">
+                      <div className="!space-y-1">
                         {booking.isMultiple && booking.slots ? (
                           booking.slots.map((slot, i) => (
-                            <h4 key={i} className="text-sm font-bold text-gray-900 uppercase">
+                            <h4 key={i} className="!text-sm !font-bold !text-gray-900 !m-0">
                               {slot}
                             </h4>
                           ))
                         ) : (
-                          <h4 className="text-sm font-bold text-gray-900 uppercase">
-                            {booking.startTime} - {booking.endTime} <span className="text-gray-500 font-medium normal-case">({calculateDuration(booking.startTime, booking.endTime)})</span>
+                          <h4 className="!text-sm !font-bold !text-gray-900 !m-0">
+                            {booking.startTime} - {booking.endTime} <span className="!text-gray-500 !font-medium">({calculateDuration(booking.startTime, booking.endTime)})</span>
                           </h4>
                         )}
                         {booking.isMultiple && (
-                          <p className="text-xs font-semibold text-[#1abc60] mt-1">
+                          <p className="!text-[11px] !font-bold !text-[#1abc60] !mt-1.5 !m-0">
                             Total Duration: {calculateDuration(booking.startTime, booking.endTime)}
                           </p>
                         )}
@@ -701,54 +671,58 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* Bill Details */}
-                <div className="space-y-3 pt-5 border-t border-gray-100">
-                  <div className="flex justify-between text-sm font-medium text-gray-600">
+                <div className="!space-y-3.5 !pt-6 !border-t !border-gray-100">
+                  <div className="!flex !justify-between !text-sm !font-medium !text-gray-500">
                     <span>
                       Venue Charges 
-                      {booking.isMultiple && ` (${booking.bookingCount} slots × ${booking.courts.length} courts)`}
-                      {!booking.isMultiple && booking.courts.length > 1 && ` (${booking.courts.length} courts)`}
+                      {booking.isMultiple && <span className="!text-xs"> ({booking.bookingCount} slots × {booking.courts.length} courts)</span>}
+                      {!booking.isMultiple && booking.courts.length > 1 && <span className="!text-xs"> ({booking.courts.length} courts)</span>}
                     </span>
-                    <span className="text-gray-900">₹{booking.price.toFixed(2)}</span>
+                    <span className="!text-gray-900 !font-bold">₹{booking.price.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm font-medium text-gray-600">
+                  
+                  <div className="!flex !justify-between !text-sm !font-medium !text-gray-500">
                     <span>Convenience Fee</span>
-                    <span className="text-gray-900">₹{booking.convenienceFee.toFixed(2)}</span>
+                    <span className="!text-gray-900 !font-bold">₹{booking.convenienceFee.toFixed(2)}</span>
                   </div>
+                  
                   {useCoins && (
-                    <div className="flex justify-between text-sm font-bold text-yellow-700">
-                      <span className="flex items-center gap-1.5">
-                        <Award className="w-3.5 h-3.5" />
-                        Coin Discount ({appliedCoins} coins)
+                    <div className="!flex !justify-between !text-sm !font-bold !text-amber-600">
+                      <span className="!flex !items-center !gap-1.5">
+                        <Award className="!w-4 !h-4" /> Coin Discount
                       </span>
                       <span>- ₹{discountAmount.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between items-center pt-4 pb-2 border-b border-dashed border-gray-200">
-                    <span className="text-sm font-bold text-gray-800">Payable Today</span>
-                    <span className="text-xl font-bold text-gray-900">₹{payableToday.toFixed(2)}</span>
+                  
+                  <div className="!flex !justify-between !items-center !pt-5 !pb-2 !border-b !border-dashed !border-gray-300">
+                    <span className="!text-sm !font-bold !text-gray-900">Payable Today</span>
+                    <span className="!text-2xl !font-bold !text-gray-900">₹{payableToday.toFixed(0)}</span>
                   </div>
                 </div>
 
                 {/* Balance Due Section */}
-                <div className="flex justify-between items-center bg-green-50 p-4 rounded-lg border border-green-100">
-                  <span className="text-sm font-bold text-[#1abc60] uppercase tracking-wide">Balance Due</span>
-                  <span className="text-xl font-bold text-[#1abc60]">₹{balanceDue.toFixed(0)}</span>
-                </div>
+                {strategy === 'partial' && (
+                  <div className="!flex !justify-between !items-center !bg-emerald-50 !p-4 !rounded-xl !border !border-emerald-100">
+                    <span className="!text-xs !font-bold !text-[#1abc60] !uppercase !tracking-wider">Balance Due at Venue</span>
+                    <span className="!text-lg !font-bold !text-[#1abc60]">₹{balanceDue.toFixed(0)}</span>
+                  </div>
+                )}
               </div>
 
               {/* Action Button */}
-              <div className="p-4 bg-gray-50 border-t border-gray-200">
+              <div className="!p-6 !bg-gray-50 !border-t !border-gray-200">
                 <button
                   onClick={handlePayment}
                   disabled={processing}
-                  className="!w-full !py-3.5 !bg-[#1abc60] hover:!bg-[#17a554] !text-white !font-bold !text-sm !uppercase !tracking-wide !rounded-lg !transition-colors !flex !items-center !justify-center !gap-2 disabled:!opacity-70 !shadow-sm !border-none !cursor-pointer"
+                  className="!w-full !py-4 !bg-[#1abc60] hover:!bg-[#17a554] !text-white !font-bold !text-sm !uppercase !tracking-widest !rounded-xl !transition-all !flex !items-center !justify-center !gap-2 disabled:!opacity-70 !shadow-lg !shadow-green-100 !border-none !cursor-pointer"
                 >
                   {processing ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="!w-5 !h-5 !animate-spin" />
                   ) : (
                     <>
                       Confirm & Pay ₹{payableToday.toFixed(0)}
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="!w-4 !h-4" />
                     </>
                   )}
                 </button>
@@ -756,12 +730,12 @@ export default function CheckoutPage() {
             </div>
 
             {/* Warning Box */}
-            <div className="bg-red-50 rounded-xl p-4 flex gap-3 border border-red-100">
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-red-500 shrink-0 shadow-sm border border-red-100">
-                <AlertCircle className="w-4 h-4" />
+            <div className="!bg-red-50 !rounded-2xl !p-5 !flex !gap-4 !border !border-red-100">
+              <div className="!w-10 !h-10 !rounded-full !bg-white !flex !items-center !justify-center !text-red-500 !shrink-0 !shadow-sm !border !border-red-100">
+                <AlertCircle className="!w-5 !h-5" />
               </div>
-              <p className="text-xs text-red-800 font-medium leading-relaxed pt-0.5">
-                Booking will be cancelled if remaining amount is not paid before match time. Please ensure the squad arrives 15 minutes early.
+              <p className="!text-xs !text-red-800 !font-medium !leading-relaxed !pt-1 !m-0">
+                Booking will be cancelled if the remaining amount is not paid before match time. Please ensure your squad arrives <span className="!font-bold">15 minutes early</span>.
               </p>
             </div>
           </div>

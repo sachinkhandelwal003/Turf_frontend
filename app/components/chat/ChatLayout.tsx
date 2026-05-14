@@ -5,7 +5,7 @@ import ConversationList from "./ConversationList";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import { useState, useEffect } from "react";
-import { Plus, Menu, ChevronLeft, MessageSquare, Search } from "lucide-react";
+import { Plus, Menu, ChevronLeft, MessageSquare, Search, X } from "lucide-react";
 import { getAllAdmins } from "@/app/services/chat.service";
 import { User } from "@/app/types/chat.types";
 import { useAuth } from "@/app/context/AuthContext";
@@ -80,42 +80,50 @@ export default function ChatLayout({ userId }: { userId: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1abc60]"></div>
+      <div className="!flex !items-center !justify-center !h-full !w-full !bg-white !rounded-[24px] !border !border-gray-200">
+        <div className="!animate-spin !rounded-full !h-12 !w-12 !border-b-2 !border-[#1abc60]"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full bg-white overflow-hidden relative rounded-xl border border-gray-100 shadow-sm flex-col md:flex-row">
-      <div className={`${showSidebar ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-80 border-r border-gray-100 bg-white shrink-0 h-full`}>
-        <div className="h-[73px] px-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
-          <h2 className="font-bold text-lg text-gray-800">Messages</h2>
+    <div className="!flex !h-full !w-full !bg-white !overflow-hidden !relative !rounded-[24px] !border !border-gray-200 !shadow-sm !flex-col md:!flex-row !font-sans">
+      
+      {/* ========================================== */}
+      {/* LEFT SIDEBAR - Contacts List               */}
+      {/* ========================================== */}
+      <div className={`${showSidebar ? '!flex' : '!hidden'} md:!flex !flex-col !w-full md:!w-[340px] lg:!w-[380px] !border-r !border-gray-100 !bg-white !shrink-0 !h-full`}>
+        
+        {/* Sidebar Header */}
+        <div className="!h-[76px] !px-5 !border-b !border-gray-100 !flex !items-center !justify-between !bg-white !shrink-0">
+          <h2 className="!font-black !text-xl !text-gray-900 !m-0 !tracking-tight">Messages</h2>
           {(currentUser?.role === 'superadmin' || currentUser?.role === 'admin') && (
             <button 
               onClick={() => setShowAdminList(true)}
-              className="p-2 hover:bg-gray-100 rounded-lg text-[#1abc60] transition-colors border border-gray-200"
+              className="!w-10 !h-10 !bg-[#1abc60] !text-white !rounded-xl !flex !items-center !justify-center hover:!bg-[#17a554] !transition-colors !border-none !cursor-pointer !shadow-sm"
               title={currentUser?.role === 'superadmin' ? "New Chat with Admin" : "New Chat with Super Admin"}
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="!w-5 !h-5 !block" />
             </button>
           )}
         </div>
-        <div className="p-3 border-b space-y-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+
+        {/* Search & Filter */}
+        <div className="!p-4 !space-y-3 !border-b !border-gray-100 !bg-gray-50/50 !shrink-0">
+          <div className="!relative !group">
+            <Search className="!absolute !left-3.5 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 group-focus-within:!text-[#1abc60] !transition-colors" />
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-gray-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-[#1abc60]/20 outline-none"
+              className="!w-full !pl-10 !pr-4 !py-3 !bg-white !border !border-gray-200 !rounded-xl !text-sm !font-medium focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !outline-none !transition-all placeholder:!text-gray-400"
             />
           </div>
           <select 
             value={filter} 
             onChange={(e) => setFilter(e.target.value)}
-            className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1abc60] bg-white font-medium text-gray-700"
+            className="!w-full !px-4 !py-3 !bg-white !border !border-gray-200 !rounded-xl !text-sm !font-bold !text-gray-700 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !appearance-none !cursor-pointer !transition-all"
           >
             <option value="all">All Chats</option>
             {currentUser?.role === 'superadmin' && (
@@ -126,15 +134,17 @@ export default function ChatLayout({ userId }: { userId: string }) {
             )}
           </select>
         </div>
-        <div className="flex-1 overflow-y-auto">
+
+        {/* Conversation List */}
+        <div className="!flex-1 !overflow-y-auto !custom-scrollbar">
           {filteredConversations.length === 0 && currentUser?.role === 'admin' ? (
-            <div className="p-8 text-center">
-              <p className="text-sm text-gray-500 mb-4">No conversations found</p>
+            <div className="!p-8 !text-center !flex !flex-col !items-center !justify-center !h-full">
+              <p className="!text-sm !font-bold !text-gray-400 !mb-4">No conversations found</p>
               <button
                 onClick={() => startConversationWithSuperAdmin()}
-                className="w-full py-2 px-4 bg-[#1abc60] text-white rounded-lg text-sm font-medium hover:bg-[#16a351] transition-colors flex items-center justify-center gap-2"
+                className="!w-full !py-3 !px-4 !bg-[#1abc60] !text-white !rounded-xl !text-sm !font-bold hover:!bg-[#17a554] !transition-colors !flex !items-center !justify-center !gap-2 !shadow-sm !border-none !cursor-pointer"
               >
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="!w-4 !h-4" />
                 Chat with Super Admin
               </button>
             </div>
@@ -150,71 +160,81 @@ export default function ChatLayout({ userId }: { userId: string }) {
         </div>
       </div>
 
-      <div className={`${!showSidebar ? 'flex' : 'hidden'} md:flex flex-col flex-1 min-w-0 bg-gray-50/50`}>
+      {/* ========================================== */}
+      {/* RIGHT CHAT AREA                            */}
+      {/* ========================================== */}
+      <div className={`${!showSidebar ? '!flex' : '!hidden'} md:!flex !flex-col !flex-1 !min-w-0 !bg-[#efeae2] !relative`}>
         {selectedConversation ? (
           <>
-            <div className="h-[73px] px-4 border-b border-gray-100 bg-white flex items-center gap-3 shadow-sm shrink-0">
+            {/* Active Chat Header */}
+            <div className="!h-[76px] !px-4 md:!px-6 !border-b !border-gray-200 !bg-white !flex !items-center !gap-3 md:!gap-4 !shadow-sm !shrink-0 !relative !z-10">
               <button 
                 onClick={() => setShowSidebar(true)}
-                className="md:hidden p-1 hover:bg-gray-100 rounded-lg text-gray-600"
+                className="md:!hidden !p-2 hover:!bg-gray-100 !rounded-full !text-gray-600 !transition-colors !border-none !bg-transparent !cursor-pointer"
               >
-                <ChevronLeft className="w-6 h-6" />
+                <ChevronLeft className="!w-6 !h-6 !block" />
               </button>
               
-              <div className="w-10 h-10 rounded-full bg-[#1abc60]/10 flex items-center justify-center text-[#1abc60] font-bold shrink-0">
+              <div className="!w-11 !h-11 !rounded-full !bg-emerald-50 !flex !items-center !justify-center !text-[#1abc60] !font-bold !text-lg !shrink-0 !border !border-emerald-100">
                 {selectedConversation.participants.find(p => p._id !== userId)?.name?.[0] || "C"}
               </div>
-              <div className="min-w-0">
-                <h2 className="text-base font-bold text-gray-900 truncate">
+              
+              <div className="!min-w-0 !flex-1">
+                <h2 className="!text-base md:!text-lg !font-bold !text-gray-900 !truncate !m-0 !leading-tight">
                   {currentUser?.role === 'admin' && selectedConversation.type === 'superadmin_admin' 
                     ? "Backend Contact" 
                     : (selectedConversation.participants.find(p => p._id !== userId)?.name || "Chat")}
                 </h2>
-                <p className="text-[10px] text-gray-500 capitalize flex items-center gap-1">
+                <div className="!flex !items-center !gap-2 !mt-1">
                   {currentUser?.role === 'superadmin' && (
-                    <span className="font-bold text-[#1abc60] border border-[#1abc60]/20 px-1 rounded bg-[#1abc60]/5">
+                    <span className="!text-[9px] !font-black !text-[#1abc60] !bg-emerald-50 !border !border-emerald-200 !px-1.5 !py-0.5 !rounded-md !uppercase !tracking-wider">
                       {selectedConversation.participants.find(p => p._id !== userId)?.role || "User"}
                     </span>
                   )}
-                  <span>
+                  <span className="!text-[10px] !font-semibold !text-gray-500 !bg-gray-100 !px-2 !py-0.5 !rounded-md !capitalize">
                     {selectedConversation.type === 'superadmin_admin' && currentUser?.role === 'admin' 
                       ? "System Support" 
                       : selectedConversation.type.replace(/_/g, " ")}
                   </span>
-                </p>
+                </div>
               </div>
             </div>
             
-            <div className="flex-1 overflow-hidden flex flex-col">
+            {/* Messages Area */}
+            <div className="!flex-1 !overflow-hidden !flex !flex-col">
               <MessageList
                 messages={messages}
                 currentUserId={userId}
               />
             </div>
 
-            <div className="shrink-0">
+            {/* Input Area */}
+            <div className="!shrink-0">
               <MessageInput />
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500 p-8 text-center">
-            <div className="max-w-xs">
-              <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="w-10 h-10 text-gray-400" />
+          /* Empty State */
+          <div className="!flex-1 !flex !items-center !justify-center !text-center !p-8 !bg-[#f8fafc]">
+            <div className="!max-w-sm !bg-white !p-10 !rounded-[32px] !shadow-sm !border !border-gray-200">
+              <div className="!w-20 !h-20 !bg-emerald-50 !rounded-[24px] !flex !items-center !justify-center !mx-auto !mb-6 !border !border-emerald-100">
+                <MessageSquare className="!w-10 !h-10 !text-[#1abc60]" />
               </div>
-              <p className="text-lg font-medium text-gray-900">Your Messages</p>
-              <p className="text-sm text-gray-500 mt-1">Select a conversation from the list to start chatting.</p>
+              <h3 className="!text-2xl !font-black !text-gray-900 !mb-2 !m-0 !tracking-tight">Your Messages</h3>
+              <p className="!text-sm !font-medium !text-gray-500 !mb-8 !m-0 !leading-relaxed">Select a conversation from the sidebar to start chatting or create a new one.</p>
+              
               {currentUser?.role === 'admin' && conversations.length === 0 && (
                 <button 
                   onClick={() => startConversationWithSuperAdmin()}
-                  className="mt-6 px-6 py-2 bg-[#1abc60] text-white rounded-lg font-medium hover:bg-[#16a351] transition-colors"
+                  className="!w-full !py-3.5 !px-6 !bg-[#1abc60] !text-white !rounded-xl !text-sm !font-bold hover:!bg-[#17a554] !transition-all !shadow-md !shadow-green-100 !flex !items-center !justify-center !gap-2 !border-none !cursor-pointer"
                 >
+                  <MessageSquare className="!w-4 !h-4" />
                   Chat with Super Admin
                 </button>
               )}
               <button 
                 onClick={() => setShowSidebar(true)}
-                className="mt-6 md:hidden px-6 py-2 bg-[#1abc60] text-white rounded-lg font-medium"
+                className="!mt-4 md:!hidden !w-full !py-3.5 !px-6 !bg-gray-900 !text-white !rounded-xl !text-sm !font-bold hover:!bg-gray-800 !transition-all !border-none !cursor-pointer"
               >
                 View Conversations
               </button>
@@ -223,20 +243,30 @@ export default function ChatLayout({ userId }: { userId: string }) {
         )}
       </div>
 
+      {/* ========================================== */}
+      {/* MODAL - Select Admin                       */}
+      {/* ========================================== */}
       {showAdminList && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
-            <div className="p-4 border-b flex items-center justify-between bg-[#1abc60] text-white">
-              <h3 className="font-bold">
-                {currentUser?.role === 'superadmin' ? "Select an Admin" : "Select a Super Admin"}
+        <div className="!fixed !inset-0 !bg-gray-900/60 !backdrop-blur-sm !flex !items-center !justify-center !z-[9999] !p-4">
+          <div className="!bg-white !rounded-[24px] !shadow-2xl !w-full !max-w-md !overflow-hidden !flex !flex-col !max-h-[80vh] !animate-in !fade-in !zoom-in-95 !duration-200">
+            
+            <div className="!px-6 !py-5 !border-b !border-gray-100 !flex !items-center !justify-between !bg-white !shrink-0">
+              <h3 className="!text-xl !font-bold !text-gray-900 !m-0 !tracking-tight">
+                {currentUser?.role === 'superadmin' ? "Select an Admin" : "Select Super Admin"}
               </h3>
-              <button onClick={() => setShowAdminList(false)} className="hover:bg-white/10 p-1 rounded-full">
-                <Plus className="w-6 h-6 rotate-45" />
+              <button 
+                onClick={() => setShowAdminList(false)} 
+                className="!p-2 !bg-gray-50 hover:!bg-gray-100 !text-gray-400 hover:!text-gray-900 !rounded-full !transition-colors !border-none !cursor-pointer"
+              >
+                <X className="!w-5 !h-5 !block" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-2">
+
+            <div className="!flex-1 !overflow-y-auto !custom-scrollbar !p-4 !space-y-2 !bg-gray-50/30">
               {admins.length === 0 ? (
-                <p className="p-8 text-center text-gray-500">No admins found</p>
+                <div className="!p-10 !text-center">
+                  <p className="!text-sm !font-bold !text-gray-400 !m-0">No admins found</p>
+                </div>
               ) : (
                 admins.map(admin => (
                   <button
@@ -245,18 +275,18 @@ export default function ChatLayout({ userId }: { userId: string }) {
                       startConversationWithAdmin(admin._id);
                       setShowAdminList(false);
                     }}
-                    className="w-full p-3 flex items-center gap-3 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                    className="!w-full !p-4 !flex !items-center !gap-4 !bg-white !border !border-gray-200 hover:!border-[#1abc60]/50 hover:!shadow-sm !rounded-xl !transition-all !text-left !cursor-pointer"
                   >
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 overflow-hidden flex-shrink-0">
+                    <div className="!w-12 !h-12 !rounded-full !bg-emerald-50 !flex !items-center !justify-center !font-bold !text-[#1abc60] !overflow-hidden !shrink-0 !border !border-emerald-100 !text-lg">
                       {admin.profilePhoto ? (
-                        <img src={admin.profilePhoto} alt="" className="w-full h-full object-cover" />
+                        <img src={admin.profilePhoto} alt="" className="!w-full !h-full !object-cover" />
                       ) : (
-                        admin.name?.[0] || "?"
+                        admin.name?.[0]?.toUpperCase() || "?"
                       )}
                     </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">{admin.name || "Admin"}</p>
-                      <p className="text-xs text-gray-500 capitalize">{admin.role}</p>
+                    <div className="!flex-1 !min-w-0">
+                      <p className="!font-bold !text-gray-900 !text-base !m-0 !truncate">{admin.name || "Admin"}</p>
+                      <p className="!text-[11px] !font-bold !text-[#1abc60] !uppercase !tracking-wider !mt-1 !m-0">{admin.role}</p>
                     </div>
                   </button>
                 ))

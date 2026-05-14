@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
-import { Search, Shield, User as UserIcon, Loader2, Check, AlertCircle, Save, X, Plus, Trash2, Mail, Phone, Lock, UserPlus, Edit2, ChevronLeft, ChevronRight, Camera, Award } from 'lucide-react';
+import { Search, Shield, ShieldCheck, Users, User as UserIcon, Loader2, Check, AlertCircle, Save, X, Plus, Trash2, Mail, Phone, Lock, UserPlus, Edit2, ChevronLeft, ChevronRight, Camera, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
@@ -221,19 +221,16 @@ export default function AdminUsersPage() {
     try {
       const formData = new FormData();
       
-      // If password is empty, remove it
       if (!updateData.password) {
         delete updateData.password;
         delete updateData.confirmPassword;
       }
 
-      // If role changed, update permissions accordingly
       if (updateData.role) {
         const selectedRole = roles.find(r => r.name === updateData.role);
         updateData.permissions = selectedRole ? selectedRole.permissions : [];
       }
 
-      // Append all fields to FormData
       Object.keys(updateData).forEach(key => {
         if (key === 'permissions') {
           formData.append(key, JSON.stringify(updateData[key]));
@@ -273,6 +270,11 @@ export default function AdminUsersPage() {
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Derived Headcount Metrics
+  const totalUsersCount = users.length;
+  const adminCount = users.filter(u => u.role === 'admin' || u.role === 'superadmin').length;
+  const regularUserCount = users.filter(u => u.role === 'user').length;
+
   // Pagination Logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -308,538 +310,596 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[400px] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
+      <div className="!min-h-[60vh] !flex !items-center !justify-center !bg-[#f8fafc]">
+        <Loader2 className="!w-10 !h-10 !animate-spin !text-[#1abc60]" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-5">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">User Management</h1>
-          <p className="text-gray-500 text-sm mt-1">View and manage users, roles, and account permissions</p>
-        </div>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="!inline-flex !items-center !justify-center !gap-2 !rounded-lg !bg-[#1abc60] !px-5 !py-2.5 !text-sm !font-semibold !text-white hover:!bg-[#17a554] !transition-colors !shadow-sm !cursor-pointer !border-none"
-        >
-          <UserPlus className="w-4 h-4 !shrink-0 !block" /> Add User
-        </button>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* Toolbar */}
-        <div className="p-4 border-b border-gray-200 bg-gray-50/50">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="!w-full !pl-10 !pr-4 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400"
-            />
+    <div className="!min-h-screen !bg-[#f8fafc] !font-sans !p-4 lg:!p-8 !space-y-6">
+      <div className="!max-w-7xl !mx-auto !space-y-6">
+        
+        {/* Header Section */}
+        <div className="!flex !flex-col sm:!flex-row sm:!items-center !justify-between !gap-4 !bg-white !p-6 md:!p-8 !rounded-[24px] !border !border-gray-100 !shadow-sm">
+          <div>
+            <h1 className="!text-2xl md:!text-3xl !font-black !text-gray-900 !tracking-tight !m-0 !mb-1">User Management</h1>
+            <p className="!text-sm !font-medium !text-gray-500 !m-0">View and manage users, roles, and account permissions</p>
           </div>
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="!inline-flex !items-center !justify-center !gap-2 !rounded-xl !bg-[#1abc60] !px-6 !py-3.5 !text-sm !font-bold !text-white hover:!bg-[#17a554] !transition-all !shadow-md !shadow-green-100 !cursor-pointer !border-none"
+          >
+            <UserPlus className="!w-4 !h-4 !shrink-0 !block" /> Add New User
+          </button>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wider border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4">User</th>
-                <th className="px-6 py-4">Role</th>
-                <th className="px-6 py-4">Coins</th>
-                <th className="px-6 py-4">Contact</th>
-                <th className="px-6 py-4">Created By</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {currentUsers.map((u) => (
-                <UserRow 
-                  key={u._id} 
-                  user={u} 
-                  isCurrentUser={u._id === currentUser?.id}
-                  onEdit={() => handleEditClick(u)}
-                  onDelete={handleDeleteUser}
-                  getImageUrl={getImageUrl}
-                />
-              ))}
-              {currentUsers.length === 0 && (
+        {/* --- HEADCOUNT METRICS CARDS --- */}
+        <div className="!grid !grid-cols-1 md:!grid-cols-3 !gap-5">
+          
+          {/* Total Users */}
+          <div className="!bg-white !p-6 !rounded-[24px] !border !border-gray-100 !shadow-sm !flex !items-center !gap-5">
+            <div className="!w-14 !h-14 !rounded-2xl !bg-emerald-50 !text-[#1abc60] !flex !items-center !justify-center !border !border-emerald-100 !shrink-0">
+              <Users className="!w-7 !h-7" />
+            </div>
+            <div>
+              <p className="!text-[11px] !font-bold !text-gray-400 !uppercase !tracking-widest !m-0 !mb-1">Total Users</p>
+              <h3 className="!text-3xl !font-black !text-gray-900 !m-0 !leading-none">{totalUsersCount}</h3>
+            </div>
+          </div>
+
+          {/* Admins Count */}
+          <div className="!bg-white !p-6 !rounded-[24px] !border !border-gray-100 !shadow-sm !flex !items-center !gap-5">
+            <div className="!w-14 !h-14 !rounded-2xl !bg-blue-50 !text-blue-600 !flex !items-center !justify-center !border !border-blue-100 !shrink-0">
+              <ShieldCheck className="!w-7 !h-7" />
+            </div>
+            <div>
+              <p className="!text-[11px] !font-bold !text-gray-400 !uppercase !tracking-widest !m-0 !mb-1">Admins & Staff</p>
+              <h3 className="!text-3xl !font-black !text-gray-900 !m-0 !leading-none">{adminCount}</h3>
+            </div>
+          </div>
+
+          {/* Regular Users Count */}
+          <div className="!bg-white !p-6 !rounded-[24px] !border !border-gray-100 !shadow-sm !flex !items-center !gap-5">
+            <div className="!w-14 !h-14 !rounded-2xl !bg-orange-50 !text-orange-500 !flex !items-center !justify-center !border !border-orange-100 !shrink-0">
+              <UserIcon className="!w-7 !h-7" />
+            </div>
+            <div>
+              <p className="!text-[11px] !font-bold !text-gray-400 !uppercase !tracking-widest !m-0 !mb-1">Regular Customers</p>
+              <h3 className="!text-3xl !font-black !text-gray-900 !m-0 !leading-none">{regularUserCount}</h3>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Data Table Section */}
+        <div className="!bg-white !rounded-[24px] !shadow-sm !border !border-gray-100 !overflow-hidden">
+          
+          {/* Toolbar */}
+          <div className="!p-5 md:!p-6 !border-b !border-gray-100 !bg-gray-50/30">
+            <div className="!relative !max-w-md">
+              <Search className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="!w-full !pl-11 !pr-4 !py-3 !bg-white !border !border-gray-200 !rounded-xl !text-sm !font-medium focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all placeholder:!text-gray-400 !shadow-sm"
+              />
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="!overflow-x-auto !custom-scrollbar">
+            <table className="!w-full !text-left !border-collapse !min-w-[900px]">
+              <thead className="!bg-gray-50 !text-gray-500 !text-[10px] !font-black !uppercase !tracking-widest !border-b !border-gray-100">
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 font-medium">
-                    No users found matching your search.
-                  </td>
+                  <th className="!px-6 md:!px-8 !py-5">User Details</th>
+                  <th className="!px-6 md:!px-8 !py-5">Role</th>
+                  <th className="!px-6 md:!px-8 !py-5">Coins</th>
+                  <th className="!px-6 md:!px-8 !py-5">Contact</th>
+                  <th className="!px-6 md:!px-8 !py-5">Created By</th>
+                  <th className="!px-6 md:!px-8 !py-5">Status</th>
+                  <th className="!px-6 md:!px-8 !py-5 !text-right">Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50">
-            <div className="text-sm text-gray-500">
-              Showing <span className="font-semibold text-gray-900">{indexOfFirstItem + 1}</span> to <span className="font-semibold text-gray-900">{Math.min(indexOfLastItem, filteredUsers.length)}</span> of <span className="font-semibold text-gray-900">{filteredUsers.length}</span> Users
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button 
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="!p-1.5 !rounded-md !border !border-gray-300 !bg-white !text-gray-500 hover:!bg-gray-50 disabled:!opacity-50 disabled:!cursor-not-allowed !transition-colors !cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4 !block !shrink-0" />
-              </button>
-              
-              <div className="flex gap-1.5 px-1.5">
-                {Array.from({ length: totalPages }).map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className={`!min-w-[32px] !h-8 !rounded-md !text-sm !font-semibold !transition-colors !cursor-pointer ${
-                      currentPage === i + 1 
-                        ? "!bg-[#1abc60] !text-white !border !border-[#1abc60]" 
-                        : "!bg-white !text-gray-600 !border !border-gray-300 hover:!bg-gray-50"
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
+              </thead>
+              <tbody className="!divide-y !divide-gray-50">
+                {currentUsers.map((u) => (
+                  <UserRow 
+                    key={u._id} 
+                    user={u} 
+                    isCurrentUser={u._id === currentUser?.id}
+                    onEdit={() => handleEditClick(u)}
+                    onDelete={handleDeleteUser}
+                    getImageUrl={getImageUrl}
+                  />
                 ))}
-              </div>
-
-              <button 
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="!p-1.5 !rounded-md !border !border-gray-300 !bg-white !text-gray-500 hover:!bg-gray-50 disabled:!opacity-50 disabled:!cursor-not-allowed !transition-colors !cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4 !block !shrink-0" />
-              </button>
-            </div>
+                {currentUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="!px-6 !py-16 !text-center">
+                      <div className="!w-16 !h-16 !bg-gray-50 !rounded-full !flex !items-center !justify-center !mx-auto !mb-4 !border !border-gray-100">
+                        <Search className="!w-8 !h-8 !text-gray-300" />
+                      </div>
+                      <p className="!text-base !font-bold !text-gray-900 !m-0">No users found</p>
+                      <p className="!text-sm !text-gray-500 !mt-1">Try adjusting your search query.</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
 
-      {/* Add User Modal */}
-      <AnimatePresence>
-        {showAddModal && (
-          <div className="fixed inset-0 bg-gray-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden border border-gray-100"
-            >
-              {/* Modal Header */}
-              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-[#1abc60]">
-                    <UserPlus className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 leading-tight">Create New User</h3>
-                    <p className="text-xs text-gray-500 font-medium mt-0.5">Add a new member to your platform</p>
-                  </div>
-                </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="!px-6 md:!px-8 !py-5 !border-t !border-gray-100 !flex !flex-col sm:!flex-row !items-center !justify-between !gap-4 !bg-gray-50/30">
+              <div className="!text-sm !font-medium !text-gray-500">
+                Showing <span className="!font-bold !text-gray-900">{indexOfFirstItem + 1}</span> to <span className="!font-bold !text-gray-900">{Math.min(indexOfLastItem, filteredUsers.length)}</span> of <span className="!font-bold !text-gray-900">{filteredUsers.length}</span> Users
+              </div>
+              <div className="!flex !items-center !gap-1.5">
                 <button 
-                  onClick={() => setShowAddModal(false)} 
-                  className="!p-2 !text-gray-400 hover:!text-gray-600 hover:!bg-gray-100 !rounded-lg !transition-colors !bg-transparent !border-none !cursor-pointer"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="!p-2 !rounded-lg !border !border-gray-200 !bg-white !text-gray-500 hover:!bg-gray-50 disabled:!opacity-50 disabled:!cursor-not-allowed !transition-colors !cursor-pointer !shadow-sm"
                 >
-                  <X className="w-5 h-5 !block !shrink-0" />
+                  <ChevronLeft className="!w-4 !h-4 !block !shrink-0" />
+                </button>
+                
+                <div className="!flex !gap-1.5 !px-2">
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`!min-w-[36px] !h-9 !rounded-lg !text-sm !font-bold !transition-colors !cursor-pointer !shadow-sm ${
+                        currentPage === i + 1 
+                          ? "!bg-[#1abc60] !text-white !border-none" 
+                          : "!bg-white !text-gray-600 !border !border-gray-200 hover:!bg-gray-50"
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="!p-2 !rounded-lg !border !border-gray-200 !bg-white !text-gray-500 hover:!bg-gray-50 disabled:!opacity-50 disabled:!cursor-not-allowed !transition-colors !cursor-pointer !shadow-sm"
+                >
+                  <ChevronRight className="!w-4 !h-4 !block !shrink-0" />
                 </button>
               </div>
-              
-              <form onSubmit={handleCreateUser} className="flex flex-col flex-1 overflow-hidden">
-                <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
-                  
-                  {/* Photo Upload Area */}
-                  <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors group">
-                    <div 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="relative cursor-pointer"
-                    >
-                      <div className="w-20 h-20 rounded-full bg-white border border-gray-300 flex items-center justify-center overflow-hidden transition-all group-hover:border-[#1abc60] group-hover:shadow-md">
-                        {photoFile ? (
-                          <img src={URL.createObjectURL(photoFile)} alt="Preview" className="w-full h-full object-cover" />
-                        ) : (
-                          <Camera className="w-6 h-6 text-gray-400 group-hover:text-[#1abc60] transition-colors" />
-                        )}
+            </div>
+          )}
+        </div>
+
+        {/* ========================================================= */}
+        {/* ADD USER MODAL                                            */}
+        {/* ========================================================= */}
+        <AnimatePresence>
+          {showAddModal && (
+            <div className="!fixed !inset-0 !bg-gray-900/60 !z-[100] !flex !items-center !justify-center !p-4 !backdrop-blur-sm">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                transition={{ duration: 0.2 }}
+                className="!bg-white !rounded-[24px] !w-full !max-w-2xl !max-h-[90vh] !shadow-2xl !flex !flex-col !overflow-hidden !border !border-gray-100"
+              >
+                {/* Modal Header */}
+                <div className="!px-6 md:!px-8 !py-5 !border-b !border-gray-100 !flex !justify-between !items-center !bg-gray-50/50 !shrink-0">
+                  <div className="!flex !items-center !gap-4">
+                    <div className="!w-12 !h-12 !rounded-xl !bg-emerald-50 !flex !items-center !justify-center !text-[#1abc60] !border !border-emerald-100">
+                      <UserPlus className="!w-6 !h-6" />
+                    </div>
+                    <div>
+                      <h3 className="!text-xl !font-bold !text-gray-900 !leading-tight !m-0">Create New User</h3>
+                      <p className="!text-xs !text-gray-500 !font-medium !mt-0.5 !m-0">Add a new member to your platform</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowAddModal(false)} 
+                    className="!p-2.5 !text-gray-400 hover:!text-gray-600 hover:!bg-gray-200 !rounded-full !transition-colors !bg-gray-100 !border-none !cursor-pointer"
+                  >
+                    <X className="!w-5 !h-5 !block !shrink-0" />
+                  </button>
+                </div>
+                
+                <form onSubmit={handleCreateUser} className="!flex !flex-col !flex-1 !overflow-hidden">
+                  <div className="!p-6 md:!p-8 !space-y-6 !overflow-y-auto !custom-scrollbar !bg-[#f8fafc]">
+                    
+                    {/* Photo Upload Area */}
+                    <div className="!flex !flex-col !items-center !justify-center !p-8 !border-2 !border-dashed !border-gray-200 !rounded-[20px] !bg-white hover:!bg-gray-50 !transition-colors !group">
+                      <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="!relative !cursor-pointer"
+                      >
+                        <div className="!w-24 !h-24 !rounded-full !bg-gray-50 !border-2 !border-gray-200 !flex !items-center !justify-center !overflow-hidden !transition-all group-hover:!border-[#1abc60] group-hover:!shadow-md">
+                          {photoFile ? (
+                            <img src={URL.createObjectURL(photoFile)} alt="Preview" className="!w-full !h-full !object-cover" />
+                          ) : (
+                            <Camera className="!w-8 !h-8 !text-gray-400 group-hover:!text-[#1abc60] !transition-colors" />
+                          )}
+                        </div>
+                        <div className="!absolute !bottom-0 !right-0 !p-2 !bg-[#1abc60] !text-white !rounded-full !shadow-sm !border-2 !border-white">
+                          <Plus className="!w-4 !h-4" />
+                        </div>
                       </div>
-                      <div className="absolute bottom-0 right-0 p-1.5 bg-[#1abc60] text-white rounded-full shadow-sm border-2 border-white">
-                        <Plus className="w-3 h-3" />
+                      <p className="!text-xs !font-bold !text-gray-400 !uppercase !tracking-widest !mt-4 group-hover:!text-[#1abc60] !transition-colors">Upload Profile Picture</p>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="!hidden" 
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setPhotoFile(file);
+                        }}
+                      />
+                    </div>
+
+                    <div className="!bg-white !p-6 !rounded-[20px] !border !border-gray-100 !shadow-sm !space-y-5">
+                      <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-5">
+                        <div className="!space-y-1.5">
+                          <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Full Name <span className="!text-red-500">*</span></label>
+                          <div className="!relative">
+                            <UserIcon className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                            <input 
+                              required 
+                              value={newUser.name} 
+                              onChange={e => setNewUser({...newUser, name: e.target.value})} 
+                              className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !rounded-xl !transition-all placeholder:!text-gray-400" 
+                              placeholder="John Doe" 
+                            />
+                          </div>
+                        </div>
+
+                        <div className="!space-y-1.5">
+                          <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Phone Number <span className="!text-red-500">*</span></label>
+                          <div className="!relative">
+                            <Phone className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                            <input 
+                              required 
+                              value={newUser.phone} 
+                              onChange={e => setNewUser({...newUser, phone: e.target.value})} 
+                              className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !rounded-xl !transition-all placeholder:!text-gray-400" 
+                              placeholder="9876543210" 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="!space-y-1.5">
+                        <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Email Address <span className="!text-red-500">*</span></label>
+                        <div className="!relative">
+                          <Mail className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                          <input 
+                            required 
+                            type="email" 
+                            value={newUser.email} 
+                            onChange={e => setNewUser({...newUser, email: e.target.value})} 
+                            className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !rounded-xl !transition-all placeholder:!text-gray-400" 
+                            placeholder="john@example.com" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-5">
+                        <div className="!space-y-1.5">
+                          <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Password <span className="!text-red-500">*</span></label>
+                          <div className="!relative">
+                            <Lock className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                            <input 
+                              required 
+                              type="password" 
+                              value={newUser.password} 
+                              onChange={e => setNewUser({...newUser, password: e.target.value})} 
+                              className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !rounded-xl !transition-all placeholder:!text-gray-400" 
+                              placeholder="••••••••" 
+                            />
+                          </div>
+                        </div>
+
+                        <div className="!space-y-1.5">
+                          <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Confirm Password <span className="!text-red-500">*</span></label>
+                          <div className="!relative">
+                            <Lock className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                            <input 
+                              required 
+                              type="password" 
+                              value={newUser.confirmPassword} 
+                              onChange={e => setNewUser({...newUser, confirmPassword: e.target.value})} 
+                              className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !rounded-xl !transition-all placeholder:!text-gray-400" 
+                              placeholder="••••••••" 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="!space-y-1.5 !pt-2 !border-t !border-gray-100">
+                        <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Assign Role</label>
+                        <div className="!relative">
+                          <Shield className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                          <select 
+                            value={newUser.role} 
+                            onChange={e => setNewUser({...newUser, role: e.target.value})} 
+                            className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !appearance-none !cursor-pointer !rounded-xl !transition-all"
+                          >
+                            {roles.map(r => <option key={r._id} value={r.name} className="capitalize">{r.name}</option>)}
+                          </select>
+                          <ChevronDownIcon className="!absolute !right-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-500 !pointer-events-none" />
+                        </div>
                       </div>
                     </div>
-                    <p className="text-xs font-semibold text-gray-500 mt-3 group-hover:text-[#1abc60] transition-colors">Upload Profile Picture</p>
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="!px-6 md:!px-8 !py-5 !border-t !border-gray-100 !bg-white !flex !justify-end !gap-3 !shrink-0">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowAddModal(false)}
+                      className="!px-6 !py-3 !bg-white !border !border-gray-300 !text-gray-700 !rounded-xl !text-sm !font-bold hover:!bg-gray-50 !transition-colors !cursor-pointer !shadow-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      disabled={isCreating} 
+                      type="submit" 
+                      className="!px-8 !py-3 !bg-[#1abc60] !text-white !rounded-xl !text-sm !font-bold !flex !items-center !justify-center !gap-2 hover:!bg-[#17a554] !transition-colors !shadow-md !shadow-green-100 disabled:!opacity-50 !cursor-pointer !border-none"
+                    >
+                      {isCreating ? <Loader2 className="!w-4 !h-4 !animate-spin !block !shrink-0" /> : <Check className="!w-4 !h-4 !block !shrink-0" />}
+                      Create Account
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* ========================================================= */}
+        {/* EDIT USER MODAL                                           */}
+        {/* ========================================================= */}
+        <AnimatePresence>
+          {editingUser && (
+            <div className="!fixed !inset-0 !bg-gray-900/60 !z-[100] !flex !items-center !justify-center !p-4 !backdrop-blur-sm !text-left">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                transition={{ duration: 0.2 }}
+                className="!bg-[#f8fafc] !rounded-[24px] !w-full !max-w-2xl !max-h-[90vh] !shadow-2xl !flex !flex-col !overflow-hidden !border !border-gray-100"
+              >
+                {/* Modal Header */}
+                <div className="!px-6 md:!px-8 !py-5 !border-b !border-gray-100 !flex !justify-between !items-center !bg-white !shrink-0">
+                  <div className="!flex !items-center !gap-4">
+                    <div className="!w-12 !h-12 !rounded-xl !bg-green-50 !flex !items-center !justify-center !text-[#1abc60] !border !border-green-100">
+                      <Edit2 className="!w-6 !h-6" />
+                    </div>
+                    <div>
+                      <h3 className="!text-xl !font-bold !text-gray-900 !leading-tight !m-0">Edit User Details</h3>
+                      <p className="!text-xs !text-gray-500 !font-medium !mt-0.5 !m-0">Update profile and permissions</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setEditingUser(null)} 
+                    className="!p-2.5 !text-gray-400 hover:!text-gray-600 hover:!bg-gray-100 !rounded-full !transition-colors !bg-transparent !border-none !cursor-pointer"
+                  >
+                    <X className="!w-5 !h-5 !block !shrink-0" />
+                  </button>
+                </div>
+                
+                <div className="!p-6 md:!p-8 !space-y-6 !overflow-y-auto !flex-1 !custom-scrollbar">
+                  
+                  {/* Photo Upload Area */}
+                  <div className="!flex !flex-col !items-center !justify-center !p-8 !border-2 !border-dashed !border-gray-200 !rounded-[20px] !bg-white hover:!bg-gray-50 !transition-colors !group">
+                    <div 
+                      onClick={() => editFileInputRef.current?.click()}
+                      className="!relative !cursor-pointer"
+                    >
+                      <div className="!w-24 !h-24 !rounded-full !bg-white !border-2 !border-gray-200 !flex !flex-col !items-center !justify-center !overflow-hidden !transition-all group-hover:!border-[#1abc60] group-hover:!shadow-md">
+                        {editData.photoFile ? (
+                          <img src={URL.createObjectURL(editData.photoFile)} alt="Preview" className="!w-full !h-full !object-cover" />
+                        ) : editData.profilePhoto ? (
+                          <img src={getImageUrl(editData.profilePhoto)} alt="Profile" className="!w-full !h-full !object-cover" />
+                        ) : (
+                          <Camera className="!w-8 !h-8 !text-gray-400 group-hover:!text-[#1abc60] !transition-colors" />
+                        )}
+                      </div>
+                      <div className="!absolute !bottom-0 !right-0 !p-2 !bg-[#1abc60] !text-white !rounded-full !shadow-sm !border-2 !border-white">
+                        <Edit2 className="!w-4 !h-4" />
+                      </div>
+                    </div>
+                    <p className="!text-xs !font-bold !text-gray-400 !uppercase !tracking-widest !mt-4 group-hover:!text-[#1abc60] !transition-colors">Change Profile Picture</p>
                     <input 
                       type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
+                      ref={editFileInputRef} 
+                      className="!hidden" 
                       accept="image/*"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) setPhotoFile(file);
+                        if (file) setEditData(prev => ({ ...prev, photoFile: file, profilePhoto: file.name }));
                       }}
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-gray-700">Full Name <span className="text-red-500">*</span></label>
-                      <div className="relative">
-                        <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                        <input 
-                          required 
-                          value={newUser.name} 
-                          onChange={e => setNewUser({...newUser, name: e.target.value})} 
-                          className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all placeholder:!text-gray-400" 
-                          placeholder="John Doe" 
-                        />
+                  <div className="!bg-white !p-6 !rounded-[20px] !border !border-gray-100 !shadow-sm !space-y-5">
+                    <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-5">
+                      <div className="!space-y-1.5">
+                        <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Full Name</label>
+                        <div className="!relative">
+                          <UserIcon className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                          <input 
+                            value={editData.name} 
+                            onChange={e => setEditData({...editData, name: e.target.value})} 
+                            className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !rounded-xl !transition-all" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="!space-y-1.5">
+                        <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Phone Number</label>
+                        <div className="!relative">
+                          <Phone className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                          <input 
+                            value={editData.phone} 
+                            onChange={e => setEditData({...editData, phone: e.target.value})} 
+                            className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !rounded-xl !transition-all" 
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-gray-700">Phone Number <span className="text-red-500">*</span></label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                        <input 
-                          required 
-                          value={newUser.phone} 
-                          onChange={e => setNewUser({...newUser, phone: e.target.value})} 
-                          className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all placeholder:!text-gray-400" 
-                          placeholder="9876543210" 
-                        />
+                    <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-5">
+                      <div className="!space-y-1.5">
+                        <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Email Address</label>
+                        <div className="!relative">
+                          <Mail className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                          <input 
+                            value={editData.email} 
+                            onChange={e => setEditData({...editData, email: e.target.value})} 
+                            className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !rounded-xl !transition-all" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="!space-y-1.5">
+                        <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Coin Balance</label>
+                        <div className="!relative">
+                          <Award className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-yellow-600 !z-10" />
+                          <div className="!w-full !pl-11 !pr-4 !py-3 !bg-yellow-50 !border !border-yellow-200 !text-sm !text-yellow-700 !font-bold !rounded-xl">
+                            {editingUser?.coins || 0} Coins Available
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-5 !pt-2 !border-t !border-gray-100">
+                      <div className="!space-y-1.5">
+                        <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Assign Role</label>
+                        <div className="!relative">
+                          <Shield className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                          <select 
+                            value={editData.role} 
+                            onChange={e => setEditData({...editData, role: e.target.value as any})} 
+                            className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !appearance-none !cursor-pointer !rounded-xl !transition-all"
+                          >
+                            {roles.map(r => <option key={r._id} value={r.name} className="capitalize">{r.name}</option>)}
+                          </select>
+                          <ChevronDownIcon className="!absolute !right-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-500 !pointer-events-none" />
+                        </div>
+                      </div>
+
+                      {/* Status Toggle */}
+                      <div className="!flex !items-center !justify-between !px-5 !py-3 !bg-gray-50 !rounded-xl !border !border-gray-200 !mt-[22px]">
+                        <div>
+                          <h4 className="!text-xs !font-bold !text-gray-500 !uppercase !tracking-wider !m-0">Account Status</h4>
+                          <p className={`!text-sm !mt-0.5 !font-bold ${editData.isActive ? '!text-[#1abc60]' : '!text-red-600'} !m-0`}>
+                            {editData.isActive ? 'Active' : 'Inactive'}
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => setEditData({...editData, isActive: !editData.isActive})} 
+                          className={`!relative !inline-flex !h-8 !w-14 !items-center !rounded-full !transition-colors focus:!outline-none !border-none !cursor-pointer ${editData.isActive ? '!bg-[#1abc60]' : '!bg-gray-300'}`}
+                        >
+                          <span className={`!inline-block !h-6 !w-6 !transform !rounded-full !bg-white !transition-transform !shadow-sm ${editData.isActive ? '!translate-x-7' : '!translate-x-1'}`}></span>
+                        </button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Email Address <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                      <input 
-                        required 
-                        type="email" 
-                        value={newUser.email} 
-                        onChange={e => setNewUser({...newUser, email: e.target.value})} 
-                        className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all placeholder:!text-gray-400" 
-                        placeholder="john@example.com" 
-                      />
+                  {/* Specific Permissions */}
+                  <div className="!bg-white !p-6 !rounded-[20px] !border !border-gray-100 !shadow-sm !space-y-4">
+                    <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Specific Permissions</label>
+                    <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-3 !max-h-56 !overflow-y-auto !pr-2 !custom-scrollbar">
+                      {availablePermissions.map(p => (
+                        <label key={p._id} className={`!flex !items-start !gap-3 !p-4 !rounded-xl !border !cursor-pointer !transition-colors ${
+                          editData.permissions.includes(p.slug) 
+                            ? '!bg-emerald-50/50 !border-[#1abc60] !ring-1 !ring-[#1abc60] !shadow-sm' 
+                            : '!bg-gray-50 !border-gray-200 hover:!border-gray-300'
+                        }`}>
+                          <input 
+                            type="checkbox" 
+                            checked={editData.permissions.includes(p.slug)} 
+                            onChange={() => togglePermission(p.slug)}
+                            className="!mt-0.5 !w-4 !h-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60] !cursor-pointer"
+                          />
+                          <span className={`!text-sm !font-bold ${editData.permissions.includes(p.slug) ? '!text-[#1abc60]' : '!text-gray-700'}`}>{p.name}</span>
+                        </label>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-gray-700">Password <span className="text-red-500">*</span></label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                        <input 
-                          required 
-                          type="password" 
-                          value={newUser.password} 
-                          onChange={e => setNewUser({...newUser, password: e.target.value})} 
-                          className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all placeholder:!text-gray-400" 
-                          placeholder="••••••••" 
-                        />
-                      </div>
+                  {/* Password Updates */}
+                  <div className="!bg-white !p-6 !rounded-[20px] !border !border-gray-100 !shadow-sm !space-y-5">
+                    <div className="!flex !items-center !gap-2 !mb-2">
+                      <Lock className="!w-4 !h-4 !text-gray-400" />
+                      <h4 className="!text-sm !font-bold !text-gray-900 !m-0">Security Updates</h4>
                     </div>
-
-                    <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-gray-700">Confirm Password <span className="text-red-500">*</span></label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                        <input 
-                          required 
-                          type="password" 
-                          value={newUser.confirmPassword} 
-                          onChange={e => setNewUser({...newUser, confirmPassword: e.target.value})} 
-                          className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all placeholder:!text-gray-400" 
-                          placeholder="••••••••" 
-                        />
+                    <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-5">
+                      <div className="!space-y-1.5">
+                        <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">New Password</label>
+                        <div className="!relative">
+                          <Lock className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                          <input 
+                            type="password" 
+                            value={editData.password} 
+                            onChange={e => setEditData({...editData, password: e.target.value})} 
+                            className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !rounded-xl !transition-all placeholder:!text-gray-400" 
+                            placeholder="Leave blank to keep current" 
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Assign Role</label>
-                    <div className="relative">
-                      <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                      <select 
-                        value={newUser.role} 
-                        onChange={e => setNewUser({...newUser, role: e.target.value})} 
-                        className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !appearance-none !cursor-pointer !rounded-lg !transition-all"
-                      >
-                        {roles.map(r => <option key={r._id} value={r.name} className="capitalize">{r.name}</option>)}
-                      </select>
-                      <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                      <div className="!space-y-1.5">
+                        <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Confirm Password</label>
+                        <div className="!relative">
+                          <Lock className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 !z-10" />
+                          <input 
+                            type="password" 
+                            value={editData.confirmPassword} 
+                            onChange={e => setEditData({...editData, confirmPassword: e.target.value})} 
+                            className="!w-full !pl-11 !pr-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !font-bold !text-gray-900 !rounded-xl !transition-all placeholder:!text-gray-400" 
+                            placeholder="••••••••" 
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                 </div>
 
                 {/* Modal Footer */}
-                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
+                <div className="!px-6 md:!px-8 !py-5 !border-t !border-gray-100 !bg-white !flex !justify-end !gap-3 !shrink-0">
                   <button 
                     type="button" 
-                    onClick={() => setShowAddModal(false)}
-                    className="!px-5 !py-2.5 !bg-white !border !border-gray-300 !text-gray-700 !rounded-lg !text-sm !font-semibold hover:!bg-gray-50 !transition-colors !cursor-pointer !shadow-sm"
+                    onClick={() => {
+                      setEditingUser(null);
+                      setEditData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+                    }}
+                    className="!px-6 !py-3 !bg-white !border !border-gray-300 !text-gray-700 !rounded-xl !text-sm !font-bold hover:!bg-gray-50 !transition-colors !cursor-pointer !shadow-sm"
                   >
                     Cancel
                   </button>
                   <button 
-                    disabled={isCreating} 
-                    type="submit" 
-                    className="!px-6 !py-2.5 !bg-[#1abc60] !text-white !rounded-lg !text-sm !font-semibold !flex !items-center !justify-center !gap-2 hover:!bg-[#17a554] !transition-colors !shadow-sm disabled:!opacity-50 !cursor-pointer !border-none"
+                    onClick={() => {
+                      if (editData.password && editData.password !== editData.confirmPassword) {
+                        return toast.error('Passwords do not match');
+                      }
+                      handleUpdateUser(editingUser._id, editData);
+                      setEditingUser(null);
+                      setEditData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+                    }} 
+                    disabled={!editHasChanged || updatingId === editingUser._id} 
+                    className="!px-8 !py-3 !bg-[#1abc60] !text-white !rounded-xl !text-sm !font-bold !flex !items-center !justify-center !gap-2 hover:!bg-[#17a554] !transition-all !shadow-md !shadow-green-100 disabled:!opacity-50 disabled:!cursor-not-allowed !border-none"
                   >
-                    {isCreating ? <Loader2 className="w-4 h-4 animate-spin !block !shrink-0" /> : <Check className="w-4 h-4 !block !shrink-0" />}
-                    Create Account
+                    {updatingId === editingUser._id ? <Loader2 className="!w-4 !h-4 !animate-spin !block !shrink-0" /> : <Save className="!w-4 !h-4 !block !shrink-0" />}
+                    Update Account
                   </button>
                 </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Edit User Modal */}
-      <AnimatePresence>
-        {editingUser && (
-          <div className="fixed inset-0 bg-gray-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm text-left">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden border border-gray-100"
-            >
-              {/* Modal Header */}
-              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-[#1abc60]">
-                    <Edit2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 leading-tight">Edit User Details</h3>
-                    <p className="text-xs text-gray-500 font-medium mt-0.5">Update profile and permissions</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setEditingUser(null)} 
-                  className="!p-2 !text-gray-400 hover:!text-gray-600 hover:!bg-gray-100 !rounded-lg !transition-colors !bg-transparent !border-none !cursor-pointer"
-                >
-                  <X className="w-5 h-5 !block !shrink-0" />
-                </button>
-              </div>
-              
-              <div className="p-6 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
-                
-                {/* Photo Upload Area */}
-                <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors group">
-                  <div 
-                    onClick={() => editFileInputRef.current?.click()}
-                    className="relative group cursor-pointer"
-                  >
-                    <div className="w-20 h-20 rounded-full bg-white border border-gray-300 flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-[#1abc60] group-hover:shadow-md">
-                      {editData.photoFile ? (
-                        <img src={URL.createObjectURL(editData.photoFile)} alt="Preview" className="w-full h-full object-cover" />
-                      ) : editData.profilePhoto ? (
-                        <img src={getImageUrl(editData.profilePhoto)} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        <Camera className="w-6 h-6 text-gray-400 group-hover:text-[#1abc60] transition-colors" />
-                      )}
-                    </div>
-                    <div className="absolute bottom-0 right-0 p-1.5 bg-[#1abc60] text-white rounded-full shadow-sm border-2 border-white">
-                      <Edit2 className="w-3 h-3" />
-                    </div>
-                  </div>
-                  <p className="text-xs font-semibold text-gray-500 mt-3 group-hover:text-[#1abc60] transition-colors">Change Profile Picture</p>
-                  <input 
-                    type="file" 
-                    ref={editFileInputRef} 
-                    className="hidden" 
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) setEditData(prev => ({ ...prev, photoFile: file, profilePhoto: file.name }));
-                    }}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Full Name</label>
-                    <div className="relative">
-                      <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                      <input 
-                        value={editData.name} 
-                        onChange={e => setEditData({...editData, name: e.target.value})} 
-                        className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all" 
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Phone Number</label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                      <input 
-                        value={editData.phone} 
-                        onChange={e => setEditData({...editData, phone: e.target.value})} 
-                        className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all" 
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Email Address</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                      <input 
-                        value={editData.email} 
-                        onChange={e => setEditData({...editData, email: e.target.value})} 
-                        className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all" 
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Coin Balance</label>
-                    <div className="relative">
-                      <Award className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-yellow-600 z-10" />
-                      <div className="!w-full !pl-10 !pr-4 !py-2.5 !bg-yellow-50 !border !border-yellow-200 !text-sm !text-yellow-700 !font-bold !rounded-lg">
-                        {editingUser?.coins || 0} Coins
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Assign Role</label>
-                    <div className="relative">
-                      <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                      <select 
-                        value={editData.role} 
-                        onChange={e => setEditData({...editData, role: e.target.value as any})} 
-                        className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !appearance-none !cursor-pointer !rounded-lg !transition-all"
-                      >
-                        {roles.map(r => <option key={r._id} value={r.name} className="capitalize">{r.name}</option>)}
-                      </select>
-                      <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status Toggle */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 mt-2">
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-900">Account Status</h4>
-                    <p className={`text-xs mt-0.5 font-bold uppercase tracking-wider ${editData.isActive ? 'text-[#1abc60]' : 'text-red-600'}`}>
-                      Currently {editData.isActive ? 'Active' : 'Inactive'}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => setEditData({...editData, isActive: !editData.isActive})} 
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none border-none cursor-pointer ${editData.isActive ? 'bg-[#1abc60]' : 'bg-gray-300'}`}
-                  >
-                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm ${editData.isActive ? 'translate-x-6' : 'translate-x-1'}`}></span>
-                  </button>
-                </div>
-
-                {/* Specific Permissions */}
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-700">Specific Permissions</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto p-4 bg-gray-50 rounded-xl border border-gray-200 custom-scrollbar">
-                    {availablePermissions.map(p => (
-                      <label key={p._id} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                        editData.permissions.includes(p.slug) 
-                          ? 'bg-white border-[#1abc60] ring-1 ring-[#1abc60] shadow-sm' 
-                          : 'bg-white border-gray-200 hover:border-gray-300'
-                      }`}>
-                        <input 
-                          type="checkbox" 
-                          checked={editData.permissions.includes(p.slug)} 
-                          onChange={() => togglePermission(p.slug)}
-                          className="!mt-0.5 !w-4 !h-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60] !cursor-pointer"
-                        />
-                        <span className={`text-sm font-medium ${editData.permissions.includes(p.slug) ? 'text-[#1abc60]' : 'text-gray-700'}`}>{p.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Password Updates */}
-                <div className="space-y-4 pt-4 border-t border-gray-100">
-                  <h4 className="text-sm font-semibold text-gray-900">Security Updates</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider ml-1">New Password</label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                        <input 
-                          type="password" 
-                          value={editData.password} 
-                          onChange={e => setEditData({...editData, password: e.target.value})} 
-                          className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all placeholder:!text-gray-400" 
-                          placeholder="Leave blank to keep current" 
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider ml-1">Confirm Password</label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                        <input 
-                          type="password" 
-                          value={editData.confirmPassword} 
-                          onChange={e => setEditData({...editData, confirmPassword: e.target.value})} 
-                          className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-sm !text-gray-900 !rounded-lg !transition-all placeholder:!text-gray-400" 
-                          placeholder="••••••••" 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    setEditingUser(null);
-                    setEditData(prev => ({ ...prev, password: '', confirmPassword: '' }));
-                  }}
-                  className="!px-5 !py-2.5 !bg-white !border !border-gray-300 !text-gray-700 !rounded-lg !text-sm !font-semibold hover:!bg-gray-50 !transition-colors !cursor-pointer !shadow-sm"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={() => {
-                    if (editData.password && editData.password !== editData.confirmPassword) {
-                      return toast.error('Passwords do not match');
-                    }
-                    handleUpdateUser(editingUser._id, editData);
-                    setEditingUser(null);
-                    setEditData(prev => ({ ...prev, password: '', confirmPassword: '' }));
-                  }} 
-                  disabled={!editHasChanged || updatingId === editingUser._id} 
-                  className="!px-6 !py-2.5 !bg-[#1abc60] !text-white !rounded-lg !text-sm !font-semibold !flex !items-center !justify-center !gap-2 hover:!bg-[#17a554] !transition-colors !shadow-sm disabled:!opacity-50 disabled:!cursor-not-allowed !border-none"
-                >
-                  {updatingId === editingUser._id ? <Loader2 className="w-4 h-4 animate-spin !block !shrink-0" /> : <Save className="w-4 h-4 !block !shrink-0" />}
-                  Update Account
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -853,76 +913,75 @@ function UserRow({ user, isCurrentUser, onEdit, onDelete, getImageUrl }: {
   getImageUrl: (path: string) => string
 }) {
   return (
-    <tr className={`hover:bg-gray-50/50 transition-colors border-b border-gray-100 last:border-0 ${!user.isActive ? 'bg-gray-50/50 opacity-75' : ''}`}>
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center overflow-hidden border border-emerald-100 shrink-0">
+    <tr className={`hover:!bg-gray-50/50 !transition-colors !border-b !border-gray-100 last:!border-0 ${!user.isActive ? '!bg-gray-50/50 !opacity-75' : ''}`}>
+      <td className="!px-6 md:!px-8 !py-5">
+        <div className="!flex !items-center !gap-4 !min-w-0">
+          <div className="!w-12 !h-12 !rounded-full !bg-emerald-50 !flex !items-center !justify-center !overflow-hidden !border !border-emerald-100 !shrink-0">
             {user.profilePhoto ? (
-              <img src={getImageUrl(user.profilePhoto)} alt={user.name} className="w-full h-full object-cover" />
+              <img src={getImageUrl(user.profilePhoto)} alt={user.name} className="!w-full !h-full !object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center font-bold text-[#1abc60]">
+              <div className="!w-full !h-full !flex !items-center !justify-center !font-black !text-lg !text-[#1abc60]">
                 {user.name.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
-          <div className="flex flex-col min-w-0">
-            <div className="text-sm font-bold text-gray-900 truncate flex items-center gap-2">
+          <div className="!flex !flex-col !min-w-0">
+            <div className="!text-sm !font-bold !text-gray-900 !truncate !flex !items-center !gap-2 !mb-0.5">
               {user.name} 
-              {isCurrentUser && <span className="text-[10px] text-[#1abc60] font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-100 uppercase tracking-wider">You</span>}
+              {isCurrentUser && <span className="!text-[9px] !text-[#1abc60] !font-black !bg-green-50 !px-1.5 !py-0.5 !rounded !border !border-green-100 !uppercase !tracking-widest">You</span>}
             </div>
-            <div className="text-xs font-medium text-gray-500 truncate">{user.email}</div>
+            <div className="!text-xs !font-medium !text-gray-500 !truncate">{user.email}</div>
           </div>
         </div>
       </td>
-      <td className="px-6 py-4">
-        <span className={`inline-flex px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider border ${
-          user.role === 'superadmin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-          user.role === 'admin' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+      <td className="!px-6 md:!px-8 !py-5">
+        <span className={`!inline-flex !px-2.5 !py-1 !rounded-md !text-[10px] !font-black !uppercase !tracking-widest !border ${
+          user.role === 'superadmin' ? '!bg-purple-50 !text-purple-700 !border-purple-200' :
+          user.role === 'admin' ? '!bg-blue-50 !text-blue-700 !border-blue-200' : '!bg-gray-50 !text-gray-700 !border-gray-200'
         }`}>
           {user.role}
         </span>
       </td>
-      <td className="px-6 py-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-yellow-50 rounded-lg border border-yellow-200 w-fit" title="Current Coin Balance">
-            <Award className="w-3.5 h-3.5 text-yellow-600" />
-            <span className="text-xs font-bold text-yellow-700">{user.coins || 0}</span>
+      <td className="!px-6 md:!px-8 !py-5">
+        <div className="!flex !flex-col !gap-1">
+          <div className="!flex !items-center !gap-1.5 !px-2.5 !py-1.5 !bg-amber-50 !rounded-lg !border !border-amber-200 !w-fit" title="Current Coin Balance">
+            <Award className="!w-3.5 !h-3.5 !text-amber-600" />
+            <span className="!text-xs !font-black !text-amber-700">{user.coins || 0}</span>
           </div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter ml-1">Remaining Balance</p>
         </div>
       </td>
-      <td className="px-6 py-4">
-        <div className="text-sm font-medium text-gray-600">{user.phone || '-'}</div>
+      <td className="!px-6 md:!px-8 !py-5">
+        <div className="!text-sm !font-bold !text-gray-600">{user.phone || '-'}</div>
       </td>
-      <td className="px-6 py-4">
-        <div className="text-sm font-medium text-gray-600">{user.createdBy?.name || 'System'}</div>
+      <td className="!px-6 md:!px-8 !py-5">
+        <div className="!text-sm !font-bold !text-gray-600">{user.createdBy?.name || 'System'}</div>
       </td>
-      <td className="px-6 py-4">
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider border ${
+      <td className="!px-6 md:!px-8 !py-5">
+        <span className={`!inline-flex !items-center !gap-1.5 !px-2.5 !py-1 !rounded-md !text-[10px] !font-black !uppercase !tracking-widest !border ${
           user.isActive 
-            ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
-            : 'text-red-700 bg-red-50 border-red-200'
+            ? '!text-emerald-700 !bg-emerald-50 !border-emerald-200' 
+            : '!text-red-700 !bg-red-50 !border-red-200'
         }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${user.isActive ? 'bg-[#1abc60]' : 'bg-red-500'}`}></span>
+          <span className={`!w-1.5 !h-1.5 !rounded-full ${user.isActive ? '!bg-[#1abc60]' : '!bg-red-500'}`}></span>
           {user.isActive ? 'Active' : 'Inactive'}
         </span>
       </td>
-      <td className="px-6 py-4 text-right">
+      <td className="!px-6 md:!px-8 !py-5 !text-right">
         {!isCurrentUser && (
-          <div className="flex justify-end gap-2">
+          <div className="!flex !justify-end !gap-2">
             <button 
               onClick={onEdit} 
-              className="!p-1.5 !text-gray-400 hover:!text-[#1abc60] hover:!bg-green-50 !rounded-md !transition-colors !border !border-transparent hover:!border-green-200 !bg-transparent !cursor-pointer"
+              className="!p-2 !text-gray-400 hover:!text-[#1abc60] hover:!bg-emerald-50 !rounded-lg !transition-colors !border !border-transparent hover:!border-emerald-200 !bg-transparent !cursor-pointer"
               title="Edit User"
             >
-              <Edit2 className="w-4 h-4 !block !shrink-0" />
+              <Edit2 className="!w-4 !h-4 !block !shrink-0" />
             </button>
             <button 
               onClick={() => onDelete(user._id)} 
-              className="!p-1.5 !text-gray-400 hover:!text-red-600 hover:!bg-red-50 !rounded-md !transition-colors !border !border-transparent hover:!border-red-200 !bg-transparent !cursor-pointer"
+              className="!p-2 !text-gray-400 hover:!text-red-600 hover:!bg-red-50 !rounded-lg !transition-colors !border !border-transparent hover:!border-red-200 !bg-transparent !cursor-pointer"
               title="Delete User"
             >
-              <Trash2 className="w-4 h-4 !block !shrink-0" />
+              <Trash2 className="!w-4 !h-4 !block !shrink-0" />
             </button>
           </div>
         )}

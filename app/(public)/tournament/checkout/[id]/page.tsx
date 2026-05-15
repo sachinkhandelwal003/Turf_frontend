@@ -180,7 +180,7 @@ export default function TournamentCheckoutPage() {
               if (res.data.success) {
                 sessionStorage.removeItem('pending_registration');
                 toast.success("✅ Registration successful!");
-                router.push('/tournament/success');
+                router.push(`/payment-success/tournament_${id}`);
               } else {
                 toast.error(res.data.msg || "Registration failed");
                 setProcessing(false);
@@ -189,7 +189,7 @@ export default function TournamentCheckoutPage() {
               console.error('API Error:', err);
               toast.error('Payment successful! Registration pending verification.');
               sessionStorage.removeItem('pending_registration');
-              router.push('/tournament/success');
+              router.push(`/payment-success/tournament_${id}`);
             }
           }
         };
@@ -235,7 +235,7 @@ export default function TournamentCheckoutPage() {
       if (res.data.success) {
         sessionStorage.removeItem('pending_registration');
         toast.success("Registration successful!");
-        router.push('/tournament/success');
+        router.push(`/payment-success/tournament_${id}`);
       } else {
         toast.error(res.data.msg || "Registration failed");
       }

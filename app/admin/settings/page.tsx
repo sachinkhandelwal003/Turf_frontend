@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import MediaUpload from "@/components/MediaUpload";
 import { useAuth } from "@/app/context/AuthContext";
 
-type SettingsTab = "general" | "hero" | "auth" | "security" | "coins" | "payment";
+type SettingsTab = "general" | "hero" | "auth" | "coins" | "payment";
 
 interface UploadedFile {
   id: string;
@@ -168,19 +168,30 @@ export default function AdminSettingsPage() {
     saveToLocalStorage(settings);
     
     try {
-      const payload = {
-        siteName: settings.siteName,
-        contactEmail: settings.contactEmail,
-        maintenanceMode: settings.maintenanceMode,
-        coinValue: settings.coinValue,
-        googleLogin: settings.googleLogin,
-        appleLogin: settings.appleLogin,
-        heroBanner: settings.heroBanner,
-        razorpay: settings.razorpay
-      };
+      const formData = new FormData();
+      formData.append('siteName', settings.siteName);
+      formData.append('contactEmail', settings.contactEmail);
+      formData.append('maintenanceMode', String(settings.maintenanceMode));
+      formData.append('coinValue', String(settings.coinValue));
+      formData.append('googleLogin', JSON.stringify(settings.googleLogin));
+      formData.append('appleLogin', JSON.stringify(settings.appleLogin));
+      formData.append('heroBanner', JSON.stringify(settings.heroBanner));
+      formData.append('razorpay', JSON.stringify(settings.razorpay));
 
-      console.log('Sending to API:', payload);
-      const res = await api.post("/settings", payload);
+      if (logoFiles.frontend?.originalFile) {
+        formData.append('frontendLogo', logoFiles.frontend.originalFile);
+      }
+      if (logoFiles.backend?.originalFile) {
+        formData.append('backendLogo', logoFiles.backend.originalFile);
+      }
+      if (logoFiles.hero?.originalFile) {
+        formData.append('heroBannerImage', logoFiles.hero.originalFile);
+      }
+
+      console.log('Sending to API via FormData...');
+      const res = await api.post("/settings", formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       console.log('API response:', res.data);
 
       if (res.data && res.data.success) {
@@ -227,7 +238,6 @@ export default function AdminSettingsPage() {
             { id: "payment", label: "Payment Gateway", icon: CreditCard },
             { id: "hero", label: "Hero Banner", icon: ImageIcon },
             { id: "auth", label: "Authentication", icon: Lock },
-            { id: "security", label: "Security & Access", icon: Shield },
           ] as const).map((tab) => (
             <button
               key={tab.id}
@@ -383,6 +393,216 @@ export default function AdminSettingsPage() {
                         className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-sm" 
                         placeholder="support@example.com"
                       />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-5 pt-4">
+                  <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2">Logos & Branding</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <label className="text-sm font-bold text-gray-700">Frontend Logo</label>
+                      <MediaUpload
+                        maxFiles={1}
+                        initialFiles={settings.frontendLogo ? [settings.frontendLogo] : []}
+                        onFilesChange={(files) => {
+                          setLogoFiles(prev => ({ ...prev, frontend: files[0] || null }));
+                        }}
+                        acceptedTypes={["image"]}
+                      />
+                      <p className="text-[10px] text-gray-400 font-medium italic">Visible on main website (Recommended: PNG, 144x48px)</p>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-sm font-bold text-gray-700">Backend Logo</label>
+                      <MediaUpload
+                        maxFiles={1}
+                        initialFiles={settings.backendLogo ? [settings.backendLogo] : []}
+                        onFilesChange={(files) => {
+                          setLogoFiles(prev => ({ ...prev, backend: files[0] || null }));
+                        }}
+                        acceptedTypes={["image"]}
+                      />
+                      <p className="text-[10px] text-gray-400 font-medium italic">Visible on admin dashboard (Recommended: PNG, 144x48px)</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "hero" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+                <div className="space-y-5">
+                  <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2">Hero Banner Configuration</h3>
+                  <div className="space-y-6">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">Hero Title</label>
+                      <input 
+                        value={settings.heroBanner.title} 
+                        onChange={e => {
+                          const newS = { ...settings, heroBanner: { ...settings.heroBanner, title: e.target.value } };
+                          setSettings(newS);
+                          saveToLocalStorage(newS);
+                        }}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-sm font-bold" 
+                        placeholder="UP YOUR GAME"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">Hero Subtitle</label>
+                      <textarea 
+                        value={settings.heroBanner.subtitle} 
+                        onChange={e => {
+                          const newS = { ...settings, heroBanner: { ...settings.heroBanner, subtitle: e.target.value } };
+                          setSettings(newS);
+                          saveToLocalStorage(newS);
+                        }}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all text-sm h-24 resize-none" 
+                        placeholder="Premium sports venues..."
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-sm font-bold text-gray-700">Hero Background Image</label>
+                      <MediaUpload
+                        maxFiles={1}
+                        initialFiles={settings.heroBanner.image ? [settings.heroBanner.image] : []}
+                        onFilesChange={(files) => {
+                          setLogoFiles(prev => ({ ...prev, hero: files[0] || null }));
+                        }}
+                        acceptedTypes={["image"]}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "auth" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2 flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-blue-500" /> Google Authentication
+                    </h3>
+                    <div className="p-6 bg-gray-50 rounded-2xl border border-gray-200 space-y-5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-900">Enable Google Login</h4>
+                          <p className="text-xs text-gray-500">Allow users to sign in with their Google accounts</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={settings.googleLogin.enabled} 
+                            onChange={e => {
+                              const newS = { ...settings, googleLogin: { ...settings.googleLogin, enabled: e.target.checked } };
+                              setSettings(newS);
+                              saveToLocalStorage(newS);
+                            }} 
+                            className="sr-only peer" 
+                          />
+                          <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1abc60]"></div>
+                        </label>
+                      </div>
+
+                      {settings.googleLogin.enabled && (
+                        <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-2">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-700">Client ID</label>
+                            <input 
+                              value={settings.googleLogin.clientId}
+                              onChange={e => {
+                                const newS = { ...settings, googleLogin: { ...settings.googleLogin, clientId: e.target.value } };
+                                setSettings(newS);
+                                saveToLocalStorage(newS);
+                              }}
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-sm font-mono" 
+                              placeholder="xxxxxxxx-xxxx.apps.googleusercontent.com"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-700">Client Secret</label>
+                            <input 
+                              type="password"
+                              value={settings.googleLogin.clientSecret}
+                              onChange={e => {
+                                const newS = { ...settings, googleLogin: { ...settings.googleLogin, clientSecret: e.target.value } };
+                                setSettings(newS);
+                                saveToLocalStorage(newS);
+                              }}
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-sm font-mono" 
+                              placeholder="••••••••••••••••"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-4">
+                    <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2 flex items-center gap-2">
+                      <Apple className="w-4 h-4 text-gray-900" /> Apple Authentication
+                    </h3>
+                    <div className="p-6 bg-gray-50 rounded-2xl border border-gray-200 space-y-5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-900">Enable Apple Login</h4>
+                          <p className="text-xs text-gray-500">Allow users to sign in with their Apple ID</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={settings.appleLogin.enabled} 
+                            onChange={e => {
+                              const newS = { ...settings, appleLogin: { ...settings.appleLogin, enabled: e.target.checked } };
+                              setSettings(newS);
+                              saveToLocalStorage(newS);
+                            }} 
+                            className="sr-only peer" 
+                          />
+                          <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1abc60]"></div>
+                        </label>
+                      </div>
+
+                      {settings.appleLogin.enabled && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-700">Service ID (Client ID)</label>
+                            <input 
+                              value={settings.appleLogin.clientId}
+                              onChange={e => {
+                                const newS = { ...settings, appleLogin: { ...settings.appleLogin, clientId: e.target.value } };
+                                setSettings(newS);
+                                saveToLocalStorage(newS);
+                              }}
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-400 transition-all text-sm" 
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-700">Team ID</label>
+                            <input 
+                              value={settings.appleLogin.teamId}
+                              onChange={e => {
+                                const newS = { ...settings, appleLogin: { ...settings.appleLogin, teamId: e.target.value } };
+                                setSettings(newS);
+                                saveToLocalStorage(newS);
+                              }}
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-400 transition-all text-sm" 
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-700">Key ID</label>
+                            <input 
+                              value={settings.appleLogin.keyId}
+                              onChange={e => {
+                                const newS = { ...settings, appleLogin: { ...settings.appleLogin, keyId: e.target.value } };
+                                setSettings(newS);
+                                saveToLocalStorage(newS);
+                              }}
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-400 transition-all text-sm" 
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

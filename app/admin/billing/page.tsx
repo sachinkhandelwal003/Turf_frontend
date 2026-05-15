@@ -183,6 +183,14 @@ export default function BillingPage() {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
+  const getAdminStats = (adminId: string, totalRevenue: number) => {
+    const adminSettlements = settlements.filter(s => s.admin?._id === adminId && s.status === 'completed');
+    const totalPaid = adminSettlements.reduce((sum, s) => sum + s.amount, 0);
+    const totalWalletShare = totalRevenue * 0.8;
+    const pending = Math.max(0, totalWalletShare - totalPaid);
+    return { totalPaid, pending };
+  };
+
   if (loading && !summary) {
     return (
       <div className="!min-h-[80vh] !flex !flex-col !items-center !justify-center !bg-[#f8fafc]">
@@ -252,31 +260,67 @@ export default function BillingPage() {
       </div>
 
       {/* --- TABS --- */}
-      <div className="!flex !items-center !gap-1 !p-1 !bg-gray-100 !rounded-xl !w-fit">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`!px-6 !py-2 !rounded-lg !text-sm !font-bold !transition-all !cursor-pointer ${
-            activeTab === 'overview' 
-              ? '!bg-white !text-gray-900 !shadow-sm' 
-              : '!text-gray-500 hover:!text-gray-700'
-          }`}
-        >
-          Overview
-        </button>
-        <button
-          onClick={() => setActiveTab('settlements')}
-          className={`!px-6 !py-2 !rounded-lg !text-sm !font-bold !transition-all !cursor-pointer ${
-            activeTab === 'settlements' 
-              ? '!bg-white !text-gray-900 !shadow-sm' 
-              : '!text-gray-500 hover:!text-gray-700'
-          }`}
-        >
-          Payment Settlements
-        </button>
+      <div className="!flex !items-center !justify-between !gap-4">
+        <div className="!flex !items-center !gap-1 !p-1 !bg-gray-100 !rounded-xl !w-fit">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`!px-6 !py-2 !rounded-lg !text-sm !font-bold !transition-all !cursor-pointer ${
+              activeTab === 'overview' 
+                ? '!bg-white !text-gray-900 !shadow-sm' 
+                : '!text-gray-500 hover:!text-gray-700'
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('settlements')}
+            className={`!px-6 !py-2 !rounded-lg !text-sm !font-bold !transition-all !cursor-pointer ${
+              activeTab === 'settlements' 
+                ? '!bg-white !text-gray-900 !shadow-sm' 
+                : '!text-gray-500 hover:!text-gray-700'
+            }`}
+          >
+            Payment Settlements
+          </button>
+        </div>
+
+        <div className="!bg-blue-50 !px-4 !py-2 !rounded-xl !border !border-blue-100 !flex !items-center !gap-3">
+          <Clock className="!w-4 !h-4 !text-blue-600" />
+          <div className="!flex !flex-col">
+            <span className="!text-[10px] !font-black !text-blue-400 !uppercase">Current Cycle</span>
+            <span className="!text-xs !font-bold !text-blue-700">Weekly (Mon - Sun)</span>
+          </div>
+        </div>
       </div>
 
       {activeTab === 'overview' ? (
         <>
+          {/* Revenue Overview Card */}
+          <div className="!bg-gradient-to-r !from-[#1abc60] !to-[#169c4e] !p-6 !rounded-2xl !text-white !shadow-lg !flex !flex-col md:!flex-row !justify-between !items-center !gap-6">
+            <div>
+              <h2 className="!text-xl !font-black !uppercase !tracking-widest !m-0">
+                {isSuperAdmin ? 'Platform Revenue Overview' : 'My Revenue Overview'}
+              </h2>
+              <p className="!text-sm !text-white/80 !mt-1">Persistent tracking of all bookings and settlements</p>
+            </div>
+            <div className="!flex !gap-8">
+              <div className="!text-center">
+                <p className="!text-[10px] !font-black !text-white/60 !uppercase !tracking-tighter">Gross Revenue</p>
+                <p className="!text-2xl !font-black">₹{summary?.totalRevenue.toLocaleString()}</p>
+              </div>
+              <div className="!text-center">
+                <p className="!text-[10px] !font-black !text-white/60 !uppercase !tracking-tighter">Net Earned (80%)</p>
+                <p className="!text-2xl !font-black">₹{((summary?.totalRevenue || 0) * 0.8).toLocaleString()}</p>
+              </div>
+              <div className="!text-center">
+                <p className="!text-[10px] !font-black !text-white/60 !uppercase !tracking-tighter">Total Paid</p>
+                <p className="!text-2xl !font-black">
+                  ₹{settlements.filter(s => s.status === 'completed').reduce((sum, s) => sum + s.amount, 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Summary Cards */}
           <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-4 !gap-6">
         
@@ -291,6 +335,16 @@ export default function BillingPage() {
           <h3 className="!text-2xl !font-bold !text-gray-900 !m-0">
             ₹{summary?.totalRevenue.toLocaleString() || 0}
           </h3>
+          <div className="!mt-3 !flex !flex-col !gap-1 !text-[11px] !font-medium">
+            <div className="!flex !justify-between !text-blue-600">
+              <span>Wallet (80%):</span>
+              <span>₹{( (summary?.totalRevenue || 0) * 0.8).toLocaleString()}</span>
+            </div>
+            <div className="!flex !justify-between !text-orange-600">
+              <span>Comm. (20%):</span>
+              <span>₹{( (summary?.totalRevenue || 0) * 0.2).toLocaleString()}</span>
+            </div>
+          </div>
         </div>
 
         <div className="!bg-white !p-5 !rounded-xl !border !border-gray-200 !shadow-sm">
@@ -364,55 +418,83 @@ export default function BillingPage() {
                   <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Admin Info</th>
                   <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Bookings</th>
                   <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Tournaments</th>
+                  <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Wallet (80%)</th>
+                  <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Paid</th>
+                  <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Pending</th>
                   <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Total</th>
                   <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase !text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="!divide-y !divide-gray-100">
-                {filteredAdmins.map((admin) => (
-                  <tr key={admin.adminId} className="hover:!bg-gray-50 !transition-colors">
-                    <td className="!px-6 !py-4">
-                      <div className="!flex !items-center !gap-3">
-                        <div className="!w-8 !h-8 !rounded-full !bg-emerald-50 !text-[#1abc60] !font-bold !flex !items-center !justify-center !text-xs">
-                          {getInitials(admin.name)}
+                {filteredAdmins.map((admin) => {
+                  const stats = getAdminStats(admin.adminId, admin.totalRevenue);
+                  return (
+                    <tr key={admin.adminId} className="hover:!bg-gray-50 !transition-colors">
+                      <td className="!px-6 !py-4">
+                        <div className="!flex !items-center !gap-3">
+                          <div className="!w-8 !h-8 !rounded-full !bg-emerald-50 !text-[#1abc60] !font-bold !flex !items-center !justify-center !text-xs">
+                            {getInitials(admin.name)}
+                          </div>
+                          <div className="!flex !flex-col">
+                            <span className="!font-semibold !text-sm !text-gray-900">{admin.name}</span>
+                            <span className="!text-xs !text-gray-500">{admin.email}</span>
+                          </div>
                         </div>
+                      </td>
+                      <td className="!px-6 !py-4">
                         <div className="!flex !flex-col">
-                          <span className="!font-semibold !text-sm !text-gray-900">{admin.name}</span>
-                          <span className="!text-xs !text-gray-500">{admin.email}</span>
+                          <span className="!text-sm !font-semibold !text-gray-900">₹{admin.bookingRevenue.total.toLocaleString()}</span>
+                          <div className="!flex !gap-2 !text-[10px] !text-gray-500 !mt-1">
+                            <span>On: ₹{admin.bookingRevenue.online.toLocaleString()}</span>
+                            <span>Off: ₹{admin.bookingRevenue.offline.toLocaleString()}</span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="!px-6 !py-4">
-                      <div className="!flex !flex-col">
-                        <span className="!text-sm !font-semibold !text-gray-900">₹{admin.bookingRevenue.total.toLocaleString()}</span>
-                        <div className="!flex !gap-2 !text-[10px] !text-gray-500 !mt-1">
-                          <span>On: ₹{admin.bookingRevenue.online.toLocaleString()}</span>
-                          <span>Off: ₹{admin.bookingRevenue.offline.toLocaleString()}</span>
+                      </td>
+                      <td className="!px-6 !py-4">
+                        <span className="!text-sm !font-semibold !text-gray-900">₹{admin.tournamentRevenue.toLocaleString()}</span>
+                      </td>
+                      <td className="!px-6 !py-4">
+                        <div className="!flex !flex-col">
+                          <span className="!text-sm !font-bold !text-blue-600">
+                            ₹{(admin.totalRevenue * 0.8).toLocaleString()}
+                          </span>
+                          <span className="!text-[10px] !text-gray-400 !font-medium">Total Share</span>
                         </div>
-                      </div>
-                    </td>
-                    <td className="!px-6 !py-4">
-                      <span className="!text-sm !font-semibold !text-gray-900">₹{admin.tournamentRevenue.toLocaleString()}</span>
-                    </td>
-                    <td className="!px-6 !py-4">
-                      <span className="!text-sm !font-bold !text-[#1abc60]">
-                        ₹{admin.totalRevenue.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="!px-6 !py-4 !text-right">
-                      <button 
-                        onClick={() => {
-                          setSelectedAdmin(admin);
-                          setShowAdminModal(true);
-                        }}
-                        className="!p-2 !bg-gray-50 !text-gray-600 !rounded-lg hover:!bg-[#1abc60] hover:!text-white !transition-all !border-none !cursor-pointer"
-                        title="View Details"
-                      >
-                        <Eye className="!w-4 !h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="!px-6 !py-4">
+                        <span className="!text-sm !font-bold !text-emerald-600">
+                          ₹{stats.totalPaid.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="!px-6 !py-4">
+                        <span className={`!text-sm !font-bold ${stats.pending > 0 ? '!text-orange-600' : '!text-gray-400'}`}>
+                          ₹{stats.pending.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="!px-6 !py-4">
+                        <span className="!text-sm !font-bold !text-[#1abc60]">
+                          ₹{admin.totalRevenue.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="!px-6 !py-4 !text-right">
+                        <button 
+                          onClick={() => {
+                            setNewSettlement(prev => ({ 
+                              ...prev, 
+                              adminId: admin.adminId, 
+                              amount: stats.pending.toString() 
+                            }));
+                            setShowSettlementModal(true);
+                          }}
+                          disabled={stats.pending <= 0}
+                          className="!px-3 !py-1.5 !bg-[#1abc60] !text-white !rounded-lg !text-xs !font-bold hover:!bg-[#17a554] !transition-colors disabled:!opacity-50 !border-none !cursor-pointer"
+                        >
+                          Settle Now
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {filteredAdmins.length === 0 && (
                   <tr>
                     <td colSpan={5} className="!px-6 !py-8 !text-center !text-gray-500 !text-sm">
@@ -435,12 +517,14 @@ export default function BillingPage() {
           <table className="!w-full !text-left !min-w-[700px]">
             <thead>
               <tr className="!bg-gray-50 !border-b !border-gray-200">
-                <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Date</th>
-                <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Customer</th>
-                <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Venue</th>
-                <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Type</th>
-                <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase !text-right">Amount</th>
-              </tr>
+                  <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Date</th>
+                  <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Customer</th>
+                  <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Venue</th>
+                  <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Type</th>
+                  <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Wallet (80%)</th>
+                  <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase">Comm. (20%)</th>
+                  <th className="!px-6 !py-3 !text-xs !font-semibold !text-gray-500 !uppercase !text-right">Amount</th>
+                </tr>
             </thead>
             <tbody className="!divide-y !divide-gray-100">
               {recentTransactions.slice(0, 10).map((tx) => (
@@ -472,6 +556,16 @@ export default function BillingPage() {
                       );
                     })()}
                   </td>
+                  <td className="!px-6 !py-4">
+                    <span className="!text-sm !font-semibold !text-blue-600">
+                      ₹{(tx.paidAmount * 0.8).toLocaleString()}
+                    </span>
+                  </td>
+                  <td className="!px-6 !py-4">
+                    <span className="!text-sm !font-semibold !text-orange-600">
+                      ₹{(tx.paidAmount * 0.2).toLocaleString()}
+                    </span>
+                  </td>
                   <td className="!px-6 !py-4 !text-right">
                     <span className="!text-sm !font-bold !text-gray-900">
                       ₹{tx.paidAmount.toLocaleString()}
@@ -496,15 +590,17 @@ export default function BillingPage() {
         <div className="!space-y-6">
           <div className="!flex !justify-between !items-center">
             <div>
-              <h2 className="!text-lg !font-black !text-gray-900 !uppercase !tracking-widest">Settlement History</h2>
-              <p className="!text-xs !text-gray-500 !font-medium">Track payouts and recoveries with ground owners</p>
+              <h2 className="!text-lg !font-black !text-gray-900 !uppercase !tracking-widest">Payout & Paid History</h2>
+              <p className="!text-xs !text-gray-500 !font-medium">Track all settlements and weekly payments to ground owners</p>
             </div>
-            <button
-              onClick={() => setShowSettlementModal(true)}
-              className="!flex !items-center !gap-2 !bg-[#1abc60] !text-white !px-5 !py-2.5 !rounded-xl !text-sm !font-black !uppercase !tracking-widest !hover:!bg-[#169c4e] !transition-all !shadow-lg !shadow-[#1abc60]/20 !cursor-pointer !border-none"
-            >
-              <Plus className="!w-4 !h-4" /> New Settlement
-            </button>
+            {isSuperAdmin && (
+              <button
+                onClick={() => setShowSettlementModal(true)}
+                className="!flex !items-center !gap-2 !bg-[#1abc60] !text-white !px-5 !py-2.5 !rounded-xl !text-sm !font-black !uppercase !tracking-widest !hover:!bg-[#169c4e] !transition-all !shadow-lg !shadow-[#1abc60]/20 !cursor-pointer !border-none"
+              >
+                <Plus className="!w-4 !h-4" /> New Payout
+              </button>
+            )}
           </div>
 
           <div className="!bg-white !rounded-2xl !border !border-gray-200 !shadow-sm !overflow-hidden">
@@ -516,8 +612,8 @@ export default function BillingPage() {
                     <th className="!px-6 !py-4 !text-[10px] !font-black !text-gray-500 !uppercase !tracking-widest">Ground Owner</th>
                     <th className="!px-6 !py-4 !text-[10px] !font-black !text-gray-500 !uppercase !tracking-widest">Type</th>
                     <th className="!px-6 !py-4 !text-[10px] !font-black !text-gray-500 !uppercase !tracking-widest">Amount</th>
-                    <th className="!px-6 !py-4 !text-[10px] !font-black !text-gray-500 !uppercase !tracking-widest">Method</th>
                     <th className="!px-6 !py-4 !text-[10px] !font-black !text-gray-500 !uppercase !tracking-widest">Status</th>
+                    <th className="!px-6 !py-4 !text-[10px] !font-black !text-gray-500 !uppercase !tracking-widest">Weekly Report</th>
                   </tr>
                 </thead>
                 <tbody className="!divide-y !divide-gray-100">
@@ -542,13 +638,15 @@ export default function BillingPage() {
                       <td className="!px-6 !py-4 !text-sm !font-black !text-gray-900">
                         ₹{s.amount.toLocaleString()}
                       </td>
-                      <td className="!px-6 !py-4 !text-sm !font-medium !text-gray-500">
-                        {s.paymentMethod}
-                      </td>
                       <td className="!px-6 !py-4">
                         <div className="!flex !items-center !gap-1.5 !text-emerald-600 !font-bold !text-xs">
                           <CheckCircle className="!w-4 !h-4" /> {s.status}
                         </div>
+                      </td>
+                      <td className="!px-6 !py-4">
+                        <span className="!text-[10px] !font-bold !text-gray-500 !bg-gray-100 !px-2 !py-1 !rounded-md">
+                          Week {Math.ceil(new Date(s.createdAt).getDate() / 7)}
+                        </span>
                       </td>
                     </tr>
                   ))}

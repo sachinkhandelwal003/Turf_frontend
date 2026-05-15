@@ -82,7 +82,13 @@ export default function AdminLoginPage() {
           {/* Password */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
-              <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wide">Password</label>
+              <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wide">Admin Password</label>
+              <Link 
+                href={email ? `/ForgotPassword?email=${encodeURIComponent(email)}` : "/ForgotPassword"} 
+                className="text-[11px] font-bold text-[#1abc60] hover:underline"
+              >
+                Forgot password?
+              </Link>
             </div>
             
             <div className="relative">

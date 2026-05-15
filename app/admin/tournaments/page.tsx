@@ -223,8 +223,17 @@ export default function TournamentsListPage() {
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
-                  <div className={`px-2.5 py-1 rounded-md text-xs font-semibold capitalize shadow-sm ${getStatusColor(tournament.status)}`}>
-                    {tournament.status}
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleDelete(tournament._id)}
+                      className="!p-1.5 !bg-white/90 hover:!bg-red-50 !text-gray-400 hover:!text-red-600 !rounded-lg !transition-all !shadow-sm !border !border-gray-200 !cursor-pointer"
+                      title="Delete Tournament"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className={`px-2.5 py-1 rounded-md text-xs font-semibold capitalize shadow-sm ${getStatusColor(tournament.status)}`}>
+                      {tournament.status}
+                    </div>
                   </div>
                   <div className={`px-2.5 py-1 rounded-md text-xs font-semibold capitalize shadow-sm border ${
                     tournament.approvalStatus === 'approved' ? '!bg-green-50 !text-green-700 !border-green-200' : 

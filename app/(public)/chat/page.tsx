@@ -24,7 +24,7 @@ export default function ChatPage() {
   }
 
   return (
-    <ChatProvider userId={user.id}>
+    <ChatProvider>
       <ChatLayout userId={user.id} />
     </ChatProvider>
   );

@@ -53,7 +53,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
+    let apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
+    
+    if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_API_URL) {
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        if (/^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname)) {
+          apiUrl = `http://${window.location.hostname}:5001/api`;
+        }
+      }
+    }
+
     const socketUrl = apiUrl.replace("/api", "");
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],

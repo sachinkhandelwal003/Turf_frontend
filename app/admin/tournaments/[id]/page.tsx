@@ -24,7 +24,8 @@ import {
   Layout,
   Info,
   Image as ImageIcon,
-  CheckCircle2
+  CheckCircle2,
+  Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/app/services/api';
@@ -113,6 +114,22 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this tournament? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const res = await api.delete(`/tournaments/${id}`);
+      if (res.data.success) {
+        toast.success('Tournament deleted successfully');
+        router.push('/admin/tournaments');
+      }
+    } catch (error) {
+      toast.error('Failed to delete tournament');
+    }
+  };
+
   const getImageUrl = (path: string) => {
     if (!path) return '/heroimage.png';
     if (path.startsWith('http')) return path;
@@ -194,6 +211,13 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
             <Edit className="!w-4 !h-4 !block !shrink-0" />
             Edit Details
           </Link>
+          <button 
+            onClick={handleDelete}
+            className="!px-5 !py-2.5 !bg-red-50 !border !border-red-200 !text-red-600 !rounded-xl !text-sm !font-bold hover:!bg-red-100 !transition-colors !shadow-sm !flex !items-center !gap-2 !border-none !cursor-pointer"
+          >
+            <Trash2 className="!w-4 !h-4 !block !shrink-0" />
+            Delete
+          </button>
         </div>
       </div>
 

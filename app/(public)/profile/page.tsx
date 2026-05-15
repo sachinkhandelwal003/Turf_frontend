@@ -7,7 +7,7 @@ import {
   Mail, Phone, Loader2, LogOut, 
   Calendar, MapPin, Clock, Camera, Settings, History, 
   CreditCard, ChevronRight, Activity, Bell, Award, CheckCircle2,
-  X, ExternalLink, Ticket, Star, Send, LayoutList, Trophy
+  X, ExternalLink, Ticket, Star, Send, LayoutList, Trophy, Trash2, Lock
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import api from '@/app/services/api';
@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface Booking {
   _id: string;
-  type?: 'ground' | 'tournament'; // Added for filtering
+  type?: 'ground' | 'tournament';
   turf?: {
     _id: string;
     name: string;
@@ -31,7 +31,8 @@ interface Booking {
     _id: string;
     title: string;
     image?: string;
-    entryFee?: number; // Added for conceptual calculation
+    entryFee?: number;
+    location?: string;
   };
   sport: string;
   date: string;
@@ -73,6 +74,80 @@ interface ApiError {
 
 const getApiError = (error: unknown) => error as ApiError;
 
+// --- Helper Functions Moved Outside Component to Prevent Reference Errors ---
+
+const isTournamentBooking = (b: Booking) => b.type === 'tournament' || !!b.tournament;
+
+const isBookingCompleted = (booking: Booking) => {
+  if (booking.status === 'completed') return true;
+  if (booking.status !== 'confirmed') return false;
+  const bookingEnd = new Date(`${booking.date}T${booking.endTime || '23:59'}:00`);
+  return !Number.isNaN(bookingEnd.getTime()) && bookingEnd <= new Date();
+};
+
+const getDisplayStatus = (booking: Booking) => {
+  if (isBookingCompleted(booking)) return 'completed';
+  return booking.status;
+};
+
+const getDurationInHours = (start: string, end: string) => {
+  try {
+    const [sh, sm] = (start || "00:00").split(':').map(Number);
+    const [eh, em] = (end || "00:00").split(':').map(Number);
+    const diff = (eh * 60 + em) - (sh * 60 + sm);
+    return diff > 0 ? diff / 60 : 1;
+  } catch (e) {
+    return 1;
+  }
+};
+
+const parseSafeNumber = (val: any) => {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const parsed = parseFloat(val.replace(/[^0-9.]/g, ''));
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+};
+
+const getBookingTotal = (booking: Booking) => {
+  const directAmount = parseSafeNumber(booking.totalAmount || booking.price || booking.paidAmount);
+  if (directAmount > 0) return directAmount;
+
+  if (isTournamentBooking(booking)) {
+    const tournFee = parseSafeNumber((booking as any).tournament?.entryFee);
+    if (tournFee > 0) return tournFee;
+  }
+
+  try {
+    const basePrice = parseSafeNumber(booking.turf?.pricePerHour);
+    const effectivePrice = basePrice > 0 ? basePrice : 500; 
+    
+    const numCourts = booking.courts?.length || 1;
+
+    if (booking.isMultiple && booking.slots) {
+      const totalHours = booking.slots.reduce((sum, slot) => {
+        const [s, e] = slot.split(' - ');
+        return sum + getDurationInHours(s, e);
+      }, 0);
+      return totalHours * effectivePrice * numCourts;
+    }
+
+    const duration = getDurationInHours(booking.startTime, booking.endTime);
+    return Math.max(1, duration) * effectivePrice * numCourts;
+  } catch (e) {
+    return 500; 
+  }
+};
+
+const getImageUrl = (path: string | undefined) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  return `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${path}`;
+};
+
+// --- Main Component ---
+
 export default function ProfilePage() {
   const { user, isLoading, logout, isAuthenticated, refreshUser } = useAuth();
   const router = useRouter();
@@ -91,6 +166,7 @@ export default function ProfilePage() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [showCoinPopup, setShowCoinPopup] = useState(false);
   const [rewardAmount, setRewardAmount] = useState(0);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   // Refs for file inputs
   const profileInputRef = useRef<HTMLInputElement>(null);
@@ -100,6 +176,7 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Password Update States
   const [currentPassword, setCurrentPassword] = useState('');
@@ -111,11 +188,12 @@ export default function ProfilePage() {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
-    if (user) {
+    if (user && !hasInitialized) {
       setName(user.name || '');
       setPhone(user.phone || '');
+      setHasInitialized(true);
     }
-  }, [isLoading, isAuthenticated, router, user]);
+  }, [isLoading, isAuthenticated, router, user, hasInitialized]);
 
   const handleUpdateProfile = async () => {
     if (!name.trim()) return toast.error('Name cannot be empty');
@@ -193,22 +271,109 @@ export default function ProfilePage() {
         params.filter = bookingFilter;
       }
       
-      const res = await api.get('/bookings/my', { params });
-      if (res.data.success) {
-        setBookings(res.data.bookings);
+      const [bookingsRes, registrationsRes] = await Promise.all([
+        api.get('/bookings/my', { params }),
+        api.get('/tournaments/registrations/my').catch(() => ({ data: { success: false } }))
+      ]);
+
+      let combined: Booking[] = [];
+      
+      if (bookingsRes.data.success && Array.isArray(bookingsRes.data.bookings)) {
+        combined = bookingsRes.data.bookings.map((b: any) => ({
+          ...b,
+          type: 'ground'
+        }));
       }
+
+      if (registrationsRes.data.success && Array.isArray(registrationsRes.data.registrations)) {
+        const registrations = registrationsRes.data.registrations.map((reg: any) => ({
+          ...reg,
+          type: 'tournament' as const,
+          tournament: {
+            _id: reg.tournamentId,
+            title: reg.tournamentTitle,
+            image: reg.tournamentImage,
+            entryFee: reg.entryFee,
+            location: reg.location || 'Multiple Locations'
+          },
+          sport: reg.sport || 'Sports',
+          date: reg.registeredAt ? new Date(reg.registeredAt).toLocaleDateString() : 'N/A',
+          price: reg.entryFee || 0,
+          paidAmount: reg.entryFee || 0,
+          status: reg.status || 'confirmed',
+          paymentStatus: 'paid',
+          bookingId: reg._id,
+          location: reg.location || 'Multiple Locations'
+        }));
+        combined = [...combined, ...registrations];
+      }
+      
+      setBookings(combined);
     } catch {
-      toast.error('Failed to load bookings');
+      toast.error('Failed to load history');
     } finally {
       setLoadingBookings(false);
     }
   }, [bookingFilter]);
+
+  const handleDeleteItem = async (booking: Booking | null) => {
+    if (!booking) return;
+    const isTourn = isTournamentBooking(booking);
+    const itemType = isTourn ? 'registration' : 'booking';
+    
+    if (!window.confirm(`Are you sure you want to delete this ${itemType}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsDeleting(booking._id);
+    try {
+      let res;
+      if (isTourn) {
+        // Tournament registration delete
+        res = await api.delete(`/tournaments/${booking.tournament?._id}/registrations/${booking._id}`);
+      } else {
+        // Ground booking delete
+        res = await api.delete(`/bookings/${booking._id}`);
+      }
+
+      if (res.data.success) {
+        toast.success(`${isTourn ? 'Registration' : 'Booking'} deleted successfully`);
+        setBookings(prev => prev.filter(b => b._id !== booking._id));
+      }
+    } catch (error: unknown) {
+      console.error('Delete error:', error);
+      const apiError = getApiError(error);
+      toast.error(apiError.response?.data?.msg || `Failed to delete ${itemType}`);
+    } finally {
+      setIsDeleting(null);
+    }
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchBookings();
     }
   }, [isAuthenticated, fetchBookings]);
+
+  // Sync tab and type filter from URL search params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    const type = params.get('type');
+    
+    if (tab === 'bookings') {
+      setActiveTab('bookings');
+      if (type === 'tournament') {
+        setTypeFilter('tournament');
+      } else if (type === 'ground') {
+        setTypeFilter('ground');
+      }
+    } else if (tab === 'activity') {
+      setActiveTab('activity');
+    } else if (tab === 'settings') {
+      setActiveTab('settings');
+    }
+  }, []);
 
   const handleOpenReviewModal = (booking: Booking) => {
     setReviewModal({ open: true, booking });
@@ -257,20 +422,6 @@ export default function ProfilePage() {
     }
   };
 
-  const isBookingCompleted = (booking: Booking) => {
-    if (booking.status === 'completed') return true;
-    if (booking.status !== 'confirmed') return false;
-    const bookingEnd = new Date(`${booking.date}T${booking.endTime || '23:59'}:00`);
-    return !Number.isNaN(bookingEnd.getTime()) && bookingEnd <= new Date();
-  };
-
-  const getDisplayStatus = (booking: Booking) => {
-    if (isBookingCompleted(booking)) return 'completed';
-    return booking.status;
-  };
-
-  const isTournamentBooking = (b: Booking) => b.type === 'tournament' || !!b.tournament;
-
   // Apply frontend filters for booking type
   const filteredBookings = bookings.filter(b => {
     if (typeFilter === 'ground' && isTournamentBooking(b)) return false;
@@ -278,80 +429,7 @@ export default function ProfilePage() {
     return true;
   });
 
-  if (isLoading) {
-    return (
-      <div className="!min-h-screen !flex !items-center !justify-center !bg-gray-50">
-        <div className="!flex !flex-col !items-center !gap-4">
-          <Loader2 className="!w-10 !h-10 !animate-spin !text-[#1abc60]" />
-          <p className="!text-sm !font-semibold !text-gray-500 !animate-pulse">Loading Profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) return null;
-
-  const getDurationInHours = (start: string, end: string) => {
-    try {
-      const [sh, sm] = (start || "00:00").split(':').map(Number);
-      const [eh, em] = (end || "00:00").split(':').map(Number);
-      const diff = (eh * 60 + em) - (sh * 60 + sm);
-      return diff > 0 ? diff / 60 : 1;
-    } catch (e) {
-      return 1;
-    }
-  };
-
-  const parseSafeNumber = (val: any) => {
-    if (typeof val === 'number') return val;
-    if (typeof val === 'string') {
-      const parsed = parseFloat(val.replace(/[^0-9.]/g, ''));
-      return isNaN(parsed) ? 0 : parsed;
-    }
-    return 0;
-  };
-
-  const getBookingTotal = (booking: Booking) => {
-    // 1. Try direct amounts from booking object
-    const directAmount = parseSafeNumber(booking.totalAmount || booking.price || booking.paidAmount);
-    if (directAmount > 0) return directAmount;
-
-    // 2. Tournament fallback
-    if (isTournamentBooking(booking)) {
-      const tournFee = parseSafeNumber((booking as any).tournament?.entryFee);
-      if (tournFee > 0) return tournFee;
-    }
-
-    // 3. Ground fallback conceptual calculation
-    try {
-      const basePrice = parseSafeNumber(booking.turf?.pricePerHour);
-      // If pricePerHour is 0, use a sensible default based on sport or a flat 500
-      const effectivePrice = basePrice > 0 ? basePrice : 500; 
-      
-      const numCourts = booking.courts?.length || 1;
-
-      if (booking.isMultiple && booking.slots) {
-        const totalHours = booking.slots.reduce((sum, slot) => {
-          const [s, e] = slot.split(' - ');
-          return sum + getDurationInHours(s, e);
-        }, 0);
-        return totalHours * effectivePrice * numCourts;
-      }
-
-      const duration = getDurationInHours(booking.startTime, booking.endTime);
-      return Math.max(1, duration) * effectivePrice * numCourts;
-    } catch (e) {
-      return 500; // Last resort absolute default
-    }
-  };
-
-  const getImageUrl = (path: string) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    return `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${path}`;
-  };
-
-  const getRecentActivities = (): ActivityItem[] => {
+  const recentActivities = useCallback((): ActivityItem[] => {
     const activities: ActivityItem[] = [];
 
     bookings.forEach(b => {
@@ -372,7 +450,7 @@ export default function ProfilePage() {
         activities.push({
           icon: CreditCard,
           title: "Payment Successful",
-          desc: `Paid ₹${b.price} for booking #${b.bookingId.slice(-6)}`,
+          desc: `Paid ₹${getBookingTotal(b)} for ${isTourn ? 'registration' : 'booking'} #${b.bookingId?.slice(-6)}`,
           time: new Date(b.updatedAt).toLocaleDateString(),
           color: "text-emerald-600",
           bg: "bg-emerald-50",
@@ -380,11 +458,11 @@ export default function ProfilePage() {
         });
       }
 
-      if (b.status === 'confirmed') {
+      if (b.status === 'confirmed' || b.status === 'completed') {
         activities.push({
-          icon: Bell,
-          title: "Booking Confirmed",
-          desc: `Your slot at ${b.startTime} on ${b.date} is confirmed`,
+          icon: isTourn ? CheckCircle2 : Bell,
+          title: isTourn ? "Registration Confirmed" : "Booking Confirmed",
+          desc: isTourn ? `Registered for ${name}` : `Your slot at ${b.startTime} on ${b.date} is confirmed`,
           time: new Date(b.updatedAt).toLocaleDateString(),
           color: "text-purple-600",
           bg: "bg-purple-50",
@@ -393,7 +471,7 @@ export default function ProfilePage() {
       }
     });
 
-    if (user.createdAt) {
+    if (user?.createdAt) {
       activities.push({
         icon: Award,
         title: "Joined GameOn",
@@ -406,9 +484,22 @@ export default function ProfilePage() {
     }
 
     return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 10);
-  };
+  }, [bookings, user?.createdAt]);
 
-  const recentActivities = getRecentActivities();
+  if (isLoading) {
+    return (
+      <div className="!min-h-screen !flex !items-center !justify-center !bg-gray-50">
+        <div className="!flex !flex-col !items-center !gap-4">
+          <Loader2 className="!w-10 !h-10 !animate-spin !text-[#1abc60]" />
+          <p className="!text-sm !font-semibold !text-gray-500 !animate-pulse">Loading Profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  const activitiesList = recentActivities();
 
   return (
     <div className="!min-h-screen !bg-gray-50 !pb-20 !pt-24 font-sans text-gray-900">
@@ -656,10 +747,10 @@ export default function ProfilePage() {
                       {filteredBookings.map((booking) => {
                         const isTourn = isTournamentBooking(booking);
                         const itemName = isTourn ? (booking.tournament?.title || "Tournament Details") : (booking.turf?.name || "Venue Deleted");
-                        const itemImage = isTourn ? booking.tournament?.image : booking.turf?.images?.[0];
-                        const itemLocation = isTourn ? "Tournament Event" : (booking.turf?.location?.city || "Unknown Location");
-
-                        return (
+            const itemImage = isTourn ? booking.tournament?.image : booking.turf?.images?.[0];
+            const itemLocation = isTourn ? (booking.tournament?.location || "Tournament Event") : (booking.turf?.location?.city || "Unknown Location");
+            
+            return (
                           <motion.div 
                             layout
                             key={booking._id} 
@@ -706,9 +797,11 @@ export default function ProfilePage() {
                                 <div className="!flex !justify-between !items-start !gap-2">
                                   <div className="!min-w-0 !flex-1">
                                     <div className="!flex !items-center !gap-1.5 !mb-1">
-                                      {isTourn ? <Trophy className="!w-3 !h-3 !text-[#1abc60]" /> : <Activity className="!w-3 !h-3 !text-[#1abc60]" />}
-                                      <span className="!text-[10px] !font-bold !text-[#1abc60] !uppercase !tracking-wider">{booking.sport}</span>
-                                    </div>
+                        {isTourn ? <Trophy className="!w-3 !h-3 !text-[#1abc60]" /> : <Activity className="!w-3 !h-3 !text-[#1abc60]" />}
+                        <span className="!text-[10px] !font-bold !text-[#1abc60] !uppercase !tracking-wider">
+                          {isTourn ? "Tournament" : booking.sport}
+                        </span>
+                      </div>
                                     <h3 className="!text-base !font-bold !text-gray-900 !truncate" title={itemName}>{itemName}</h3>
                                     <div className="!flex !items-center !gap-1.5 !text-[11px] !text-gray-500 !mt-1 !font-medium">
                                       <MapPin className="!w-3 !h-3" />
@@ -749,12 +842,25 @@ export default function ProfilePage() {
                                   <div className={`!w-2 !h-2 !rounded-full ${booking.paymentStatus === 'paid' ? '!bg-[#1abc60]' : '!bg-amber-400'}`} />
                                   {booking.paymentStatus}
                                 </span>
-                                <button 
-                                  onClick={() => setSelectedBooking(booking)}
-                                  className="!text-[11px] !font-bold !text-[#1abc60] !uppercase !tracking-wider !flex !items-center !gap-1 hover:!gap-2 !transition-all !bg-transparent !border-none !cursor-pointer"
-                                >
-                                  Details <ChevronRight className="!w-3.5 !h-3.5" />
-                                </button>
+                                <div className="!flex !items-center !gap-3">
+                                  {isDeleting === booking._id ? (
+                                    <Loader2 className="!w-4 !h-4 !animate-spin !text-red-500" />
+                                  ) : (
+                                    <button 
+                                      onClick={() => handleDeleteItem(booking)}
+                                      className="!p-1.5 !text-gray-400 hover:!text-red-500 hover:!bg-red-50 !rounded-md !transition-all !bg-transparent !border-none !cursor-pointer"
+                                      title={`Delete ${isTourn ? 'Registration' : 'Booking'}`}
+                                    >
+                                      <Trash2 className="!w-4 !h-4" />
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={() => setSelectedBooking(booking)}
+                                    className="!text-[11px] !font-bold !text-[#1abc60] !uppercase !tracking-wider !flex !items-center !gap-1 hover:!gap-2 !transition-all !bg-transparent !border-none !cursor-pointer"
+                                  >
+                                    Details <ChevronRight className="!w-3.5 !h-3.5" />
+                                  </button>
+                                </div>
                               </div>
                               
                               {isBookingCompleted(booking) && !isTourn && (
@@ -903,7 +1009,7 @@ export default function ProfilePage() {
                   <h2 className="!text-xl !font-bold !text-gray-900">Recent Activity</h2>
                   
                   <div className="!bg-white !rounded-2xl !border !border-gray-200 !shadow-sm !overflow-hidden">
-                    {recentActivities.length === 0 ? (
+                    {activitiesList.length === 0 ? (
                       <div className="!p-16 !text-center !space-y-4">
                         <div className="!w-16 !h-16 !bg-gray-50 !rounded-full !flex !items-center !justify-center !mx-auto !border !border-gray-100">
                           <Activity className="!w-8 !h-8 !text-gray-300" />
@@ -912,7 +1018,7 @@ export default function ProfilePage() {
                       </div>
                     ) : (
                       <div className="!divide-y !divide-gray-100">
-                        {recentActivities.map((item, idx) => (
+                        {activitiesList.map((item, idx) => (
                           <div key={idx} className="!p-5 !flex !items-center !gap-4 hover:!bg-gray-50 !transition-colors !group">
                             <div className={`!w-10 !h-10 ${item.bg} !rounded-lg !flex !items-center !justify-center ${item.color} !shrink-0 border border-current/10`}>
                               <item.icon className="!w-5 !h-5" />
@@ -1055,7 +1161,11 @@ export default function ProfilePage() {
                   <div className="!flex-1">
                     <p className="!text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider !mb-0.5">Location</p>
                     <p className="!text-sm !font-bold !text-gray-900">
-                      {selectedBooking.turf ? `${selectedBooking.turf.location.address}, ${selectedBooking.turf.location.city}` : "Location Unavailable"}
+                      {isTournamentBooking(selectedBooking) 
+                        ? (selectedBooking.tournament?.location || "Tournament Event")
+                        : (selectedBooking.turf?.location 
+                            ? `${selectedBooking.turf.location.address}, ${selectedBooking.turf.location.city}` 
+                            : "Location Unavailable")}
                     </p>
                   </div>
                   {selectedBooking.turf && !isTournamentBooking(selectedBooking) && (
@@ -1077,6 +1187,17 @@ export default function ProfilePage() {
                   onClick={() => setSelectedBooking(null)}
                 >
                   Close
+                </button>
+                <button 
+                  disabled={isDeleting === selectedBooking._id}
+                  onClick={() => {
+                    handleDeleteItem(selectedBooking);
+                    setSelectedBooking(null);
+                  }}
+                  className="!flex-1 !py-2.5 !bg-red-50 !text-red-600 !border !border-red-200 !rounded-lg !font-semibold !text-sm hover:!bg-red-100 !transition-colors !cursor-pointer !shadow-sm !flex !items-center !justify-center !gap-2"
+                >
+                  {isDeleting === selectedBooking._id ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <Trash2 className="!w-4 !h-4" />}
+                  Delete
                 </button>
                 <button className="!flex-[2] !py-2.5 !bg-[#1abc60] !text-white !rounded-lg !font-semibold !text-sm !shadow-sm hover:!bg-[#17a554] !transition-colors !border-none !cursor-pointer">
                   Download Invoice
@@ -1107,7 +1228,7 @@ export default function ProfilePage() {
               <div className="!px-6 !py-4 !border-b !border-gray-100 !flex !justify-between !items-center !bg-gray-50/50">
                 <div>
                   <h3 className="!text-lg !font-bold !text-gray-900 !leading-tight">Write a Review</h3>
-                  <p className="!text-xs !font-medium !text-gray-500 !mt-0.5">For {reviewModal.booking.turf?.name || "Venue"}</p>
+                  <p className="!text-xs !font-medium !text-gray-500 !mt-0.5">For {reviewModal.booking.turf?.name || reviewModal.booking.tournament?.title || "Ground"}</p>
                 </div>
                 <button
                   onClick={() => setReviewModal({ open: false, booking: null })}

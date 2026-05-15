@@ -3,7 +3,8 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { 
   Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2,
-  Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash, Calendar, Info
+  Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash, Calendar, Info,
+  PlusCircle, Trash2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -15,6 +16,12 @@ type VenueFormMode = 'add' | 'edit';
 interface VenueFormProps {
   mode: VenueFormMode;
   turfId?: string;
+}
+
+interface PriceHike {
+  startTime: string;
+  endTime: string;
+  extraPrice: number;
 }
 
 interface FormShape {
@@ -32,6 +39,7 @@ interface FormShape {
   upiId: string;
   peakHourSurcharge: string;
   slotPricings: { startTime: string; endTime: string; price: number; isPeak: boolean }[];
+  priceHikes: PriceHike[];
   weekdayOpen: string;
   weekdayClose: string;
   weekendOpen: string;
@@ -60,6 +68,7 @@ const defaultForm: FormShape = {
   upiId: '',
   peakHourSurcharge: '',
   slotPricings: [],
+  priceHikes: [],
   weekdayOpen: '06:00',
   weekdayClose: '23:00',
   weekendOpen: '08:00',
@@ -209,6 +218,9 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           peakHourSurcharge: String(target.peakHourSurcharge || ''),
           slotPricings: Array.isArray(target.slotPricings)
             ? target.slotPricings
+            : [],
+          priceHikes: Array.isArray(target.priceHikes)
+            ? target.priceHikes
             : [],
           weekdayOpen: weekdayHours?.open || '06:00',
           weekdayClose: weekdayHours?.close || '23:00',
@@ -470,6 +482,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       payload.append('availableSlots', JSON.stringify(apiCarryForward.availableSlots));
       payload.append('rates', JSON.stringify(apiCarryForward.rates));
       payload.append('slotPricings', JSON.stringify(form.slotPricings));
+      payload.append('priceHikes', JSON.stringify(form.priceHikes));
       payload.append(
         'courts',
         JSON.stringify(apiCarryForward.courts)
@@ -790,6 +803,94 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Peak Hour Price Hikes */}
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="text-sm font-bold text-gray-900">Peak Hour Price Hikes</h4>
+                <p className="text-xs text-gray-500">Apply extra charges for specific time slots (e.g., festivals or peak hours).</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setForm(prev => ({
+                    ...prev,
+                    priceHikes: [
+                      ...(prev.priceHikes || []),
+                      { startTime: "17:00", endTime: "22:00", extraPrice: 0 }
+                    ]
+                  }));
+                }}
+                className="!flex !items-center !gap-1.5 !px-3 !py-1.5 !bg-[#1abc60]/10 !text-[#1abc60] !rounded-lg !text-xs !font-bold hover:!bg-[#1abc60]/20 !transition-all !cursor-pointer !border-none"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                Add Price Hike
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {(form.priceHikes || []).map((hike, idx) => (
+                <div key={idx} className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-gray-200 bg-gray-50 shadow-sm relative group">
+                  <div className="flex-1 min-w-[120px] space-y-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">Start Time</label>
+                    <input
+                      type="time"
+                      value={hike.startTime}
+                      onChange={(e) => {
+                        const newHikes = [...form.priceHikes];
+                        newHikes[idx].startTime = e.target.value;
+                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                      }}
+                      className="!w-full !px-3 !py-1.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!ring-1 focus:!ring-[#1abc60]"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[120px] space-y-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">End Time</label>
+                    <input
+                      type="time"
+                      value={hike.endTime}
+                      onChange={(e) => {
+                        const newHikes = [...form.priceHikes];
+                        newHikes[idx].endTime = e.target.value;
+                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                      }}
+                      className="!w-full !px-3 !py-1.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!ring-1 focus:!ring-[#1abc60]"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[120px] space-y-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">Extra Price (₹)</label>
+                    <input
+                      type="number"
+                      value={hike.extraPrice}
+                      onChange={(e) => {
+                        const newHikes = [...form.priceHikes];
+                        newHikes[idx].extraPrice = Number(e.target.value);
+                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                      }}
+                      className="!w-full !px-3 !py-1.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !font-bold !text-[#1abc60] !outline-none focus:!ring-1 focus:!ring-[#1abc60]"
+                      placeholder="0"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newHikes = form.priceHikes.filter((_, i) => i !== idx);
+                      setForm(prev => ({ ...prev, priceHikes: newHikes }));
+                    }}
+                    className="!p-1.5 !text-gray-400 hover:!text-red-500 hover:!bg-white !rounded-md !transition-all !self-end !mb-0.5 !cursor-pointer !border-none !bg-transparent"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              {(!form.priceHikes || form.priceHikes.length === 0) && (
+                <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl">
+                  <p className="text-xs text-gray-400 font-medium italic">No custom price hikes configured.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1144,16 +1245,18 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                           <span className="text-gray-700 text-[11px] font-bold">
                             {to12h(s.startTime)} - {to12h(s.endTime)}
                           </span>
-                          {extra > 0 && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-amber-600 font-black">
-                                +₹{extra.toLocaleString()}
-                              </span>
-                              <span className="text-[9px] text-amber-500 font-bold uppercase">
-                                Peak
-                              </span>
-                            </div>
-                          )}
+                          <div className="flex items-center justify-between gap-2 mt-0.5">
+                            <span className="text-[#1abc60] text-[10px] font-black">
+                              ₹{totalPrice.toLocaleString()}
+                            </span>
+                            {extra > 0 && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] text-amber-600 font-black">
+                                  +₹{extra.toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
                     })}

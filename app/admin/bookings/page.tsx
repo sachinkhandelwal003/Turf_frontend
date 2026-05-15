@@ -789,11 +789,21 @@ function AdminBookingsContent() {
                           </div>
                         )}
                       </div>
-                      <div className="!flex !justify-between !items-end">
+                      <div className="!flex !flex-col !items-end !gap-1">
                         <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-wider">
                           {booking.paymentStatus === 'paid' ? 'Paid via ' + (booking.paymentMethod || 'online') : 'Payment Pending'}
                         </p>
                         <p className="!text-lg !font-black !text-gray-900">₹{getBookingTotal(booking)}</p>
+                        <div className="!flex !gap-3 !mt-1">
+                          <div className="!flex !flex-col !items-end">
+                            <span className="!text-[9px] !font-bold !text-blue-600 !uppercase">Wallet</span>
+                            <span className="!text-xs !font-bold !text-blue-700">₹{(getBookingTotal(booking) * 0.8).toLocaleString()}</span>
+                          </div>
+                          <div className="!flex !flex-col !items-end">
+                            <span className="!text-[9px] !font-bold !text-orange-600 !uppercase">Comm.</span>
+                            <span className="!text-xs !font-bold !text-orange-700">₹{(getBookingTotal(booking) * 0.2).toLocaleString()}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 

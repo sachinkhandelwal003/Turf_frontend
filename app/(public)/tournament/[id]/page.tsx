@@ -234,6 +234,20 @@ export default function TournamentDetailsPage() {
       return false;
     }
 
+    // Duplicate check (Frontend level)
+    if (tournament?.registeredTeams && Array.isArray(tournament.registeredTeams)) {
+      const isAlreadyRegistered = tournament.registeredTeams.some((reg: any) => 
+        reg.email?.toLowerCase() === email.toLowerCase() || 
+        reg.contact === mobile ||
+        reg.phone === mobile
+      );
+
+      if (isAlreadyRegistered) {
+        toast.error("This email or phone number is already registered for this tournament!");
+        return false;
+      }
+    }
+
     return true;
   };
 

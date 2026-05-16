@@ -120,8 +120,24 @@ export default function TournamentDetailsPage() {
     // Replace backslashes with forward slashes for cross-platform compatibility
     const normalizedPath = path.replace(/\\/g, '/');
     
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.rkinteriorstudio.in/api';
-    const baseUrl = apiUrl.replace(/\/api$/, '').replace(/\/$/, '');
+    // Use the dynamic API URL detection logic from api.ts
+    const getApiBaseUrl = () => {
+      if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL.replace(/\/api$/, '');
+      }
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return 'http://localhost:5001';
+        }
+        if (/^192\.168\./.test(hostname) || /^10\./.test(hostname)) {
+          return `http://${hostname}:5001`;
+        }
+      }
+      return 'https://api.rkinteriorstudio.in';
+    };
+
+    const baseUrl = getApiBaseUrl();
     const cleanPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
     return `${baseUrl}${cleanPath}`;
   };
@@ -531,14 +547,15 @@ export default function TournamentDetailsPage() {
       )}
 
       {/* ================= 1. HERO SECTION ================= */}
-      <div className="relative w-full h-[400px] md:h-[500px] flex flex-col justify-end pb-10">
-        <div className="absolute inset-0 z-0 w-full h-full bg-gray-900">
+      <div className="relative w-full h-[500px] md:h-[650px] flex flex-col justify-end pb-12">
+        <div className="absolute inset-0 z-0 w-full h-full bg-gray-200">
           <img 
             src={getImageUrl(tournament.image || "")} 
             alt={tournament.title} 
-            className="w-full h-full object-cover object-center opacity-70 mix-blend-overlay"
+            className="w-full h-full object-cover object-center"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent" />
+          {/* Bottom gradient only for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         </div>
 
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { MapPin, Check, Calendar, Clock, Activity, Filter, X, Loader2, Search } from 'lucide-react';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
+import { useSearchParams } from 'next/navigation';
 
 interface Tournament {
   _id: string;
@@ -27,13 +28,28 @@ interface Tournament {
   image?: string;
 }
 
-export default function TournamentsPage() {
+function TournamentContent() {
+  const searchParams = useSearchParams();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState<number>(10000);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  useEffect(() => {
+    const sport = searchParams.get('sport');
+    const location = searchParams.get('location');
+
+    if (sport) {
+      const formattedSport = sport.charAt(0).toUpperCase() + sport.slice(1).toLowerCase();
+      setSelectedCategories([formattedSport]);
+    }
+    
+    if (location) {
+      setSearchQuery(location);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchTournaments = async () => {
@@ -58,8 +74,24 @@ export default function TournamentsPage() {
     // Replace backslashes with forward slashes for cross-platform compatibility
     const normalizedPath = path.replace(/\\/g, '/');
     
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.rkinteriorstudio.in/api';
-    const baseUrl = apiUrl.replace(/\/api$/, '').replace(/\/$/, '');
+    // Use the dynamic API URL detection logic from api.ts
+    const getApiBaseUrl = () => {
+      if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL.replace(/\/api$/, '');
+      }
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return 'http://localhost:5001';
+        }
+        if (/^192\.168\./.test(hostname) || /^10\./.test(hostname)) {
+          return `http://${hostname}:5001`;
+        }
+      }
+      return 'https://api.rkinteriorstudio.in';
+    };
+
+    const baseUrl = getApiBaseUrl();
     const cleanPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
     return `${baseUrl}${cleanPath}`;
   };
@@ -207,114 +239,105 @@ export default function TournamentsPage() {
           </div>
 
           <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-            <button onClick={clearFilters} className="text-sm font-semibold !text-gray-500 hover:!text-gray-900 transition-colors !bg-transparent !border-none cursor-pointer !p-0">Clear All</button>
-            <button onClick={() => setIsMobileFilterOpen(false)} className="!bg-[#1abc60] hover:!bg-[#169c4e] transition-colors !text-white text-sm font-semibold px-5 py-2.5 rounded-lg !border-none shadow-sm cursor-pointer">Apply</button>
+            <button onClick={clearFilters} className="text-sm font-semibold !text-gray-500 hover:!text-gray-900 transition-colors !bg-transparent !border-none cursor-pointer">
+              Clear All
+            </button>
+            <button onClick={() => setIsMobileFilterOpen(false)} className="!bg-[#1abc60] hover:!bg-[#169c4e] transition-colors !text-white text-sm font-semibold px-5 py-2.5 rounded-lg !border-none shadow-sm cursor-pointer">
+              Apply
+            </button>
           </div>
         </aside>
 
-        {/* MAIN CONTENT */}
-        <main className="flex-1 px-4 md:px-8 lg:px-10 lg:pl-10 w-full pt-6 lg:pt-0">
+        {/* MAIN LIST */}
+        <main className="flex-1 px-4 md:px-8 lg:px-10 w-full pt-6 lg:pt-0">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Upcoming Tournaments</h1>
-            <span className="bg-white border border-gray-200 text-gray-600 text-sm font-medium px-4 py-2 rounded-lg shadow-sm w-fit">
-              {filteredTournaments.length} Results Found
-            </span>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">Active Tournaments</h1>
+              <p className="text-gray-500 text-sm mt-1">Join the most competitive sports events in your city</p>
+            </div>
+            <div className="bg-white border border-gray-200 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg shadow-sm">
+              {filteredTournaments.length} Tournament{filteredTournaments.length !== 1 ? 's' : ''} Found
+            </div>
           </div>
 
           {filteredTournaments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredTournaments.map((t) => {
-                const now = new Date();
-                const deadline = new Date(t.registrationDeadline);
-                const isFull = t.registeredTeams?.length >= (t.maxTeams || 16);
-                const terminalStatuses = ['finished', 'completed', 'cancelled', 'postponed'];
-                const isDisabled = now > deadline || isFull || terminalStatuses.includes(t.status?.toLowerCase());
-
-                return (
-                  <Link href={`/tournament/${t._id}`} key={t._id} className="block group !no-underline">
-                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col h-full shadow-sm hover:shadow-md transition-shadow duration-300">
-                      
-                      {/* Image container */}
-                      <div className="relative h-[200px] w-full overflow-hidden bg-gray-100">
-                        <img 
-                          src={getImageUrl(t.image || "")} 
-                          alt={t.title} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                        />
-                        <div className="absolute top-3 left-3 flex flex-col gap-2">
-                          <div className="bg-white text-gray-800 text-xs font-semibold px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm border border-gray-100">
-                            <Activity className="w-3.5 h-3.5 text-[#1abc60]" /> {t.sport}
-                          </div>
-                          <div className={`${getStatusColor(t.status)} text-xs font-semibold px-2.5 py-1 rounded-md shadow-sm border border-black/5 inline-block w-fit capitalize`}>
-                            {t.status}
-                          </div>
-                        </div>
+              {filteredTournaments.map((t) => (
+                <Link key={t._id} href={`/tournament/${t._id}`} className="block group">
+                  <div className="bg-white rounded-xl border border-gray-100 overflow-hidden flex flex-col h-full shadow-sm hover:shadow-lg transition-all duration-300">
+                    <div className="relative h-[200px] w-full bg-gray-100">
+                      <img src={getImageUrl(t.image || '')} alt={t.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute top-3 left-3">
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm ${getStatusColor(t.status)}`}>
+                          {t.status}
+                        </span>
                       </div>
-
-                      {/* Content */}
-                      <div className="p-5 flex flex-col flex-1">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight group-hover:text-[#1abc60] transition-colors line-clamp-2">{t.title}</h3>
-                        <div className="flex items-start text-gray-500 text-sm mb-4 font-medium">
-                          <MapPin className="w-4 h-4 mr-1.5 mt-0.5 flex-shrink-0 text-gray-400" /> 
-                          <span className="line-clamp-2">{t.location.venue}, {t.location.city}</span>
-                        </div>
-                        
-                        <div className="flex flex-col mb-4">
-                          <p className="text-xs text-gray-500 font-semibold uppercase mb-0.5">Entry Fee</p>
-                          <p className="text-xl font-bold text-gray-900">₹{formatPrice(t.entryFee)}</p>
-                        </div>
-
-                        <div className="h-[1px] w-full bg-gray-100 mb-4" />
-
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center text-gray-600 text-sm font-medium">
-                            <Calendar className="w-4 h-4 mr-1.5 text-gray-400" /> 
-                            {new Date(t.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </div>
-                          <div className="flex items-center text-gray-600 text-sm font-medium">
-                            <Clock className="w-4 h-4 mr-1.5 text-gray-400" /> TBA
-                          </div>
-                        </div>
-                        
-                        <div className="mt-auto">
-                          <button 
-                            disabled={isDisabled}
-                            className={`!w-full !text-sm !font-semibold !uppercase !py-2.5 !rounded-lg !border-none !transition-all shadow-sm active:scale-95 ${
-                              isDisabled
-                                ? '!bg-gray-100 !text-gray-400 !cursor-not-allowed !shadow-none'
-                                : '!bg-[#1abc60] hover:!bg-[#169c4e] !text-white'
-                            }`}
-                          >
-                            {(() => {
-                              if (t.status?.toLowerCase() === 'cancelled') return "Cancelled";
-                              if (t.status?.toLowerCase() === 'postponed') return "Postponed";
-                              if (t.status?.toLowerCase() === 'finished' || t.status?.toLowerCase() === 'completed') return "Finished";
-                              if (isFull) return "Full";
-                              if (now > deadline) return "Registration Closed";
-                              return "Register Now";
-                            })()}
-                          </button>
-                        </div>
+                      <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm text-gray-800 text-[11px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5">
+                        <Activity className="w-3.5 h-3.5 text-[#1abc60]" /> {t.sport}
                       </div>
                     </div>
-                  </Link>
-                );
-              })}
+
+                    <div className="p-5 flex flex-col flex-1">
+                      <h3 className="text-[17px] font-bold text-gray-900 mb-2 leading-tight group-hover:text-[#1abc60] transition-colors line-clamp-1">{t.title}</h3>
+                      <div className="flex items-center text-gray-500 text-[12px] mb-4">
+                        <MapPin className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                        <span className="line-clamp-1">{t.location.venue}, {t.location.city}</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 mb-5">
+                        <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Start Date</p>
+                          <div className="flex items-center gap-1.5 text-gray-700">
+                            <Calendar className="w-3 h-3 text-[#1abc60]" />
+                            <span className="text-[11px] font-bold">{new Date(t.startDate).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Entry Fee</p>
+                          <div className="flex items-center gap-1.5 text-gray-700">
+                            <span className="text-[11px] font-extrabold">₹{formatPrice(t.entryFee)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Prize Pool</p>
+                          <span className="text-[15px] font-black text-gray-900">₹{formatPrice(t.prizePool)}</span>
+                        </div>
+                        <button className="!bg-[#1abc60] hover:!bg-[#169c4e] text-white text-[12px] font-bold px-5 py-2 rounded-lg transition-all shadow-sm">
+                          View Details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           ) : (
-            <div className="py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-              <h3 className="text-gray-900 font-bold text-xl mb-2">No Tournaments Found</h3>
-              <p className="text-gray-500 text-sm mb-6">Try adjusting your category or price filters.</p>
-              <button 
-                onClick={clearFilters} 
-                className="!bg-[#1abc60] hover:!bg-[#169c4e] transition-colors !text-white px-6 py-2.5 rounded-lg text-sm font-semibold !border-none cursor-pointer"
-              >
-                Reset Filters
+            <div className="py-20 text-center bg-white rounded-2xl border border-gray-100">
+              <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-gray-900 font-bold text-xl mb-2">No tournaments found</h3>
+              <p className="text-gray-500 text-sm mb-6">Try adjusting your filters or search terms.</p>
+              <button onClick={clearFilters} className="bg-[#1abc60] hover:bg-[#169c4e] text-white font-bold px-6 py-2.5 rounded-lg transition-colors">
+                Clear all filters
               </button>
             </div>
           )}
         </main>
       </div>
     </div>
+  );
+}
+
+export default function TournamentsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafb] pt-[120px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
+      </div>
+    }>
+      <TournamentContent />
+    </Suspense>
   );
 }

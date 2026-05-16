@@ -153,6 +153,7 @@ export default function VenueDetailsPage() {
       try {
         const res = await api.get(`/bookings/check-availability?turfId=${id}&date=${selectedDate}`);
         if (res.data.success) {
+          console.log(`Fetched ${res.data.bookedSlots?.length} booked slots for ${selectedDate}`);
           setBookedSlots(res.data.bookedSlots || []);
         }
       } catch (error) {
@@ -183,8 +184,16 @@ export default function VenueDetailsPage() {
       const bookedCourts = new Set<string>();
       
       bookedSlots.forEach(b => {
-        if (start < b.endTime && end > b.startTime) {
-          b.courts.forEach((c: string) => bookedCourts.add(c));
+        // More robust overlap check
+        const isOverlap = (start < b.endTime && end > b.startTime);
+        
+        if (isOverlap) {
+          if (b.courts && Array.isArray(b.courts)) {
+            b.courts.forEach((c: string) => bookedCourts.add(c));
+          } else if (b.slots && b.slots.includes(timeVal)) {
+            // Fallback: if courts missing but slot matches exactly
+            bookedCourts.add("Default Court");
+          }
         }
       });
       return Array.from(bookedCourts);
@@ -213,6 +222,10 @@ export default function VenueDetailsPage() {
     const end = parseTimeToMinutes(close);
     const d = Math.max(15, duration || 60);
 
+    const now = new Date();
+    const isToday = selectedDate === now.toISOString().split('T')[0];
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
     while (cur + d <= end) {
       const start = formatMinutes(cur);
       const endTime = formatMinutes(cur + d);
@@ -221,6 +234,7 @@ export default function VenueDetailsPage() {
       const type = cur < 12 * 60 ? "MORNING" : cur >= 17 * 60 ? "EVENING" : "AFTERNOON";
 
       const bookedCourts = checkIsBooked(timeVal);
+      const isPast = isToday && cur < currentMins;
       
       const customSlot = venue?.slotPricings?.find((s: any) => {
         const sStart = parseTimeToMinutes(s.startTime);
@@ -242,9 +256,10 @@ export default function VenueDetailsPage() {
 
       groups[type].push({
         time: label,
-        status: bookedCourts.length >= (venue?.courts?.length || 1) ? "disabled" : "available",
+        status: (isPast || bookedCourts.length >= (venue?.courts?.length || 1)) ? "disabled" : "available",
         value: timeVal,
         bookedCourts,
+        isPast,
         totalPrice: slotPrice // Direct total price (base + any extra)
       });
       cur += d;
@@ -276,7 +291,11 @@ export default function VenueDetailsPage() {
     const booked = new Set<string>();
     bookedSlots.forEach((b) => {
       if (start < b.endTime && end > b.startTime) {
-        b.courts.forEach((c: string) => booked.add(c));
+        if (b.courts && Array.isArray(b.courts)) {
+          b.courts.forEach((c: string) => booked.add(c));
+        } else if (b.slots && b.slots.includes(slotValue)) {
+          booked.add("Default Court");
+        }
       }
     });
     return booked;
@@ -642,14 +661,14 @@ export default function VenueDetailsPage() {
                   <h3 className="!text-[11px] !font-bold !text-gray-400 !tracking-widest !uppercase !mb-3 !m-0">{period}</h3>
                   <div className="!flex !flex-col !gap-3">
                     {slots.map((slot, idx) => {
-                      const isSelected = selectedTimes.includes(slot.time);
+                      const val = slot.value || slot.time;
+                      const isSelected = selectedTimes.includes(val);
                       const isDisabled = slot.status === "disabled";
                       return (
                         <button
                           key={idx}
                           disabled={isDisabled}
                           onClick={() => { 
-                            const val = slot.value || slot.time;
                             if (selectedTimes.includes(val)) {
                               setSelectedTimes(selectedTimes.filter(t => t !== val));
                             } else {
@@ -658,15 +677,24 @@ export default function VenueDetailsPage() {
                           }}
                           className={`!w-full !py-3.5 !px-4 !rounded-xl !transition-all !text-left !flex !justify-between !items-center !m-0 !cursor-pointer !border
                             ${isDisabled 
-                              ? '!bg-gray-50 !text-gray-400 !border-gray-100 !cursor-not-allowed !shadow-none' 
+                              ? '!bg-gray-100 !text-gray-400 !border-gray-200 !cursor-not-allowed !shadow-none !opacity-60' 
                               : isSelected
-                                ? '!bg-white !border-[#1abc60] !ring-1 !ring-[#1abc60]'
+                                ? '!bg-[#e8f8ef] !border-[#1abc60] !ring-1 !ring-[#1abc60]'
                                 : '!bg-white !text-gray-700 !border-gray-200 hover:!border-[#1abc60]'
                             }
                           `}
                         >
-                          <span className={`!text-sm !font-bold ${isSelected ? '!text-gray-900' : '!text-gray-700'}`}>{slot.time}</span>
-                          <span className="!text-sm !font-bold !text-[#1abc60]">
+                          <div className="!flex !flex-col">
+                            <span className={`!text-sm !font-bold ${isDisabled ? '!text-gray-400' : isSelected ? '!text-[#1abc60]' : '!text-gray-700'}`}>
+                              {slot.time}
+                            </span>
+                            {isDisabled && (
+                              <span className="!text-[10px] !font-bold !text-gray-400 !uppercase !mt-0.5">
+                                {slot.isPast ? "Time Passed" : "Already Booked"}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`!text-sm !font-bold ${isDisabled ? '!text-gray-300' : '!text-[#1abc60]'}`}>
                             ₹{slot.totalPrice}
                           </span>
                         </button>
@@ -727,16 +755,16 @@ export default function VenueDetailsPage() {
                     }}
                     className={`!w-full !flex !items-center !justify-between !p-4 !rounded-xl !cursor-pointer !border !transition-all !m-0
                       ${isAlreadyBooked
-                        ? '!bg-gray-50 !text-gray-400 !border-gray-100 !cursor-not-allowed !shadow-none'
+                        ? '!bg-gray-100 !text-gray-400 !border-gray-200 !cursor-not-allowed !shadow-none !opacity-60'
                         : isSelected 
-                          ? '!border-[#1abc60] !bg-white !text-gray-900 !ring-1 !ring-[#1abc60]'
+                          ? '!border-[#1abc60] !bg-[#e8f8ef] !text-[#1abc60] !ring-1 !ring-[#1abc60]'
                           : '!border-gray-200 !bg-white !text-gray-700 hover:!border-[#1abc60]'
                     }`}
                   >
                     <div className="!flex !flex-col !text-left">
-                      <span className="!text-sm !font-bold">{courtName}</span>
+                      <span className={`!text-sm !font-bold ${isAlreadyBooked ? '!text-gray-400' : isSelected ? '!text-[#1abc60]' : '!text-gray-900'}`}>{courtName}</span>
                       <span className="!text-[10px] !font-medium !text-gray-500 !uppercase !tracking-widest !mt-0.5">{courtType} Surface</span>
-                      {isAlreadyBooked && <span className="!text-[10px] !text-red-500 !font-bold !uppercase !mt-1">Booked for Selected Time</span>}
+                      {isAlreadyBooked && <span className="!text-[10px] !text-gray-400 !font-bold !uppercase !mt-1">Booked for Selected Time</span>}
                     </div>
                     {isSelected && (
                       <CheckCircle2 className="!w-5 !h-5 !text-[#1abc60] !block" />

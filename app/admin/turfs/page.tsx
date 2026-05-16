@@ -1135,7 +1135,7 @@ export default function AdminTurfPage() {
                           
                           <div className="space-y-2">
                             <label className="block text-sm font-medium text-gray-700">
-                              Supported Activities <span className="text-red-500">*</span>
+                              Select Sport <span className="text-red-500">*</span>
                             </label>
                             <div className="flex flex-wrap gap-2">
                               {availableSports.map(s => {
@@ -1144,7 +1144,14 @@ export default function AdminTurfPage() {
                                   <button
                                     key={s}
                                     type="button"
-                                    onClick={() => toggleItem(s, formData.sports, "sports")}
+                                    onClick={() => {
+                                      // Toggle behavior for single selection
+                                      if (formData.sports.includes(s)) {
+                                        updateField("sports", []);
+                                      } else {
+                                        updateField("sports", [s]);
+                                      }
+                                    }}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all border ${
                                       isSelected
                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200'

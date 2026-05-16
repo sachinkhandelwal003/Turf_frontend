@@ -1,10 +1,11 @@
 "use client";
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Search, ChevronDown, X } from 'lucide-react';
+import { MapPin, Search, ChevronDown, X, Navigation } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/app/services/api';
+import { toast } from 'sonner';
 
 // Mock Data Dropdowns ke liye
 const LOCATIONS = [
@@ -19,9 +20,11 @@ export default function Hero() {
   const router = useRouter();
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedSport, setSelectedSport] = useState('');
+  const [searchType, setSearchType] = useState<'ground' | 'tournament'>('ground');
   const [sports, setSports] = useState<string[]>([]);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [isSportOpen, setIsSportOpen] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
   const [heroData, setHeroData] = useState({
     title: "UP YOUR GAME",
     subtitle: "Premium sports venues, professional training, and competitive matches. Book your victory in seconds.",
@@ -31,12 +34,60 @@ export default function Hero() {
   const locationRef = useRef<HTMLDivElement>(null);
   const sportRef = useRef<HTMLDivElement>(null);
 
+  const handleAutoDetect = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          const city = data.address.city || data.address.town || data.address.village || data.address.state_district || "Unknown Location";
+          const state = data.address.state || "";
+          const locationString = state ? `${city}, ${state}` : city;
+          
+          setSelectedLocation(locationString);
+          setIsLocationOpen(false);
+          toast.success(`Location detected: ${locationString}`);
+        } catch (error) {
+          console.error("Reverse geocoding failed:", error);
+          toast.error("Failed to detect city name");
+        } finally {
+          setIsDetecting(false);
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        toast.error("Failed to get your location. Please check permissions.");
+        setIsDetecting(false);
+      }
+    );
+  };
+
   const handleSearch = () => {
+    if (!selectedLocation) {
+      toast.error("Please select or detect a location first!");
+      setIsLocationOpen(true);
+      return;
+    }
+    if (!selectedSport) {
+      toast.error("Please select a sport category!");
+      setIsSportOpen(true);
+      return;
+    }
+
     const params = new URLSearchParams();
     if (selectedLocation) params.set('location', selectedLocation);
     if (selectedSport) params.set('sport', selectedSport);
     
-    router.push(`/ground?${params.toString()}`);
+    const path = searchType === 'ground' ? '/ground' : '/tournament';
+    router.push(`${path}?${params.toString()}`);
   };
 
   useEffect(() => {
@@ -179,61 +230,72 @@ export default function Hero() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="bg-white p-1.5 shadow-2xl flex flex-row items-center w-[92%] sm:w-full max-w-[520px] mx-auto rounded-xl"
+          className="flex flex-col items-center w-[92%] sm:w-full max-w-[550px] mx-auto"
         >
-
-          {/* LOCATION SECTION */}
-          <div ref={locationRef} className="relative flex-1 min-w-0">
-            <div
-              className="flex items-center px-3 md:px-4 py-2 cursor-pointer"
-              onClick={() => {
-                setIsLocationOpen(!isLocationOpen);
-                setIsSportOpen(false);
-              }}
-            >
-              <MapPin className="text-[#2b7bf5] w-4 h-4 md:w-5 md:h-5 mr-2 flex-shrink-0" strokeWidth={1.5} />
-              <input
-                type="text"
-                readOnly
-                value={selectedLocation}
-                placeholder="Location"
-                className="w-full outline-none text-gray-800 bg-transparent text-[14px] md:text-[15px] font-medium placeholder:text-gray-600 cursor-pointer truncate"
-              />
-              {selectedLocation && (
-                <X 
-                  className="w-4 h-4 text-gray-400 hover:text-gray-600 ml-1 cursor-pointer flex-shrink-0" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedLocation('');
-                  }}
+          <div className="bg-white p-1.5 shadow-2xl flex flex-row items-center w-full rounded-xl">
+            {/* LOCATION SECTION */}
+            <div ref={locationRef} className="relative flex-1 min-w-0">
+              <div
+                className="flex items-center px-3 md:px-4 py-2 cursor-pointer"
+                onClick={() => {
+                  setIsLocationOpen(!isLocationOpen);
+                  setIsSportOpen(false);
+                }}
+              >
+                <MapPin className="text-[#2b7bf5] w-4 h-4 md:w-5 md:h-5 mr-2 flex-shrink-0" strokeWidth={1.5} />
+                <input
+                  type="text"
+                  readOnly
+                  value={selectedLocation}
+                  placeholder="Location"
+                  className="w-full outline-none text-gray-800 bg-transparent text-[14px] md:text-[15px] font-medium placeholder:text-gray-600 cursor-pointer truncate"
                 />
-              )}
-            </div>
+                {selectedLocation && (
+                  <X 
+                    className="w-4 h-4 text-gray-400 hover:text-gray-600 ml-1 cursor-pointer flex-shrink-0" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedLocation('');
+                    }}
+                  />
+                )}
+              </div>
 
-            <AnimatePresence>
-              {isLocationOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute top-[120%] left-0 w-[220px] md:w-full bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 text-left"
-                >
-                  {LOCATIONS.map((loc, idx) => (
+              <AnimatePresence>
+                {isLocationOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute top-[120%] left-0 w-[240px] md:w-full bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 text-left overflow-hidden"
+                  >
+                    {/* Auto Detect Option */}
                     <div
-                      key={idx}
-                      onClick={() => {
-                        setSelectedLocation(loc);
-                        setIsLocationOpen(false);
-                      }}
-                      className="px-4 py-2.5 hover:bg-gray-50 text-[14px] text-gray-700 cursor-pointer truncate"
+                      onClick={handleAutoDetect}
+                      className="px-4 py-3 hover:bg-[#e8f8ef] text-[14px] text-[#1abc60] font-bold cursor-pointer border-b border-gray-50 flex items-center gap-2 group transition-colors"
                     >
-                      {loc}
+                      <Navigation className={`w-4 h-4 group-hover:animate-pulse ${isDetecting ? 'animate-spin' : ''}`} />
+                      {isDetecting ? "Detecting..." : "Auto Detect Location"}
                     </div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+
+                    <div className="max-h-[250px] overflow-y-auto">
+                      {LOCATIONS.map((loc, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => {
+                            setSelectedLocation(loc);
+                            setIsLocationOpen(false);
+                          }}
+                          className="px-4 py-2.5 hover:bg-gray-50 text-[14px] text-gray-700 cursor-pointer truncate"
+                        >
+                          {loc}
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
           {/* DIVIDER 1 */}
           <div className="h-6 w-[1.5px] bg-[#f5e3b5] flex-shrink-0 mx-1"></div>
@@ -319,6 +381,7 @@ export default function Hero() {
             <Search className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
           </button>
 
+          </div>
         </motion.div>
 
       </div>

@@ -1367,4 +1367,4 @@ export default function ProfilePage() {
       </AnimatePresence>
     </div>
   );
-}
+}   

@@ -280,11 +280,17 @@ function GroundContent() {
   const [availableSports, setAvailableSports] = useState<string[]>([]);
   const [tournaments, setTournaments] = useState<any[]>([]);
 
-  // Handle sport query param
+  // Handle sport and location query params
   useEffect(() => {
     const sport = searchParams.get('sport');
+    const location = searchParams.get('location');
+
     if (sport) {
       setSelectedCategories([sport]);
+    }
+
+    if (location) {
+      setSearchQuery(location);
     }
   }, [searchParams]);
 
@@ -316,6 +322,11 @@ function GroundContent() {
               tour.status?.toLowerCase() !== 'cancelled'
             );
 
+            // Get today's price from rates if available
+            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            const todayRate = t.rates?.find((r: any) => r.day === today);
+            const currentPrice = (todayRate && todayRate.price > 0) ? todayRate.price : t.pricePerHour;
+
             return {
               id: t._id,
               title: t.name,
@@ -323,7 +334,7 @@ function GroundContent() {
               fullAddress: `${t.location.address || ''} ${t.location.landmark || ''} ${t.location.city || ''}`,
               rating: t.rating || Math.floor(Math.random() * (50 - 40 + 1) + 40) / 10 || 4.5,
               reviewsCount: t.reviewsCount || Math.floor(Math.random() * 500) + 50,
-              price: t.pricePerHour,
+              price: currentPrice,
               category: t.sports?.[0] || 'Sports',
               isActive: t.isActive !== undefined ? t.isActive : true,
               amenities: t.amenities?.map((a: any) => {

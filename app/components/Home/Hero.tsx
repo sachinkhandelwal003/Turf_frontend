@@ -15,7 +15,7 @@ const LOCATIONS = [
   "Whitefield, Bangalore",
   "Jayanagar, Bangalore"
 ];
-
+// kldflresjihf;jksdansfd;kjh
 export default function Hero() {
   const router = useRouter();
   const [selectedLocation, setSelectedLocation] = useState('');

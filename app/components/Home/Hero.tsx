@@ -219,9 +219,14 @@ export default function Hero() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="text-white text-[14px] md:text-[17px] font-medium mb-10 max-w-2xl mx-auto leading-relaxed whitespace-pre-line"
+          className="text-white text-[13px] sm:text-[14px] md:text-[17px] font-medium mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed md:whitespace-pre-line px-2"
         >
-          {heroData.subtitle}
+          <span className="md:hidden">
+            {heroData.subtitle.replace(/\n/g, ' ')}
+          </span>
+          <span className="hidden md:inline">
+            {heroData.subtitle}
+          </span>
         </motion.p>
 
         {/* ================= COMPACT SEARCH BAR ================= */}
@@ -230,29 +235,29 @@ export default function Hero() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="flex flex-col items-center w-[92%] sm:w-full max-w-[550px] mx-auto"
+          className="flex flex-col items-center w-[94%] sm:w-full max-w-[550px] mx-auto"
         >
-          <div className="bg-white p-1.5 shadow-2xl flex flex-row items-center w-full rounded-xl">
+          <div className="bg-white p-1 md:p-1.5 shadow-2xl flex flex-row items-center w-full rounded-lg md:rounded-xl">
             {/* LOCATION SECTION */}
             <div ref={locationRef} className="relative flex-1 min-w-0">
               <div
-                className="flex items-center px-3 md:px-4 py-2 cursor-pointer"
+                className="flex items-center px-2 md:px-4 py-1.5 md:py-2 cursor-pointer"
                 onClick={() => {
                   setIsLocationOpen(!isLocationOpen);
                   setIsSportOpen(false);
                 }}
               >
-                <MapPin className="text-[#2b7bf5] w-4 h-4 md:w-5 md:h-5 mr-2 flex-shrink-0" strokeWidth={1.5} />
+                <MapPin className="text-[#2b7bf5] w-3.5 h-3.5 md:w-5 md:h-5 mr-1.5 md:mr-2 flex-shrink-0" strokeWidth={1.5} />
                 <input
                   type="text"
                   readOnly
                   value={selectedLocation}
                   placeholder="Location"
-                  className="w-full outline-none text-gray-800 bg-transparent text-[14px] md:text-[15px] font-medium placeholder:text-gray-600 cursor-pointer truncate"
+                  className="w-full outline-none text-gray-800 bg-transparent text-[12px] sm:text-[13px] md:text-[15px] font-medium placeholder:text-gray-500 cursor-pointer truncate"
                 />
                 {selectedLocation && (
                   <X 
-                    className="w-4 h-4 text-gray-400 hover:text-gray-600 ml-1 cursor-pointer flex-shrink-0" 
+                    className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 ml-0.5 md:ml-1 cursor-pointer flex-shrink-0" 
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedLocation('');
@@ -267,18 +272,18 @@ export default function Hero() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute top-[120%] left-0 w-[240px] md:w-full bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 text-left overflow-hidden"
+                    className="absolute top-[120%] left-0 w-[200px] md:w-full bg-white rounded-lg md:rounded-xl shadow-lg border border-gray-100 py-1 md:py-2 z-50 text-left overflow-hidden"
                   >
                     {/* Auto Detect Option */}
                     <div
                       onClick={handleAutoDetect}
-                      className="px-4 py-3 hover:bg-[#e8f8ef] text-[14px] text-[#1abc60] font-bold cursor-pointer border-b border-gray-50 flex items-center gap-2 group transition-colors"
+                      className="px-3 md:px-4 py-2 md:py-3 hover:bg-[#e8f8ef] text-[12px] md:text-[14px] text-[#1abc60] font-bold cursor-pointer border-b border-gray-50 flex items-center gap-1.5 md:gap-2 group transition-colors"
                     >
-                      <Navigation className={`w-4 h-4 group-hover:animate-pulse ${isDetecting ? 'animate-spin' : ''}`} />
-                      {isDetecting ? "Detecting..." : "Auto Detect Location"}
+                      <Navigation className={`w-3.5 h-3.5 group-hover:animate-pulse ${isDetecting ? 'animate-spin' : ''}`} />
+                      {isDetecting ? "Detecting..." : "Detect Location"}
                     </div>
 
-                    <div className="max-h-[250px] overflow-y-auto">
+                    <div className="max-h-[200px] md:max-h-[250px] overflow-y-auto">
                       {LOCATIONS.map((loc, idx) => (
                         <div
                           key={idx}
@@ -286,7 +291,7 @@ export default function Hero() {
                             setSelectedLocation(loc);
                             setIsLocationOpen(false);
                           }}
-                          className="px-4 py-2.5 hover:bg-gray-50 text-[14px] text-gray-700 cursor-pointer truncate"
+                          className="px-3 md:px-4 py-2 hover:bg-gray-50 text-[12px] md:text-[14px] text-gray-700 cursor-pointer truncate"
                         >
                           {loc}
                         </div>
@@ -298,12 +303,12 @@ export default function Hero() {
             </div>
 
           {/* DIVIDER 1 */}
-          <div className="h-6 w-[1.5px] bg-[#f5e3b5] flex-shrink-0 mx-1"></div>
+          <div className="h-5 md:h-6 w-[1px] bg-gray-200 flex-shrink-0 mx-0.5 md:mx-1"></div>
 
           {/* SPORT SECTION */}
           <div ref={sportRef} className="relative flex-1 min-w-0">
             <div
-              className="flex items-center justify-between px-3 md:px-5 py-1 cursor-pointer"
+              className="flex items-center justify-between px-2 md:px-5 py-1.5 md:py-1 cursor-pointer"
               onClick={() => {
                 setIsSportOpen(!isSportOpen);
                 setIsLocationOpen(false);
@@ -312,7 +317,7 @@ export default function Hero() {
               <div className="flex items-center flex-1 min-w-0">
                 <svg
                   xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                  className="text-[#1abc60] w-4 h-4 md:w-5 md:h-5 mr-2 flex-shrink-0"
+                  className="text-[#1abc60] w-3.5 h-3.5 md:w-5 md:h-5 mr-1.5 md:mr-2 flex-shrink-0"
                 >
                   <circle cx="9" cy="9" r="6" /><path d="M13.2 13.2L19 19" /><line x1="6" y1="9" x2="12" y2="9" /><line x1="9" y1="6" x2="9" y2="12" /><circle cx="18" cy="6" r="2" fill="currentColor" stroke="none" />
                 </svg>
@@ -320,12 +325,12 @@ export default function Hero() {
                   type="text"
                   readOnly
                   value={selectedSport}
-                  placeholder="sports"
-                  className="w-full outline-none text-gray-800 bg-transparent text-[14px] md:text-[15px] font-medium placeholder:text-gray-600 cursor-pointer truncate"
+                  placeholder="Sports"
+                  className="w-full outline-none text-gray-800 bg-transparent text-[12px] sm:text-[13px] md:text-[15px] font-medium placeholder:text-gray-500 cursor-pointer truncate"
                 />
                 {selectedSport && (
                   <X 
-                    className="w-4 h-4 text-gray-400 hover:text-gray-600 ml-1 cursor-pointer flex-shrink-0" 
+                    className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 ml-0.5 md:ml-1 cursor-pointer flex-shrink-0" 
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedSport('');
@@ -334,7 +339,7 @@ export default function Hero() {
                 )}
               </div>
               <ChevronDown
-                className="w-4 h-4 text-gray-400 transition-transform flex-shrink-0"
+                className="w-3 h-3 md:w-4 md:h-4 text-gray-400 transition-transform flex-shrink-0 ml-0.5 md:ml-0"
                 style={{ transform: isSportOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
               />
             </div>
@@ -345,7 +350,7 @@ export default function Hero() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute top-[120%] left-0 w-[180px] md:w-full bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 text-left"
+                  className="absolute top-[120%] left-0 w-[150px] md:w-full bg-white rounded-lg md:rounded-xl shadow-lg border border-gray-100 py-1 md:py-2 z-50 text-left"
                 >
                   {sports.map((sport, idx) => (
                     <div
@@ -354,13 +359,13 @@ export default function Hero() {
                         setSelectedSport(sport);
                         setIsSportOpen(false);
                       }}
-                      className="px-4 py-2.5 hover:bg-gray-50 text-[14px] text-gray-700 cursor-pointer"
+                      className="px-3 md:px-4 py-2 hover:bg-gray-50 text-[12px] md:text-[14px] text-gray-700 cursor-pointer"
                     >
                       {sport}
                     </div>
                   ))}
                   {sports.length === 0 && (
-                    <div className="px-4 py-2.5 text-[14px] text-gray-400 italic">
+                    <div className="px-3 md:px-4 py-2 text-[12px] md:text-[14px] text-gray-400 italic">
                       No sports available
                     </div>
                   )}
@@ -370,15 +375,15 @@ export default function Hero() {
           </div>
 
           {/* DIVIDER 2 */}
-          <div className="h-6 w-[1.5px] bg-[#f5e3b5] flex-shrink-0 mx-1 md:mx-2"></div>
+          <div className="h-5 md:h-6 w-[1px] bg-gray-200 flex-shrink-0 mx-0.5 md:mx-2"></div>
 
           {/* SEARCH BUTTON */}
           <button
             onClick={handleSearch}
-            className="bg-[#1abc60] hover:bg-[#169c4e] !text-white font-medium py-4 px-5 md:px-6 rounded-lg transition-colors flex items-center justify-center gap-1.5 text-[14px] md:text-[15px] flex-shrink-0 !border-none"
+            className="bg-[#1abc60] hover:bg-[#169c4e] !text-white font-medium py-2.5 px-3 md:py-4 md:px-6 rounded-md md:rounded-lg transition-colors flex items-center justify-center gap-1.5 text-[12px] md:text-[15px] flex-shrink-0 !border-none ml-1 md:ml-0"
           >
             <span className="hidden sm:inline">Search</span>
-            <Search className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
+            <Search className="w-4 h-4 md:w-[18px] md:h-[18px] text-white" strokeWidth={2.5} />
           </button>
 
           </div>

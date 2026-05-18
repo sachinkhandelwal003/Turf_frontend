@@ -396,40 +396,40 @@ export default function AdminDashboard() {
           <div className="!grid !grid-cols-1 sm:!grid-cols-2 lg:!grid-cols-4 !gap-5 md:!gap-6">
             {[
               { 
-                title: isSuperadmin ? 'Total Wallet (80%)' : 'Pending Payout', 
+                title: 'Total Revenue', 
+                value: stats.revenue?.total || 0, 
+                sub: 'Gross platform earnings', 
+                icon: BarChart3, 
+                color: '!text-emerald-600', 
+                bg: '!bg-emerald-50', 
+                border: '!border-emerald-100 hover:!border-emerald-300' 
+              },
+              { 
+                title: 'Pending Amount', 
                 value: isSuperadmin ? (stats.revenue?.total || 0) * 0.8 : pendingPayout, 
-                sub: isSuperadmin ? 'All Admin Earnings' : 'Awaiting Settlement', 
+                sub: isSuperadmin ? 'Awaiting Settlements' : 'Awaiting Payment', 
+                icon: Clock, 
+                color: '!text-orange-600', 
+                bg: '!bg-orange-50', 
+                border: '!border-orange-100 hover:!border-orange-300' 
+              },
+              { 
+                title: 'Online Revenue', 
+                value: stats.revenue?.wallet || (stats.revenue?.total || 0) - (stats.revenue?.offline || 0), 
+                sub: 'Paid via Wallet/Online', 
                 icon: Wallet, 
                 color: '!text-blue-600', 
                 bg: '!bg-blue-50', 
                 border: '!border-blue-100 hover:!border-blue-300' 
               },
               { 
-                title: isSuperadmin ? 'Platform Comm. (20%)' : 'Net Earnings (80%)', 
-                value: isSuperadmin ? (stats.revenue?.total || 0) * 0.2 : (stats.revenue?.total || 0) * 0.8, 
-                sub: isSuperadmin ? 'Your Platform Share' : 'Total Share (Persistent)', 
+                title: 'Offline Revenue', 
+                value: stats.revenue?.offline || 0, 
+                sub: 'Cash/Direct payments', 
                 icon: Shield, 
-                color: '!text-orange-600', 
-                bg: '!bg-orange-50', 
-                border: '!border-orange-100 hover:!border-orange-300' 
-              },
-              { 
-                title: 'Tournament Revenue', 
-                value: stats.revenue?.tournaments || 0, 
-                sub: 'From tournament entries', 
-                icon: Trophy, 
-                color: '!text-amber-600', 
-                bg: '!bg-amber-50', 
-                border: '!border-amber-100 hover:!border-amber-300' 
-              },
-              { 
-                title: isSuperadmin ? 'Total Revenue' : 'Gross Booking Value', 
-                value: stats.revenue?.total || 0, 
-                sub: isSuperadmin ? 'Platform Gross Revenue' : 'Total Transaction Value', 
-                icon: BarChart3, 
-                color: '!text-emerald-600', 
-                bg: '!bg-emerald-50', 
-                border: '!border-emerald-100 hover:!border-emerald-300' 
+                color: '!text-purple-600', 
+                bg: '!bg-purple-50', 
+                border: '!border-purple-100 hover:!border-purple-300' 
               },
             ].map((stat, i) => (
               <motion.div 

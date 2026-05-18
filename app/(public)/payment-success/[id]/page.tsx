@@ -25,10 +25,11 @@ interface Booking {
     isMultiple?: boolean;
     slots?: string[];
     bookingCount?: number;
-    price: number;
-    paidAmount: number;
-    totalAmount: number;
-    paymentMethod: string;
+    price?: number;
+    pricePerHour?: number;
+    paidAmount?: number;
+    totalAmount?: number;
+    paymentMethod?: string;
   };
   sport: string;
   date: string;
@@ -37,6 +38,7 @@ interface Booking {
   courts: string[];
   totalAmount: number;
   paidAmount: number;
+  price?: number;
   paymentMethod: string;
   isMultiple?: boolean;
   slots?: string[];
@@ -128,12 +130,12 @@ export default function PaymentSuccessPage() {
 
   const getBookingTotal = (booking: Booking) => {
     // 1. Try direct amounts from booking object
-    const directAmount = parseSafeNumber(booking.totalAmount || booking.paidAmount || booking.price);
+    const directAmount = parseSafeNumber(booking.totalAmount || booking.paidAmount || (booking as any).price);
     if (directAmount > 0) return directAmount;
 
     // 2. Fallback conceptual calculation
     try {
-      const basePrice = parseSafeNumber(booking.turf?.pricePerHour);
+      const basePrice = parseSafeNumber(booking.turf?.pricePerHour || (booking.turf as any).price);
       const effectivePrice = basePrice > 0 ? basePrice : 1000; // Sensible default
       
       const numCourts = booking.courts?.length || 1;
@@ -304,7 +306,10 @@ export default function PaymentSuccessPage() {
                 <div>
                   <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Amount Paid</p>
                   <p className="text-sm font-bold text-gray-900 uppercase">
-                    ₹{(isTournament ? tournament?.entryFee : (parseSafeNumber(booking?.paidAmount) || getBookingTotal(booking as Booking))).toLocaleString()} 
+                    ₹{(isTournament 
+                        ? parseSafeNumber(tournament?.entryFee) 
+                        : (parseSafeNumber(booking?.paidAmount) || (booking ? getBookingTotal(booking) : 0))
+                      ).toLocaleString()} 
                     <span className="text-gray-400 font-medium text-xs ml-1 normal-case">via {(isTournament ? 'UPI' : (booking?.paymentMethod || 'UPI').toUpperCase())}</span>
                   </p>
                 </div>

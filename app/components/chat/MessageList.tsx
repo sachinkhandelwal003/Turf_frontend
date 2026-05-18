@@ -5,11 +5,13 @@ import { useEffect, useRef } from "react";
 interface Props {
   messages: Message[];
   currentUserId: string;
+  isPublic?: boolean;
 }
 
 export default function MessageList({
   messages,
   currentUserId,
+  isPublic = false
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +42,7 @@ export default function MessageList({
             key={message._id}
             message={message}
             currentUserId={currentUserId}
+            isPublic={isPublic}
           />
         ))}
       </div>

@@ -24,8 +24,12 @@ export const getAllAdmins = async () => {
 };
 
 // CREATE CONVERSATION
-export const createConversation = async (participants: string[]) => {
-  const res = await api.post(`${API}/conversation`, { participants });
+export const createConversation = async (data: {
+  type: string;
+  participants: string[];
+  createdBy: string;
+}) => {
+  const res = await api.post(`${API}/conversation`, data);
   return res.data;
 };
 
@@ -52,7 +56,7 @@ export const deleteMessage = async (messageId: string) => {
 };
 
 // REACT TO MESSAGE
-export const reactToMessage = async (messageId: string, reaction: string) => {
-  const res = await api.post(`${API}/message/${messageId}/react`, { reaction });
+export const reactToMessage = async (messageId: string, reaction: { userId: string; emoji: string }) => {
+  const res = await api.post(`${API}/message/${messageId}/react`, reaction);
   return res.data;
 };

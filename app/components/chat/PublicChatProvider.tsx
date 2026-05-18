@@ -5,43 +5,7 @@ import { io, Socket } from "socket.io-client";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
 import api from "@/app/services/api";
-
-interface Message {
-  _id: string;
-  conversationId: string;
-  senderId: {
-    _id: string;
-    name: string;
-    role: string;
-    profilePhoto?: string;
-  };
-  senderRole: string;
-  text: string;
-  file?: {
-    url: string;
-    name: string;
-    type: string;
-    size: number;
-  };
-  replyTo?: Message;
-  reactions?: Array<{ userId: string; emoji: string }>;
-  isDeleted?: boolean;
-  createdAt: string;
-}
-
-interface Conversation {
-  _id: string;
-  type: string;
-  participants: Array<{
-    _id: string;
-    name: string;
-    role: string;
-    profilePhoto?: string;
-  }>;
-  lastMessage?: string;
-  createdAt: string;
-  updatedAt?: string;
-}
+import { Message, Conversation, User } from "@/app/types/chat.types";
 
 interface ChatContextType {
   conversations: Conversation[];

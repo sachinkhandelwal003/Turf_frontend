@@ -186,17 +186,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const sendMessage = useCallback(async (text: string, file?: File, replyTo?: string) => {
     if (!selectedConversation || !userId || !socket || !user) return;
 
-    const messageData = {
-      conversationId: selectedConversation._id,
-      senderId: userId,
-      senderRole: user.role,
-      text,
-      file,
-      replyTo,
-    };
+    const formData = new FormData();
+    formData.append("conversationId", selectedConversation._id);
+    formData.append("senderId", userId);
+    formData.append("senderRole", user.role);
+    formData.append("text", text);
+    if (file) formData.append("file", file);
+    if (replyTo) formData.append("replyTo", replyTo);
 
     try {
-      const response = await sendMessageApi(messageData);
+      const response = await sendMessageApi(formData);
       socket.emit("send_message", response.message);
       setMessages((prev) => [...prev, response.message]);
     } catch (error) {

@@ -76,12 +76,12 @@ export default function BillingPage() {
   const [dateRange, setDateRange] = useState("all"); 
   const [customDates, setCustomDates] = useState({ start: "", end: "" });
 
-  // Modal State
-  const [selectedAdmin, setSelectedAdmin] = useState<AdminRevenue | null>(null);
-  const [showAdminModal, setShowAdminModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'settlements'>('overview');
-  const [settlements, setSettlements] = useState<Settlement[]>([]);
-  const [showSettlementModal, setShowSettlementModal] = useState(false);
+  // Modal State 
+  const [selectedAdmin, setSelectedAdmin] = useState<AdminBreakdown | null>(null); 
+  const [showAdminModal, setShowAdminModal] = useState(false); 
+  const [activeTab, setActiveTab] = useState<'overview' | 'settlements'>('overview'); 
+  const [settlements, setSettlements] = useState<Settlement[]>([]); 
+  const [showSettlementModal, setShowSettlementModal] = useState(false); 
   const [newSettlement, setNewSettlement] = useState({
     adminId: '',
     amount: '',

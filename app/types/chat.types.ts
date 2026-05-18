@@ -20,7 +20,7 @@ export interface Message {
   isDeleted?: boolean;
   reactions?: { userId: string; emoji: string }[];
   replyTo?: Message | string;
-  isSeen: boolean;
+  isSeen?: boolean;
   createdAt: string;
 }
 

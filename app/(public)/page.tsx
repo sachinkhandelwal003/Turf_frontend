@@ -1,11 +1,11 @@
+import dynamic from 'next/dynamic';
 import Hero from '@/app/components/Home/Hero';
-import Stats from '@/app/components/Home/Stats';
-import PreferredVenues from '@/app/components/Home/PreferredVenues';
-import PopularSports from '@/app/components/Home/PopularSports';
-import Tournament from '@/app/components/Home/Tournament';
-import HowItWorks from '@/app/components/Home/HowsitWork';
-// import BlogSection from '@/app/components/Home/BlogSection';
-// import PartnerCTA from '@/app/components/Home/PartnerCTA';
+
+const Stats = dynamic(() => import('@/app/components/Home/Stats'), { ssr: true });
+const PreferredVenues = dynamic(() => import('@/app/components/Home/PreferredVenues'), { ssr: true });
+const PopularSports = dynamic(() => import('@/app/components/Home/PopularSports'), { ssr: true });
+const Tournament = dynamic(() => import('@/app/components/Home/Tournament'), { ssr: true });
+const HowItWorks = dynamic(() => import('@/app/components/Home/HowsitWork'), { ssr: true });
 
 export default function Home() {
   return (

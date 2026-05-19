@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, Eye, EyeOff, Shield } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Shield, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminLoginPage() {
@@ -47,7 +47,16 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
       
-      <div className="bg-white w-full max-w-[420px] p-6 sm:p-10 rounded-2xl shadow-sm">
+      <div className="bg-white w-full max-w-[420px] p-6 sm:p-10 rounded-2xl shadow-sm relative pt-12 sm:pt-14">
+        
+        {/* BACK TO HOME BUTTON */}
+        <Link 
+          href="/" 
+          className="absolute top-4 left-4 sm:top-5 sm:left-5 flex items-center justify-center w-9 h-9 bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-600 hover:text-black rounded-full transition-colors !no-underline"
+          title="Back to Home"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
         
         {/* LOGO */}
         <div className="flex justify-center mb-6">

@@ -8,7 +8,7 @@ import { ChatProvider } from '@/app/context/ChatContext';
 import { Toaster } from 'sonner';
 import dynamic from 'next/dynamic';
 
-const FloatingChatWrapper = dynamic(() => import('./components/chat/FloatingChatWrapper'), { ssr: false });
+const FloatingChatWrapper = dynamic(() => import('./components/chat/FloatingChatWrapper'));
 
 const inter = Inter({ subsets: ['latin'] });
 

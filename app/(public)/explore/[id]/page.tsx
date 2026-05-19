@@ -56,6 +56,10 @@ export default function TurfDetailsPage() {
   const [bookedSlots, setBookedSlots] = useState<any[]>([]);
   const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false);
 
+  // Split Payment States
+  const [isSplitEnabled, setIsSplitEnabled] = useState(false);
+  const [numPlayers, setNumPlayers] = useState(2);
+
   useEffect(() => {
     const fetchAvailability = async () => {
       if (!id || !selectedDate) return;

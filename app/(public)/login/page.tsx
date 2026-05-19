@@ -24,7 +24,7 @@ function LoginForm() {
   
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push('/profile');
+      router.push('/');
     }
   }, [isAuthenticated, authLoading, router]);
 
@@ -62,7 +62,7 @@ function LoginForm() {
       if (redirect) {
         router.push(redirect);
       } else {
-        router.push('/profile');
+        router.push('/');
       }
 
     } catch (error: any) {

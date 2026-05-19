@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, X, User, LogOut, Coins } from 'lucide-react'; 
+import { Menu, X, User, LogOut, Coins, Shield } from 'lucide-react'; 
 import { useAuth } from '@/app/context/AuthContext';
 
 const navLinks = [
@@ -88,12 +88,21 @@ export default function Navbar() {
             </div>
 
             {/* --- RIGHT: AUTH / PROFILE (DESKTOP) --- */}
-            <div className="hidden lg:flex flex-1 items-center justify-end gap-6">
+            <div className="hidden lg:flex flex-1 items-center justify-end gap-5">
+              
+              {/* ADMIN BUTTON FIX (Pill shape with clear icon) */}
+              <Link 
+                href="/admin/login" 
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-full text-[13px] font-bold !text-gray-600 hover:!text-[#1abc60] transition-colors !no-underline"
+              >
+                <Shield className="!w-4 !h-4 !block !shrink-0 !text-[#1abc60]" /> Admin
+              </Link>
+              
               {isAuthenticated ? (
                 <div className="flex items-center gap-4">
                   {/* Coins Display */}
                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 rounded-full border border-yellow-200">
-                    <Coins className="w-4 h-4 text-yellow-600" />
+                    <Coins className="!w-4 !h-4 !block !shrink-0 !text-yellow-600" />
                     <span className="text-sm font-bold text-yellow-700">{user?.coins || 0}</span>
                   </div>
 
@@ -128,7 +137,7 @@ export default function Navbar() {
                           onClick={() => setIsDropdownOpen(false)}
                           className="flex items-center gap-3 px-5 py-3 text-[14px] font-bold !text-[#1abc60] hover:bg-gray-50 transition-colors !no-underline"
                         >
-                          <User className="w-4 h-4" strokeWidth={2.5} /> My Profile
+                          <User className="!w-4 !h-4 !block !shrink-0" strokeWidth={2.5} /> My Profile
                         </Link>
                         
                         <div
@@ -139,7 +148,7 @@ export default function Navbar() {
                           }}
                           className="flex items-center gap-3 px-5 py-3 text-[14px] font-bold !text-red-500 hover:bg-red-50 transition-colors cursor-pointer m-0"
                         >
-                          <LogOut className="w-4 h-4" strokeWidth={2.5} /> Sign Out
+                          <LogOut className="!w-4 !h-4 !block !shrink-0" strokeWidth={2.5} /> Sign Out
                         </div>
                       </motion.div>
                     )}
@@ -151,7 +160,7 @@ export default function Navbar() {
                   <Link href="/login" className="text-[14px] font-bold !text-gray-700 hover:!text-[#1abc60] transition-colors !no-underline">
                     Login
                   </Link>
-                  <Link href="/Signup" className="!bg-[#1abc60] !text-white text-[14px] font-bold !px-6 !py-2 !rounded-[6px] hover:!bg-[#169c4e] transition-colors !border-none !shadow-none inline-flex items-center justify-center !no-underline">
+                  <Link href="/Signup" className="!bg-[#1abc60] !text-white text-[14px] font-bold !px-6 !py-2.5 !rounded-lg hover:!bg-[#169c4e] transition-colors !border-none !shadow-none inline-flex items-center justify-center !no-underline">
                     Sign Up
                   </Link>
                 </>
@@ -164,7 +173,7 @@ export default function Navbar() {
               className="lg:hidden flex-none !bg-transparent !border-none !text-gray-800 hover:!text-[#1abc60] !shadow-none !p-1 transition-colors cursor-pointer"
               aria-label="Toggle menu"
             >
-              <Menu className="w-7 h-7 sm:w-8 sm:h-8" />
+              <Menu className="!w-7 !h-7 sm:!w-8 sm:!h-8 !block !shrink-0" />
             </button>
           </div>
         </div>
@@ -191,7 +200,7 @@ export default function Navbar() {
             >
               <div className="p-5 sm:p-6 flex justify-end border-b border-gray-100">
                 <button onClick={() => setIsOpen(false)} className="!p-2 !text-gray-600 hover:!text-[#1abc60] transition-colors !bg-gray-100 !border-none !rounded-full !shadow-none cursor-pointer">
-                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <X className="!w-5 !h-5 sm:!w-6 sm:!h-6 !block !shrink-0" />
                 </button>
               </div>
 
@@ -208,11 +217,21 @@ export default function Navbar() {
                 })}
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-8 flex flex-col gap-4">
+                  
+                  {/* MOBILE ADMIN BUTTON FIX */}
+                  <Link 
+                    href="/admin/login" 
+                    onClick={() => setIsOpen(false)} 
+                    className="flex items-center gap-3 text-[16px] font-bold !text-gray-700 hover:!text-[#1abc60] !no-underline bg-gray-50 p-4 rounded-xl border border-gray-100 mb-2 transition-colors"
+                  >
+                    <Shield className="!w-5 !h-5 !block !shrink-0 !text-[#1abc60]" /> Admin Portal
+                  </Link>
+
                   {isAuthenticated ? (
                     <>
                       <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-xl border border-yellow-100 mb-2">
                         <div className="flex items-center gap-2">
-                          <Coins className="w-5 h-5 text-yellow-600" />
+                          <Coins className="!w-5 !h-5 !block !shrink-0 !text-yellow-600" />
                           <span className="text-base font-bold text-yellow-700">My Coins</span>
                         </div>
                         <span className="text-lg font-black text-yellow-700">{user?.coins || 0}</span>
@@ -224,7 +243,7 @@ export default function Navbar() {
                         My Profile
                       </Link>
                       <div onClick={() => { logout(); setIsOpen(false); window.location.href = '/'; }} className="flex items-center gap-3 text-[18px] font-bold !text-red-500 cursor-pointer">
-                        <LogOut className="w-5 h-5" /> Sign Out
+                        <LogOut className="!w-5 !h-5 !block !shrink-0" /> Sign Out
                       </div>
                     </>
                   ) : (

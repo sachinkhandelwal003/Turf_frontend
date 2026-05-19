@@ -24,7 +24,7 @@ export default function SignUp() {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push('/profile');
+      router.push('/');
     }
   }, [isAuthenticated, authLoading, router]);
 
@@ -84,7 +84,7 @@ export default function SignUp() {
       }
 
       setTimeout(() => {
-        window.location.href = '/profile'; // Force reload to pick up context
+        window.location.href = '/'; // Force reload to pick up context
       }, 1500);
     } catch (error: any) {
       toast.error(error?.message || "Failed to create account. Please try again.");

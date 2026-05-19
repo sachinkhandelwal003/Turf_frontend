@@ -54,7 +54,7 @@ export default function PopularSports() {
           </div>
           
           <Link 
-            href="/ground" 
+            href="/categories" 
             className="flex items-center gap-1.5 text-[#1abc60] font-bold text-[15px] hover:text-[#169c4e] transition-colors"
           >
             View All Categories <ArrowRight className="w-4 h-4" />

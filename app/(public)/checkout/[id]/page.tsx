@@ -7,8 +7,7 @@ import {
   CreditCard, Wallet, Landmark, 
   Smartphone, ChevronRight, Loader2, Info,
   Users as UsersIcon, CheckCircle2, AlertCircle,
-  Calendar, Clock, Settings, Plus, Ticket, Award, Coins,
-  Minus
+  Calendar, Clock, Settings, Ticket, Award, Coins
 } from 'lucide-react';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
@@ -429,6 +428,7 @@ export default function CheckoutPage() {
                       <p className="!text-xs !text-gray-500 !font-medium !mt-1 !m-0">Use your earned coins for an instant discount.</p>
                     </div>
                     <button
+                      type="button"
                       onClick={() => {
                         if (!useCoins) {
                           const maxCoinsNeeded = Math.ceil((totalAmount + convenienceFee) / coinValue);
@@ -486,49 +486,61 @@ export default function CheckoutPage() {
                   <h2 className="!text-sm !font-bold !uppercase !tracking-wider !text-gray-900 !m-0">Split with Squad</h2>
                 </div>
                 
-                {/* Modern Toggle Switch */}
+                {/* Fixed, Bulletproof Toggle Switch */}
                 <div className="!flex !items-center !gap-3">
                   <span className={`!text-xs !font-bold !uppercase !tracking-wider ${splitWithSquad ? '!text-[#1abc60]' : '!text-gray-400'}`}>
                     {splitWithSquad ? 'Enabled' : 'Disabled'}
                   </span>
                   <button 
+                    type="button"
                     onClick={() => setSplitWithSquad(!splitWithSquad)}
-                    className={`!relative !inline-flex !h-6 !w-11 !items-center !rounded-full !transition-colors focus:!outline-none !cursor-pointer !border-none ${splitWithSquad ? '!bg-[#1abc60]' : '!bg-gray-300'}`}
+                    className={`!relative !flex !items-center !h-7 !w-14 !rounded-full !px-1 !transition-colors !duration-300 !cursor-pointer !border-none ${
+                      splitWithSquad ? '!bg-[#1abc60]' : '!bg-gray-300'
+                    }`}
                   >
-                    <span className={`!inline-block !h-4 !w-4 !transform !rounded-full !bg-white !transition-transform ${splitWithSquad ? '!translate-x-6' : '!translate-x-1'}`} />
+                    <span 
+                      className="!block !h-5 !w-5 !rounded-full !bg-white !shadow-md !transition-transform !duration-300"
+                      style={{ transform: splitWithSquad ? 'translateX(28px)' : 'translateX(0px)' }}
+                    />
                   </button>
                 </div>
               </div>
 
               {splitWithSquad && (
                 <div className="!space-y-5 !pt-2">
-                  <div className="!flex !items-center !justify-between !p-5 !bg-gray-50 !rounded-xl !border !border-gray-100">
+                  <div className="!flex !items-center !justify-between !p-5 !bg-emerald-50/50 !rounded-2xl !border !border-emerald-100">
                     <div>
                       <h3 className="!text-sm !font-bold !text-gray-900 !m-0">Total per Player</h3>
                       <p className="!text-xs !font-medium !text-gray-500 !mt-1 !m-0">Based on {numPlayers} players sharing the cost</p>
                     </div>
-                    <div className="!text-2xl !font-bold !text-[#1abc60]">
+                    <div className="!text-3xl !font-black !text-[#1abc60]">
                       ₹{Math.round(payableToday / numPlayers).toLocaleString()}
                     </div>
                   </div>
 
-                  <div className="!flex !items-center !justify-between">
-                    <label className="!text-sm !font-bold !text-gray-700">Number of Players</label>
-                    <div className="!flex !items-center !gap-3 !bg-white !border !border-gray-200 !p-1.5 !rounded-xl">
+                  {/* Explicit Text-based Plus/Minus Control */}
+                  <div className="!flex !items-center !justify-between !bg-white !p-4 !rounded-xl !border !border-gray-200 !shadow-sm">
+                    <label className="!text-sm !font-bold !text-gray-900 !m-0">Number of Players</label>
+                    <div className="!flex !items-center !gap-4 !bg-gray-50 !p-1.5 !rounded-lg !border !border-gray-200">
+                      
                       <button 
+                        type="button"
                         onClick={() => setNumPlayers(Math.max(2, numPlayers - 1))}
-                        className="!w-8 !h-8 !rounded-lg !bg-gray-50 hover:!bg-gray-100 !flex !items-center !justify-center !text-gray-600 !transition-colors !border-none !cursor-pointer"
+                        className="!w-9 !h-9 !rounded-md !bg-white hover:!bg-gray-100 !flex !items-center !justify-center !transition-all !border !border-gray-200 !cursor-pointer !shadow-sm active:!scale-95 !shrink-0"
                       >
-                        <Minus className="!w-4 !h-4" />
+                        <span className="!text-xl !font-bold !block !leading-none !m-0 !p-0 !text-gray-900" style={{ color: '#111827' }}>−</span>
                       </button>
-                      <span className="!w-6 !text-center !text-base !font-bold !text-gray-900">
+                      
+                      <span className="!w-6 !text-center !text-base !font-black !text-gray-900 !shrink-0 !m-0">
                         {numPlayers}
                       </span>
+                      
                       <button 
+                        type="button"
                         onClick={() => setNumPlayers(Math.min(12, numPlayers + 1))}
-                        className="!w-8 !h-8 !rounded-lg !bg-gray-50 hover:!bg-gray-100 !flex !items-center !justify-center !text-gray-600 !transition-colors !border-none !cursor-pointer"
+                        className="!w-9 !h-9 !rounded-md !bg-white hover:!bg-gray-100 !flex !items-center !justify-center !transition-all !border !border-gray-200 !cursor-pointer !shadow-sm active:!scale-95 !shrink-0"
                       >
-                        <Plus className="!w-4 !h-4" />
+                        <span className="!text-xl !font-bold !block !leading-none !m-0 !p-0 !text-gray-900" style={{ color: '#111827' }}>+</span>
                       </button>
                     </div>
                   </div>
@@ -553,6 +565,7 @@ export default function CheckoutPage() {
                     }`}
                   >
                     <button
+                      type="button"
                       onClick={() => setPaymentMethod(method.id)}
                       className="!w-full !flex !items-center !gap-4 !p-4 !bg-transparent !border-none !cursor-pointer"
                     >
@@ -713,6 +726,7 @@ export default function CheckoutPage() {
               {/* Action Button */}
               <div className="!p-6 !bg-gray-50 !border-t !border-gray-200">
                 <button
+                  type="button"
                   onClick={handlePayment}
                   disabled={processing}
                   className="!w-full !py-4 !bg-[#1abc60] hover:!bg-[#17a554] !text-white !font-bold !text-sm !uppercase !tracking-widest !rounded-xl !transition-all !flex !items-center !justify-center !gap-2 disabled:!opacity-70 !shadow-lg !shadow-green-100 !border-none !cursor-pointer"

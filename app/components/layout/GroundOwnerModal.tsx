@@ -151,13 +151,13 @@ export default function GroundOwnerModal({ isOpen, onClose }: GroundOwnerModalPr
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wide mb-1.5">Turf Name</label>
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wide mb-1.5">No. of Turfs</label>
                     <input
                       type="text"
                       name="turfName"
                       value={formData.turfName}
                       onChange={handleChange}
-                      placeholder="e.g. Main Turf A"
+                      placeholder="e.g. 2 Turfs"
                       className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border-none focus:ring-2 focus:ring-[#1abc60] transition-all outline-none"
                       required
                     />

@@ -180,12 +180,20 @@ export default function AdminSettingsPage() {
 
       if (logoFiles.frontend?.originalFile) {
         formData.append('frontendLogo', logoFiles.frontend.originalFile);
+      } else if (logoFiles.frontend === null) {
+        formData.append('frontendLogo', "");
       }
+
       if (logoFiles.backend?.originalFile) {
         formData.append('backendLogo', logoFiles.backend.originalFile);
+      } else if (logoFiles.backend === null) {
+        formData.append('backendLogo', "");
       }
+
       if (logoFiles.hero?.originalFile) {
-        formData.append('heroBannerImage', logoFiles.hero.originalFile);
+        formData.append('image', logoFiles.hero.originalFile);
+      } else if (logoFiles.hero === null) {
+        formData.append('heroBannerImage', "");
       }
 
       console.log('Sending to API via FormData...');

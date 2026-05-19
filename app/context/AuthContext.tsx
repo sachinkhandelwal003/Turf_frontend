@@ -20,7 +20,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
   isSuperadmin: boolean;
   hasPermission: (permission: string) => boolean;
@@ -130,11 +130,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('adminUser');
-    localStorage.removeItem('token');
-    router.push('/login');
+  const logout = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+      
+      if (token) {
+        // Optional: Call backend to notify about logout
+        await fetch(`${API_URL}/auth/logout`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' 
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Logout API Error:", error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('adminUser');
+      localStorage.removeItem('token');
+      router.push('/login');
+    }
   };
 
   const hasPermission = (permission: string) => {

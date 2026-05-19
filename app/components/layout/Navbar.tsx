@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, X, User, LogOut, Coins, Shield } from 'lucide-react'; 
+import { Menu, X, User, LogOut, Coins, UserCheck } from 'lucide-react'; 
 import { useAuth } from '@/app/context/AuthContext';
 
 const navLinks = [
@@ -87,16 +87,8 @@ export default function Navbar() {
               })}
             </div>
 
-            {/* --- RIGHT: AUTH / PROFILE (DESKTOP) --- */}
+            {/* --- RIGHT: AUTH / PROFILE / ADMIN (DESKTOP) --- */}
             <div className="hidden lg:flex flex-1 items-center justify-end gap-5">
-              
-              {/* ADMIN BUTTON FIX (Pill shape with clear icon) */}
-              <Link 
-                href="/admin/login" 
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-full text-[13px] font-bold !text-gray-600 hover:!text-[#1abc60] transition-colors !no-underline"
-              >
-                <Shield className="!w-4 !h-4 !block !shrink-0 !text-[#1abc60]" /> Admin
-              </Link>
               
               {isAuthenticated ? (
                 <div className="flex items-center gap-4">
@@ -111,48 +103,48 @@ export default function Navbar() {
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                       className="w-10 h-10 rounded-full border-2 border-transparent hover:border-[#1abc60] overflow-hidden cursor-pointer transition-all shadow-sm focus:outline-none !bg-transparent !p-0"
                     >
-                    <img
-                      src={getProfileImg()} 
-                      alt="Profile"
-                      className="w-full h-full object-cover bg-gray-100"
-                    />
-                  </button>
+                      <img
+                        src={getProfileImg()} 
+                        alt="Profile"
+                        className="w-full h-full object-cover bg-gray-100"
+                      />
+                    </button>
 
-                  <AnimatePresence>
-                    {isDropdownOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-3 w-[240px] bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 py-2 overflow-hidden z-[100]"
-                      >
-                        <div className="px-5 py-4 border-b border-gray-50 mb-2">
-                          <p className="text-[15px] font-bold !text-[#2d3748] truncate tracking-tight">{user?.name || 'User'}</p>
-                          <p className="text-[13px] font-medium !text-gray-500 truncate">{user?.email || 'email@example.com'}</p>
-                        </div>
-                        
-                        <Link
-                          href="/profile"
-                          onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center gap-3 px-5 py-3 text-[14px] font-bold !text-[#1abc60] hover:bg-gray-50 transition-colors !no-underline"
+                    <AnimatePresence>
+                      {isDropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 mt-3 w-[240px] bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 py-2 overflow-hidden z-[100]"
                         >
-                          <User className="!w-4 !h-4 !block !shrink-0" strokeWidth={2.5} /> My Profile
-                        </Link>
-                        
-                        <div
-                          onClick={() => {
-                            logout();
-                            setIsDropdownOpen(false);
-                            window.location.href = '/'; 
-                          }}
-                          className="flex items-center gap-3 px-5 py-3 text-[14px] font-bold !text-red-500 hover:bg-red-50 transition-colors cursor-pointer m-0"
-                        >
-                          <LogOut className="!w-4 !h-4 !block !shrink-0" strokeWidth={2.5} /> Sign Out
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                          <div className="px-5 py-4 border-b border-gray-50 mb-2">
+                            <p className="text-[15px] font-bold !text-[#2d3748] truncate tracking-tight">{user?.name || 'User'}</p>
+                            <p className="text-[13px] font-medium !text-gray-500 truncate">{user?.email || 'email@example.com'}</p>
+                          </div>
+                          
+                          <Link
+                            href="/profile"
+                            onClick={() => setIsDropdownOpen(false)}
+                            className="flex items-center gap-3 px-5 py-3 text-[14px] font-bold !text-[#1abc60] hover:bg-gray-50 transition-colors !no-underline"
+                          >
+                            <User className="!w-4 !h-4 !block !shrink-0" strokeWidth={2.5} /> My Profile
+                          </Link>
+                          
+                          <div
+                            onClick={() => {
+                              logout();
+                              setIsDropdownOpen(false);
+                              window.location.href = '/'; 
+                            }}
+                            className="flex items-center gap-3 px-5 py-3 text-[14px] font-bold !text-red-500 hover:bg-red-50 transition-colors cursor-pointer m-0"
+                          >
+                            <LogOut className="!w-4 !h-4 !block !shrink-0" strokeWidth={2.5} /> Sign Out
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               ) : (
@@ -165,6 +157,15 @@ export default function Navbar() {
                   </Link>
                 </>
               )}
+
+              {/* ADMIN BLACK HUMAN ICON BUTTON */}
+              <Link 
+                href="/admin/login" 
+                title="Admin Portal"
+                className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-gray-300 rounded-full transition-colors !no-underline shadow-sm shrink-0"
+              >
+                <UserCheck className="!w-5 !h-5 !block !shrink-0 !text-black hover:!text-gray-700" strokeWidth={2} />
+              </Link>
             </div>
 
             {/* --- MOBILE HAMBURGER MENU BUTTON --- */}
@@ -218,13 +219,13 @@ export default function Navbar() {
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-8 flex flex-col gap-4">
                   
-                  {/* MOBILE ADMIN BUTTON FIX */}
+                  {/* MOBILE ADMIN PORTAL BUTTON (BLACK ICON) */}
                   <Link 
                     href="/admin/login" 
                     onClick={() => setIsOpen(false)} 
-                    className="flex items-center gap-3 text-[16px] font-bold !text-gray-700 hover:!text-[#1abc60] !no-underline bg-gray-50 p-4 rounded-xl border border-gray-100 mb-2 transition-colors"
+                    className="flex items-center gap-3 text-[16px] font-bold !text-gray-700 hover:!text-black !no-underline bg-gray-50 p-4 rounded-xl border border-gray-100 mb-2 transition-colors"
                   >
-                    <Shield className="!w-5 !h-5 !block !shrink-0 !text-[#1abc60]" /> Admin Portal
+                    <UserCheck className="!w-5 !h-5 !block !shrink-0 !text-black" /> Admin Portal
                   </Link>
 
                   {isAuthenticated ? (

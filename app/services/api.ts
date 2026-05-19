@@ -15,7 +15,7 @@ const getApiUrl = () => {
     }
   }
 
-  return 'https://api.rkinteriorstudio.in/api';
+  return 'https://gameonindia.tech/api';
 };
 
 const API_URL = getApiUrl();

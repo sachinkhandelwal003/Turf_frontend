@@ -38,32 +38,32 @@ export default function FloatingChat() {
       ) : (
         <div className="bg-white rounded-3xl shadow-2xl w-[92vw] sm:w-[380px] md:w-[420px] h-[70vh] max-h-[600px] min-h-[450px] flex flex-col border border-gray-200 overflow-hidden animate-in slide-in-from-bottom-6 fade-in duration-300">
           {/* Header */}
-          <div className="bg-gradient-to-r from-gray-700 to-gray-800 p-4 text-white flex items-center justify-between shadow-lg relative z-10">
+          <div className="bg-[#1abc60] p-4 text-white flex items-center justify-between shadow-md relative z-10">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/30">
-                <MessageSquare className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-inner">
+                <MessageSquare className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-base">Support Chat</h3>
+                <h3 className="font-bold text-[15px] leading-tight">Support Chat</h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse"></div>
-                  <p className="text-[11px] text-white/90">We&apos;re online</p>
+                  <div className="w-2 h-2 rounded-full bg-white animate-pulse shadow-[0_0_5px_rgba(255,255,255,0.8)]"></div>
+                  <p className="text-[11px] text-white/90 font-medium tracking-wide">We're online</p>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-1">
               <button 
                 onClick={refreshMessages}
-                className="hover:bg-white/10 p-1.5 rounded-full transition-colors"
+                className="hover:bg-black/10 p-2 rounded-full transition-all active:scale-90"
                 title="Refresh messages"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4 text-white" />
               </button>
               <button 
                 onClick={() => setIsOpen(false)}
-                className="hover:bg-white/10 p-1.5 rounded-full transition-colors"
+                className="hover:bg-black/10 p-2 rounded-full transition-all active:scale-90"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-white" />
               </button>
             </div>
           </div>

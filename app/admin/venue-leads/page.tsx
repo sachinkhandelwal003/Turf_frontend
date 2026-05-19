@@ -6,6 +6,7 @@ import { Search, User, MapPin, Phone, Mail, Clock, CheckCircle, XCircle, Loader2
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 interface VenueLead {
   _id: string;
@@ -65,6 +66,30 @@ export default function VenueLeadsPage() {
       toast.error('Failed to update status');
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleDeleteLead = async (id: string) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This lead will be permanently deleted!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, delete it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await api.delete(`/venue-leads/${id}`);
+        if (res.data.success) {
+          setLeads(leads.filter(l => l._id !== id));
+          toast.success("Lead deleted successfully");
+        }
+      } catch (error: any) {
+        toast.error(error.response?.data?.error || "Failed to delete lead");
+      }
     }
   };
 
@@ -233,6 +258,14 @@ export default function VenueLeadsPage() {
                           {updatingId === lead._id ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <CheckCircle2 className="!w-4 !h-4" />}
                         </button>
                       )}
+
+                      <button
+                        onClick={() => handleDeleteLead(lead._id)}
+                        className="!p-2.5 !bg-white !text-gray-400 hover:!text-red-600 hover:!bg-red-50 !border !border-gray-200 hover:!border-red-200 !rounded-xl !transition-all !cursor-pointer !flex !items-center !justify-center"
+                        title="Delete Lead"
+                      >
+                        <Trash2 className="!w-4 !h-4" />
+                      </button>
                     </div>
                   </div>
                 </motion.div>
@@ -376,6 +409,16 @@ export default function VenueLeadsPage() {
                 >
                   {updatingId === selectedLead._id && selectedLead.status !== 'rejected' ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <XCircle className="!w-4 !h-4" />}
                   Reject Lead
+                </button>
+                <button
+                  onClick={() => {
+                    handleDeleteLead(selectedLead._id);
+                    setSelectedLead(null);
+                  }}
+                  className="!px-4 !py-3 !bg-white !text-gray-400 hover:!text-red-600 !border !border-gray-200 hover:!border-red-200 !rounded-xl !text-sm !font-bold !transition-all !cursor-pointer"
+                  title="Delete Lead"
+                >
+                  <Trash2 className="!w-4 !h-4" />
                 </button>
               </div>
 

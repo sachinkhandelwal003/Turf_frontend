@@ -59,13 +59,13 @@ export default function MessageInput({ isPublic = false }: { isPublic?: boolean 
   };
 
   return (
-    <div className="p-3 sm:p-4 bg-white border-t border-gray-200 relative">
+    <div className="p-3 bg-white border-t border-gray-100 relative shadow-[0_-5px_15px_rgba(0,0,0,0.03)]">
       {preview && (
-        <div className="mb-2 relative inline-block">
-          <img src={preview} alt="Preview" className="h-20 w-20 object-cover rounded-lg border border-gray-300" />
+        <div className="mb-3 relative inline-block animate-in zoom-in-90 duration-200">
+          <img src={preview} alt="Preview" className="h-20 w-20 object-cover rounded-xl border-2 border-[#1abc60]/20 shadow-md" />
           <button 
             onClick={() => { setFile(null); setPreview(null); }}
-            className="absolute -top-2 -right-2 bg-gray-500 hover:bg-gray-600 text-white rounded-full p-1 transition-colors"
+            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all active:scale-90"
           >
             <X className="w-3 h-3" />
           </button>
@@ -73,19 +73,21 @@ export default function MessageInput({ isPublic = false }: { isPublic?: boolean 
       )}
 
       {showEmojiPicker && (
-        <div className="absolute bottom-full left-3 mb-2 bg-white rounded-2xl shadow-xl border border-gray-200 p-2 z-50">
+        <div className="absolute bottom-full left-3 right-3 mb-3 bg-white rounded-2xl shadow-2xl border border-gray-100 p-3 z-50 animate-in slide-in-from-bottom-2">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Emojis</span>
+            <button onClick={() => setShowEmojiPicker(false)} className="text-gray-400 hover:text-gray-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
           <div 
-            className="grid grid-cols-8 gap-1 max-h-40 overflow-y-auto"
-            style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(0,0,0,0.2) transparent'
-            }}
+            className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto no-scrollbar"
           >
             {emojis.map((emoji, i) => (
               <button
                 key={i}
                 onClick={() => addEmoji(emoji)}
-                className="text-lg p-2 hover:bg-gray-100 rounded-lg transition-all active:scale-95 flex items-center justify-center"
+                className="text-xl p-2 hover:bg-gray-50 rounded-xl transition-all active:scale-125 flex items-center justify-center"
               >
                 {emoji}
               </button>
@@ -94,55 +96,57 @@ export default function MessageInput({ isPublic = false }: { isPublic?: boolean 
         </div>
       )}
 
-      <div className="flex items-end gap-1.5">
-        <div className="flex gap-1 mb-0.5">
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all"
-          >
-            <ImageIcon className="w-4.5 h-4.5" />
-          </button>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileChange} 
-            className="hidden" 
-          />
-        </div>
+      <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-2xl p-1.5 pl-3 focus-within:border-[#1abc60] focus-within:bg-white transition-all shadow-inner">
+        <button 
+          onClick={() => fileInputRef.current?.click()}
+          className="p-2 text-gray-400 hover:text-[#1abc60] hover:bg-[#1abc60]/10 rounded-xl transition-all active:scale-90 flex-shrink-0"
+          title="Send Image"
+        >
+          <ImageIcon className="w-5 h-5" />
+        </button>
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleFileChange} 
+          className="hidden" 
+          accept="image/*"
+        />
         
-        <div className="flex-1 bg-gray-100 rounded-xl px-3 py-2 flex items-center min-h-[40px]">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder="Type a message..."
-            className="w-full bg-transparent border-none focus:ring-0 text-sm resize-none max-h-24 py-0.5 outline-none"
-            rows={1}
-          />
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          placeholder="Type a message..."
+          className="flex-1 bg-transparent border-none focus:ring-0 text-[14px] text-gray-700 placeholder:text-gray-400 resize-none max-h-24 py-1.5 outline-none min-h-[24px]"
+          rows={1}
+          style={{ scrollbarWidth: 'none' }}
+        />
+        
+        <div className="flex items-center gap-1">
           <button 
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition-all"
+            className={`p-2 rounded-xl transition-all active:scale-90 ${showEmojiPicker ? "text-[#1abc60] bg-[#1abc60]/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"}`}
           >
-            <Smile className="w-4.5 h-4.5" />
+            <Smile className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={handleSend}
+            disabled={!text.trim() && !file}
+            className={`p-2.5 rounded-xl transition-all shadow-md ${
+              text.trim() || file 
+                ? "bg-[#1abc60] text-white hover:bg-[#169c4e] active:scale-95 translate-x-0" 
+                : "bg-gray-200 text-gray-400 cursor-not-allowed opacity-50"
+            }`}
+          >
+            <Send className="w-5 h-5" />
           </button>
         </div>
-
-        <button
-          onClick={handleSend}
-          disabled={!text.trim() && !file}
-          className={`p-2.5 rounded-full transition-all ${
-            text.trim() || file 
-              ? "bg-gray-600 text-white shadow-sm hover:scale-105 active:scale-95" 
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
-          }`}
-        >
-          <Send className="w-4.5 h-4.5" />
-        </button>
       </div>
     </div>
   );

@@ -27,7 +27,14 @@ export default function MessageBubble({
     reactToMessage: async () => {}
   };
 
-  const isSender = message.senderId?._id === currentUserId;
+  // Determine if current user is the sender
+  const isSender = (() => {
+    if (!message.senderId || !currentUserId) return false;
+    const senderId = typeof message.senderId === 'string' 
+      ? message.senderId 
+      : message.senderId._id;
+    return senderId === currentUserId;
+  })();
   const [showReactions, setShowReactions] = useState(false);
 
   const emojis = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "👀", "🙏", "👏"];
@@ -47,25 +54,34 @@ export default function MessageBubble({
       <div className={`flex flex-col max-w-[88%] sm:max-w-[78%] ${isSender ? "items-end" : "items-start"}`}>
         <div className="flex items-end gap-1.5">
           {!isSender && (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-xs font-bold text-gray-600 shrink-0 border-2 border-white shadow-sm overflow-hidden">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-[13px] font-bold text-gray-500 shrink-0 border-2 border-white shadow-sm overflow-hidden relative">
               {message.senderId?.profilePhoto ? (
-                <img src={message.senderId.profilePhoto} alt="" className="w-full h-full object-cover" />
+                <img 
+                  src={message.senderId.profilePhoto} 
+                  alt="" 
+                  className="w-full h-full object-cover" 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${message.senderId?.name || "User"}&background=random`;
+                  }}
+                />
               ) : (
-                message.senderId?.name?.[0]?.toUpperCase() || "?"
+                <div className="w-full h-full flex items-center justify-center bg-[#1abc60]/10 text-[#1abc60]">
+                  {message.senderId?.name?.[0]?.toUpperCase() || "?"}
+                </div>
               )}
             </div>
           )}
 
           <div className="relative group">
             <div
-              className={`py-2.5 px-3.5 rounded-2xl shadow-sm ${
+              className={`py-2 px-3.5 rounded-[18px] shadow-sm ${
                 isSender
-                  ? "bg-gray-600 text-white rounded-tr-sm"
-                  : "bg-white text-gray-800 rounded-tl-sm border border-gray-200"
+                  ? "bg-[#1abc60] text-white rounded-tr-none"
+                  : "bg-white text-gray-800 rounded-tl-none border border-gray-100"
               }`}
             >
               {!isSender && (
-                <p className="text-[11px] font-semibold mb-0.5 opacity-90">
+                <p className="text-[10px] font-bold mb-1 text-[#1abc60] uppercase tracking-wider">
                   {message.senderId?.name || "User"}
                 </p>
               )}

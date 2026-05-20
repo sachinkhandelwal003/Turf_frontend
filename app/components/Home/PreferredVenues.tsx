@@ -78,16 +78,15 @@ export default function FeaturedVenues() {
 
     // Map to UI format
     return filtered.slice(0, 6).map((t: any) => {
-      const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-      const todayRate = t.rates?.find((r: any) => r.day === today);
-      const currentPrice = (todayRate && todayRate.price > 0) ? todayRate.price : t.pricePerHour;
+      const currentPrice = t.pricePerHour || 0;
 
       return {
         id: t._id,
         name: t.name,
         location: `${t.location.landmark ? t.location.landmark + ', ' : ''}${t.location.city}`,
         price: `₹${currentPrice}`,
-        rating: t.rating || '4.5',
+        rating: t.rating || 0,
+        reviewsCount: t.reviewsCount || 0,
         img: t.img || (t.images?.[0]?.startsWith('http') 
           ? t.images[0] 
           : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${t.images?.[0] || '/Perreferred1.png'}`),
@@ -276,24 +275,24 @@ export default function FeaturedVenues() {
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                   <Search className="w-3.5 h-3.5" /> Quick Search
                 </label>
-                <div className="relative flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <div className="!flex !gap-2">
+                  <div className="!relative !flex-1">
+                    <Search className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-5 !h-5 !text-gray-400 !pointer-events-none" />
                     <input 
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search by venue name or landmark..."
-                      className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all placeholder:font-normal"
+                      className="!w-full !pl-12 !pr-4 !py-3.5 !bg-gray-50 !border !border-gray-200 !rounded-xl !text-sm !font-medium !text-gray-900 !outline-none focus:!bg-white focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all placeholder:!font-normal placeholder:!text-gray-400"
                     />
                   </div>
                   <button
                     onClick={handleAutoDetect}
                     disabled={loading}
-                    className="p-3.5 bg-white border border-gray-200 rounded-xl text-[#1abc60] hover:bg-[#e8f8ef] hover:border-[#1abc60] transition-all flex items-center justify-center shadow-sm cursor-pointer"
+                    className="!p-3.5 !bg-white !border !border-gray-200 !rounded-xl !text-[#1abc60] hover:!bg-[#e8f8ef] hover:!border-[#1abc60] !transition-all !flex !items-center !justify-center !shadow-sm !cursor-pointer !shrink-0"
                     title="Auto Detect Location"
                   >
-                    <Navigation className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                    <Navigation className={`!w-5 !h-5 ${loading ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
               </div>

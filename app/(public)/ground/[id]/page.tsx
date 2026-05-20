@@ -11,42 +11,6 @@ import {
 import api from '@/app/services/api';
 import { toast } from 'sonner';
 
-// === DUMMY DATA FOR DEMO ===
-const DUMMY_TURFS = [
-  {
-    _id: "dummy-venue-1",
-    name: "Champions Sports Hub",
-    location: {
-      address: "Plot 45, Near Mansarovar Metro Station",
-      city: "Jaipur",
-      landmark: "Mansarovar Plaza",
-      mapUrl: "https://maps.google.com/?q=Mansarovar+Jaipur"
-    },
-    pricePerHour: 1200,
-    slotDuration: 60,
-    sports: ["Football", "Cricket", "Badminton"],
-    amenities: ["Changing Rooms", "Floodlights", "Parking", "Drinking Water", "First Aid"],
-    description: "A premium FIFA-certified synthetic turf suitable for high-intensity football and box cricket. Equipped with professional-grade LED lighting for night matches.",
-    images: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80"],
-    isActive: true,
-    rating: 4.8,
-    reviewsCount: 124,
-    courts: [{ name: "Court 1", courtType: "Synthetic" }, { name: "Court 2", courtType: "Synthetic" }],
-    priceHikes: [
-      { startTime: "18:00", endTime: "22:00", extraPrice: 200 }
-    ],
-    operatingHours: [
-      { day: "Monday", open: "06:00", close: "23:00", isOpen: true },
-      { day: "Tuesday", open: "06:00", close: "23:00", isOpen: true },
-      { day: "Wednesday", open: "06:00", close: "23:00", isOpen: true },
-      { day: "Thursday", open: "06:00", close: "23:00", isOpen: true },
-      { day: "Friday", open: "06:00", close: "23:00", isOpen: true },
-      { day: "Saturday", open: "06:00", close: "23:00", isOpen: true },
-      { day: "Sunday", open: "06:00", close: "23:00", isOpen: true }
-    ]
-  }
-];
-
 export default function VenueDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -59,34 +23,6 @@ export default function VenueDetailsPage() {
     const fetchVenue = async () => {
       if (!id || id === 'undefined') return;
 
-      if (id.startsWith('dummy-')) {
-        const dummy = DUMMY_TURFS.find(t => t._id === id);
-        if (dummy) {
-          const mappedVenue = {
-            id: dummy._id,
-            title: dummy.name,
-            rating: dummy.rating,
-            reviews: dummy.reviewsCount,
-            location: dummy.location.city,
-            address: `${dummy.location.address}, ${dummy.location.landmark}, ${dummy.location.city}`,
-            mapUrl: dummy.location.mapUrl,
-            price: dummy.pricePerHour,
-            slotDuration: dummy.slotDuration,
-            image: dummy.images[0],
-            images: dummy.images,
-            sports: dummy.sports,
-            amenities: dummy.amenities,
-            about: dummy.description,
-            courts: dummy.courts,
-            priceHikes: dummy.priceHikes || [],
-            operatingHours: dummy.operatingHours
-          };
-          setVenue(mappedVenue);
-          setLoading(false);
-          return;
-        }
-      }
-
       if (id.length < 10) return;
 
       try {
@@ -96,8 +32,8 @@ export default function VenueDetailsPage() {
           const mappedVenue = {
             id: t._id,
             title: t.name,
-            rating: t.rating || 4.5,
-            reviews: t.reviewsCount || "150",
+            rating: t.rating || 0,
+            reviews: t.reviewsCount || 0,
             location: t.location.city,
             address: `${t.location.address ? t.location.address + ', ' : ''}${t.location.landmark ? t.location.landmark + ', ' : ''}${t.location.city}`,
             mapUrl: t.location.mapUrl || '',
@@ -148,6 +84,11 @@ export default function VenueDetailsPage() {
   const [bookedSlots, setBookedSlots] = useState<any[]>([]);
 
   useEffect(() => {
+    setSelectedTimes([]);
+    setSelectedCourts([]);
+  }, [selectedDate]);
+
+  useEffect(() => {
     const fetchAvailability = async () => {
       if (!id || id === 'undefined' || id.startsWith('dummy-') || id.length < 10) return;
       try {
@@ -166,8 +107,20 @@ export default function VenueDetailsPage() {
   const formatMinutes = (mins: number) =>
     String(Math.floor(mins / 60)).padStart(2, "0") + ":" + String(mins % 60).padStart(2, "0");
   const parseTimeToMinutes = (time: string) => {
-    const [h, m] = (time || "00:00").split(":").map((v) => Number(v));
-    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+    if (!time) return 0;
+    // Handle formats like "06:00", "6:00 AM", "6 PM", "23:00"
+    const parts = time.toLowerCase().split(":");
+    let h = parseInt(parts[0], 10);
+    let m = 0;
+
+    if (parts.length > 1) {
+      m = parseInt(parts[1], 10);
+    }
+
+    if (time.toLowerCase().includes("pm") && h < 12) h += 12;
+    if (time.toLowerCase().includes("am") && h === 12) h = 0;
+
+    return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
   };
   const to12hLabel = (time: string) => {
     const [hh, mm] = time.split(":").map((v) => Number(v));
@@ -205,21 +158,39 @@ export default function VenueDetailsPage() {
       "EVENING": []
     };
 
-    const dayName = new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" });
-    const operatingDay = venue?.operatingHours?.find((d: any) => d.day === dayName);
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+
+    console.log("Debug Slots:", { selectedDate, dayName, venueHours: venue?.operatingHours });
+
+    let operatingDay = venue?.operatingHours?.find(
+      (d: any) => d.day.toLowerCase() === dayName.toLowerCase()
+    );
+
+    // Better fallback: If specific day is not found OR operatingHours is empty
+    if (!operatingDay) {
+      operatingDay = { day: dayName, open: "06:00", close: "23:00", isOpen: true };
+    }
+
     if (!operatingDay || operatingDay.isOpen === false) {
       return groups;
     }
 
-    const dayRate = venue?.rates?.find((r: any) => r.day === dayName)?.price;
-    const baseHourlyRate = Number(dayRate ?? venue?.price ?? 0);
+    const baseHourlyRate = Number(venue?.price ?? 1000);
 
-    const open = operatingDay.open || "06:00";
-    const close = operatingDay.close || "23:00";
+    let open = operatingDay.open || "06:00";
+    let close = operatingDay.close || "23:00";
     const duration = Number(venue?.slotDuration || 60);
 
     let cur = parseTimeToMinutes(open);
-    const end = parseTimeToMinutes(close);
+    let end = parseTimeToMinutes(close);
+
+    // Handle midnight closing time (e.g. 00:00 or 12:00 AM)
+    if (end <= cur && end === 0) {
+      end = 24 * 60; // Set to 1440 minutes
+    }
+
     const d = Math.max(15, duration || 60);
 
     const now = new Date();
@@ -236,7 +207,13 @@ export default function VenueDetailsPage() {
       const bookedCourts = checkIsBooked(timeVal);
       const isPast = isToday && cur < currentMins;
       
-      const customSlot = venue?.slotPricings?.find((s: any) => {
+      const customSlot = venue?.priceHikes?.find((s: any) => {
+        const sStart = parseTimeToMinutes(s.startTime);
+        const sEnd = parseTimeToMinutes(s.endTime);
+        return (cur < sEnd && (cur + d) > sStart);
+      });
+
+      const dynamicSlot = venue?.slotPricings?.find((s: any) => {
         const sStart = parseTimeToMinutes(s.startTime);
         const sEnd = parseTimeToMinutes(s.endTime);
         return (cur < sEnd && (cur + d) > sStart);
@@ -247,8 +224,8 @@ export default function VenueDetailsPage() {
 
       const basePriceForDuration = (baseHourlyRate * (d / 60));
 
-      if (customSlot) {
-        extra = Number(customSlot.price || 0);
+      if (customSlot || dynamicSlot) {
+        extra = Number(customSlot?.extraPrice || dynamicSlot?.price || 0);
         slotPrice = basePriceForDuration + extra;
       } else {
         slotPrice = basePriceForDuration;
@@ -319,9 +296,12 @@ export default function VenueDetailsPage() {
 
     setIsBooking(true);
     try {
-      const dayName = new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" });
-      const dayRate = venue?.rates?.find((r: any) => r.day === dayName)?.price;
-      const effectiveHourlyRate = Number(dayRate ?? venue?.price ?? 0);
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+
+      const dayRate = venue?.rates?.find((r: any) => r.day.toLowerCase() === dayName.toLowerCase())?.price;
+      const effectiveHourlyRate = Number(venue?.price ?? 1000);
       
       const finalPrice = selectedTimes.reduce((sum, timeVal) => {
         const [start, end] = timeVal.split(" - ");
@@ -329,14 +309,20 @@ export default function VenueDetailsPage() {
         const endMins = parseTimeToMinutes(end);
         const slotDuration = endMins - cur;
 
-        const customSlot = venue?.slotPricings?.find((s: any) => {
+        const customSlot = venue?.priceHikes?.find((s: any) => {
+          const sStart = parseTimeToMinutes(s.startTime);
+          const sEnd = parseTimeToMinutes(s.endTime);
+          return cur < sEnd && (cur + slotDuration) > sStart;
+        });
+
+        const dynamicSlot = venue?.slotPricings?.find((s: any) => {
           const sStart = parseTimeToMinutes(s.startTime);
           const sEnd = parseTimeToMinutes(s.endTime);
           return cur < sEnd && (cur + slotDuration) > sStart;
         });
 
         const basePrice = (effectiveHourlyRate * (slotDuration / 60));
-        const extraPrice = customSlot ? Number(customSlot.price || 0) : 0;
+        const extraPrice = Number(customSlot?.extraPrice || dynamicSlot?.price || 0);
         const slotPrice = basePrice + extraPrice;
           
         return sum + (slotPrice * selectedCourts.length);
@@ -364,6 +350,16 @@ export default function VenueDetailsPage() {
       setIsBooking(false);
     }
   };
+
+  useEffect(() => {
+    if (!venue?.images || venue.images.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setActiveImage((prev) => (prev + 1) % venue.images.length);
+    }, 3000); // 3 seconds per slide
+
+    return () => clearInterval(interval);
+  }, [venue?.images]);
 
   if (loading) {
     return (
@@ -403,9 +399,12 @@ export default function VenueDetailsPage() {
   };
 
   const embedUrl = venue ? toEmbedUrl(venue.mapUrl) : '';
-  const dayNameForDisplay = new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" });
-  const currentDayRate = venue?.rates?.find((r: any) => r.day === dayNameForDisplay)?.price;
-  const displayPrice = Number(currentDayRate ?? venue?.price ?? 0);
+  const [year, month, day] = selectedDate.split('-').map(Number);
+  const dateObj = new Date(year, month - 1, day);
+  const dayNameForDisplay = dateObj.toLocaleDateString("en-US", { weekday: "long" });
+
+  const displayPrice = Number(venue?.price ?? 1000);
+  const displayPriceWithSymbol = `₹${displayPrice}`;
 
   return (
     <div className="!min-h-screen !bg-[#f8fafc] !pb-20 !pt-24 !font-sans">

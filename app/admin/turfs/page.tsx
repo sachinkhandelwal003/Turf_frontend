@@ -111,34 +111,6 @@ interface ValidationErrors {
 // ============= Constants =============
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 
-const DUMMY_VENUES: Turf[] = [
-  {
-    _id: "dummy-venue-1",
-    name: "Champions Sports Hub",
-    location: {
-      address: "Plot 45, Near Mansarovar Metro Station",
-      city: "Jaipur",
-      landmark: "Mansarovar Plaza",
-      mapUrl: "https://maps.google.com/?q=Mansarovar+Jaipur"
-    },
-    pricePerHour: 1200,
-    slotDuration: 60,
-    rates: DAYS.map(day => ({ day, price: 1200, isPeak: false })),
-    operatingHours: DAYS.map(day => ({ day, open: "06:00", close: "23:00", isOpen: true })),
-    courts: [
-      { name: "Court 1", courtType: "Synthetic" },
-      { name: "Court 2", courtType: "Synthetic" }
-    ],
-    sports: ["Football", "Cricket", "Badminton"],
-    amenities: ["Changing Rooms", "Floodlights", "Parking", "Drinking Water", "First Aid"],
-    description: "A premium FIFA-certified synthetic turf suitable for high-intensity football and box cricket. Equipped with professional-grade LED lighting for night matches.",
-    images: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80"],
-    isActive: true,
-    rating: 4.8,
-    reviewsCount: 124
-  }
-];
-
 const SLOT_DURATIONS = [
   { value: 30, label: "30 Minutes" },
   { value: 60, label: "60 Minutes" },
@@ -645,18 +617,15 @@ export default function AdminTurfPage() {
     try {
       const res = await api.get("/turfs/my/all");
       if (res.data.success) {
-        // Merge fetched turfs with dummy venues
-        const fetchedTurfs = res.data.turfs || [];
-        setTurfs([...fetchedTurfs, ...DUMMY_VENUES]);
+        setTurfs(res.data.turfs || []);
       } else {
         throw new Error(res.data.message || 'Failed to fetch turfs');
       }
     } catch (error: unknown) {
       console.error("Fetch error:", error);
-      // Fallback to dummy venues if API fails
-      setTurfs(DUMMY_VENUES);
+      setTurfs([]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || "Failed to fetch turfs, showing demo data");
+      toast.error((error as any).response?.data?.message || "Failed to fetch turfs");
     } finally {
       setLoading(false);
     }

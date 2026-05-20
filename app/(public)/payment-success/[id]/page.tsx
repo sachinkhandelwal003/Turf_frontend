@@ -337,7 +337,7 @@ export default function PaymentSuccessPage() {
                 href={isTournament ? "/profile?tab=bookings&type=tournament" : "/profile?tab=bookings&type=ground"}
                 className="!flex-1 !py-3 !bg-[#1abc60] hover:!bg-[#17a554] !text-white !rounded-lg !font-semibold !text-sm !transition-colors !flex !items-center !justify-center !shadow-sm !no-underline"
               >
-                {isTournament ? "View My Registration" : "View My Booking"}
+                {isTournament ? "View Tournament Booking" : "View My Booking"}
               </Link>
               
               <button 

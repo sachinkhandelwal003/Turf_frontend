@@ -96,8 +96,8 @@ const VenueCard = ({ venue }: { venue: Venue }) => {
             )}
             <div className="bg-white/95 backdrop-blur-sm text-gray-800 text-[11px] font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm ml-auto">
               <RatingStars rating={venue.rating} />
-              <span className="ml-0.5">{venue.rating}</span>
-              {venue.reviewsCount && (
+              <span className="ml-0.5">{venue.rating > 0 ? venue.rating : 'New'}</span>
+              {venue.reviewsCount > 0 && (
                 <span className="text-gray-500 text-[9px] font-normal">
                   ({venue.reviewsCount})
                 </span>
@@ -322,18 +322,15 @@ function GroundContent() {
               tour.status?.toLowerCase() !== 'cancelled'
             );
 
-            // Get today's price from rates if available
-            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-            const todayRate = t.rates?.find((r: any) => r.day === today);
-            const currentPrice = (todayRate && todayRate.price > 0) ? todayRate.price : t.pricePerHour;
+            const currentPrice = t.pricePerHour || 0;
 
             return {
               id: t._id,
               title: t.name,
               location: `${t.location.landmark ? t.location.landmark + ', ' : ''}${t.location.city}`,
               fullAddress: `${t.location.address || ''} ${t.location.landmark || ''} ${t.location.city || ''}`,
-              rating: t.rating || Math.floor(Math.random() * (50 - 40 + 1) + 40) / 10 || 4.5,
-              reviewsCount: t.reviewsCount || Math.floor(Math.random() * 500) + 50,
+              rating: t.rating || 0,
+              reviewsCount: t.reviewsCount || 0,
               price: currentPrice,
               category: t.sports?.[0] || 'Sports',
               isActive: t.isActive !== undefined ? t.isActive : true,

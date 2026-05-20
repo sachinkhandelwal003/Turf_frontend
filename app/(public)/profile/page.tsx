@@ -36,6 +36,7 @@ interface Booking {
   };
   sport: string;
   date: string;
+  displayDate?: string;
   startTime: string;
   endTime: string;
   price: number;
@@ -76,17 +77,54 @@ const getApiError = (error: unknown) => error as ApiError;
 
 // --- Helper Functions Moved Outside Component to Prevent Reference Errors ---
 
-const isTournamentBooking = (b: Booking) => b.type === 'tournament' || !!b.tournament;
+const isTournamentBooking = (b: Booking) => {
+  return b.type === 'tournament' || !!b.tournament || !!b.tournamentId || !!b.teamName;
+};
 
 const isBookingCompleted = (booking: Booking) => {
-  if (booking.status === 'completed') return true;
-  if (booking.status !== 'confirmed') return false;
-  const bookingEnd = new Date(`${booking.date}T${booking.endTime || '23:59'}:00`);
-  return !Number.isNaN(bookingEnd.getTime()) && bookingEnd <= new Date();
+  if (booking.status === 'completed' || booking.status === 'finished') return true;
+  if (booking.status === 'cancelled' || booking.status === 'rejected') return false;
+  
+  try {
+    // For tournament registrations, check tournament end date if available
+    if (isTournamentBooking(booking)) {
+      if ((booking as any).tournament?.status === 'completed' || (booking as any).tournament?.status === 'finished') return true;
+      
+      const endDate = (booking as any).tournament?.endDate || (booking as any).endDate;
+      if (endDate) {
+        return new Date(endDate) <= new Date();
+      }
+      return false;
+    }
+
+    // Ground booking completion check
+    const [year, month, day] = booking.date.includes('-') 
+      ? booking.date.split('-').map(Number)
+      : booking.date.split('/').map(Number);
+    
+    // Handle different date formats (YYYY-MM-DD vs DD/MM/YYYY or MM/DD/YYYY)
+    let dateObj;
+    if (booking.date.includes('-')) {
+      dateObj = new Date(year, month - 1, day);
+    } else {
+      // Fallback for toLocaleDateString formats
+      dateObj = new Date(booking.date);
+    }
+
+    const endTime = booking.endTime || '23:59';
+    const [hours, minutes] = endTime.split(':').map(Number);
+    dateObj.setHours(hours || 23, minutes || 59, 0);
+
+    return !Number.isNaN(dateObj.getTime()) && dateObj <= new Date();
+  } catch (e) {
+    return false;
+  }
 };
 
 const getDisplayStatus = (booking: Booking) => {
   if (isBookingCompleted(booking)) return 'completed';
+  if (booking.status === 'confirmed') return 'upcoming';
+  if (booking.status === 'pending') return 'upcoming';
   return booking.status;
 };
 
@@ -193,6 +231,24 @@ export default function ProfilePage() {
       setPhone(user.phone || '');
       setHasInitialized(true);
     }
+
+    // Sync tab and type filter from URL search params
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    const type = params.get('type');
+    
+    if (tab === 'bookings') {
+      setActiveTab('bookings');
+      if (type === 'tournament') {
+        setTypeFilter('tournament');
+      } else if (type === 'ground') {
+        setTypeFilter('ground');
+      }
+    } else if (tab === 'activity') {
+      setActiveTab('activity');
+    } else if (tab === 'settings') {
+      setActiveTab('settings');
+    }
   }, [isLoading, isAuthenticated, router, user, hasInitialized]);
 
   const handleUpdateProfile = async () => {
@@ -271,45 +327,106 @@ export default function ProfilePage() {
         params.filter = bookingFilter;
       }
       
-      const [bookingsRes, registrationsRes] = await Promise.all([
-        api.get('/bookings/my', { params }),
-        api.get('/tournaments/registrations/my').catch(() => ({ data: { success: false } }))
-      ]);
+      let groundBookings: Booking[] = [];
+      let tournamentRegistrations: Booking[] = [];
 
-      let combined: Booking[] = [];
-      
-      if (bookingsRes.data.success && Array.isArray(bookingsRes.data.bookings)) {
-        combined = bookingsRes.data.bookings.map((b: any) => ({
-          ...b,
-          type: 'ground'
-        }));
+      // 1. Fetch Ground Bookings
+      try {
+        const res = await api.get('/bookings/my', { params });
+        const data = res.data?.bookings || res.data?.data || res.data || [];
+        if (Array.isArray(data)) {
+          groundBookings = data.map((b: any) => {
+            // Check if this "ground booking" is actually a tournament registration
+            const isTourn = !!(b.tournament || b.tournamentId || b.teamName || b.type === 'tournament');
+            return { 
+              ...b, 
+              type: isTourn ? 'tournament' : (b.type || 'ground')
+            };
+          });
+        }
+      } catch (err) {
+        console.error("Ground bookings fetch error:", err);
       }
 
-      if (registrationsRes.data.success && Array.isArray(registrationsRes.data.registrations)) {
-        const registrations = registrationsRes.data.registrations.map((reg: any) => ({
-          ...reg,
-          type: 'tournament' as const,
-          tournament: {
-            _id: reg.tournamentId,
-            title: reg.tournamentTitle,
-            image: reg.tournamentImage,
-            entryFee: reg.entryFee,
-            location: reg.location || 'Multiple Locations'
-          },
-          sport: reg.sport || 'Sports',
-          date: reg.registeredAt ? new Date(reg.registeredAt).toLocaleDateString() : 'N/A',
-          price: reg.entryFee || 0,
-          paidAmount: reg.entryFee || 0,
-          status: reg.status || 'confirmed',
-          paymentStatus: 'paid',
-          bookingId: reg._id,
-          location: reg.location || 'Multiple Locations'
-        }));
-        combined = [...combined, ...registrations];
+      // 2. Fetch Tournament Registrations (Try multiple possible endpoints)
+      const tournamentEndpoints = [
+        '/tournaments/registrations/my',
+        '/registrations/my',
+        '/tournaments/my-registrations',
+        '/my-registrations',
+        '/auth/my-registrations',
+        '/bookings/my?type=tournament'
+      ];
+
+      for (const endpoint of tournamentEndpoints) {
+        try {
+          const res = await api.get(endpoint);
+          let rawRegs = res.data?.registrations || res.data?.data || res.data;
+          
+          if (rawRegs && !Array.isArray(rawRegs) && typeof rawRegs === 'object' && rawRegs !== null) {
+            rawRegs = rawRegs.registrations || rawRegs.data || [];
+          }
+
+          if (Array.isArray(rawRegs) && rawRegs.length > 0) {
+            tournamentRegistrations = rawRegs.map((reg: any) => {
+              const tInfo = reg.tournamentId || reg.tournament || reg.tournamentDetails || {};
+              const tId = tInfo._id || (typeof tInfo === 'string' ? tInfo : reg.tournamentId);
+              const tTitle = reg.tournamentTitle || tInfo.title || reg.title || "Tournament Event";
+              const tImage = reg.tournamentImage || tInfo.image || reg.image || "";
+              
+              const tLocation = reg.location || 
+                                 (tInfo.location && typeof tInfo.location === 'object' && tInfo.location !== null ? tInfo.location.city : tInfo.location) || 
+                                 tInfo.venue || 
+                                 'Multiple Locations';
+              
+              return {
+                ...reg,
+                _id: reg._id || reg.bookingId || `tourn-${Math.random()}`,
+                type: 'tournament' as const,
+                tournament: {
+                  ...tInfo,
+                  _id: tId,
+                  title: tTitle,
+                  image: tImage,
+                  entryFee: reg.entryFee || tInfo.entryFee || reg.price || 0,
+                  location: tLocation
+                },
+                sport: reg.sport || tInfo.sport || 'Sports',
+                date: reg.registeredAt || reg.date || reg.createdAt || new Date().toISOString(),
+                displayDate: reg.registeredAt ? new Date(reg.registeredAt).toLocaleDateString() : 
+                             reg.date ? (reg.date.includes('T') ? new Date(reg.date).toLocaleDateString() : reg.date) : 'N/A',
+                price: reg.entryFee || tInfo.entryFee || reg.price || 0,
+                paidAmount: reg.paidAmount || reg.entryFee || tInfo.entryFee || reg.price || 0,
+                status: reg.status || 'confirmed',
+                paymentStatus: reg.paymentStatus || 'paid',
+                bookingId: reg.bookingId || reg._id || 'N/A',
+                location: tLocation
+              };
+            });
+            break; // Stop if we successfully got registrations
+          }
+        } catch (err) {
+          // Only log 404 for the first one, keep trying others quietly
+          if (endpoint === tournamentEndpoints[0]) console.warn("Primary tournament endpoint failed, trying fallbacks...");
+        }
       }
-      
-      setBookings(combined);
-    } catch {
+
+      // 3. Combine and Deduplicate
+      const combined = [...groundBookings, ...tournamentRegistrations];
+      const uniqueBookings = Array.from(
+        combined.reduce((map, booking) => {
+          // Deduplicate by ID, but prefer the one with type 'tournament' if it's a registration
+          const existing = map.get(booking._id);
+          if (!existing || (booking.type === 'tournament' && existing.type !== 'tournament')) {
+            map.set(booking._id, booking);
+          }
+          return map;
+        }, new Map<string, Booking>()).values()
+      );
+
+      setBookings(uniqueBookings);
+    } catch (error) {
+      console.error("Profile bookings main error:", error);
       toast.error('Failed to load history');
     } finally {
       setLoadingBookings(false);
@@ -354,26 +471,6 @@ export default function ProfilePage() {
       fetchBookings();
     }
   }, [isAuthenticated, fetchBookings]);
-
-  // Sync tab and type filter from URL search params
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get('tab');
-    const type = params.get('type');
-    
-    if (tab === 'bookings') {
-      setActiveTab('bookings');
-      if (type === 'tournament') {
-        setTypeFilter('tournament');
-      } else if (type === 'ground') {
-        setTypeFilter('ground');
-      }
-    } else if (tab === 'activity') {
-      setActiveTab('activity');
-    } else if (tab === 'settings') {
-      setActiveTab('settings');
-    }
-  }, []);
 
   const handleOpenReviewModal = (booking: Booking) => {
     setReviewModal({ open: true, booking });
@@ -422,10 +519,18 @@ export default function ProfilePage() {
     }
   };
 
-  // Apply frontend filters for booking type
+  // Apply frontend filters for booking type and status (for tournaments)
   const filteredBookings = bookings.filter(b => {
+    // 1. Filter by Type (Ground vs Tournament)
     if (typeFilter === 'ground' && isTournamentBooking(b)) return false;
     if (typeFilter === 'tournament' && !isTournamentBooking(b)) return false;
+
+    // 2. Filter by Status (Mainly for tournaments since grounds are filtered by API)
+    if (bookingFilter !== 'all') {
+      const displayStatus = getDisplayStatus(b);
+      if (displayStatus !== bookingFilter) return false;
+    }
+    
     return true;
   });
 
@@ -826,7 +931,9 @@ export default function ProfilePage() {
                                 <div className="!flex !items-center !gap-4 !pt-3 !border-t !border-gray-100">
                                   <div className="!flex !items-center !gap-2">
                                     <Calendar className="!w-4 !h-4 !text-gray-400" />
-                                    <span className="!text-xs !font-semibold !text-gray-700">{booking.date}</span>
+                                    <span className="!text-xs !font-semibold !text-gray-700">
+                                      {isTourn ? (booking.displayDate || booking.date) : booking.date}
+                                    </span>
                                   </div>
                                   {!isTourn && (
                                     <div className="!flex !items-center !gap-2">
@@ -854,12 +961,21 @@ export default function ProfilePage() {
                                       <Trash2 className="!w-4 !h-4" />
                                     </button>
                                   )}
-                                  <button 
-                                    onClick={() => setSelectedBooking(booking)}
-                                    className="!text-[11px] !font-bold !text-[#1abc60] !uppercase !tracking-wider !flex !items-center !gap-1 hover:!gap-2 !transition-all !bg-transparent !border-none !cursor-pointer"
-                                  >
-                                    Details <ChevronRight className="!w-3.5 !h-3.5" />
-                                  </button>
+                                  {isTourn ? (
+                                    <button 
+                                      onClick={() => router.push(`/tournament/${booking.tournament?._id || booking.tournamentId}`)}
+                                      className="!text-[11px] !font-bold !text-[#1abc60] !uppercase !tracking-wider !flex !items-center !gap-1 hover:!gap-2 !transition-all !bg-transparent !border-none !cursor-pointer"
+                                    >
+                                      View Tournament <ExternalLink className="!w-3.5 !h-3.5" />
+                                    </button>
+                                  ) : (
+                                    <button 
+                                      onClick={() => setSelectedBooking(booking)}
+                                      className="!text-[11px] !font-bold !text-[#1abc60] !uppercase !tracking-wider !flex !items-center !gap-1 hover:!gap-2 !transition-all !bg-transparent !border-none !cursor-pointer"
+                                    >
+                                      Details <ChevronRight className="!w-3.5 !h-3.5" />
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                               
@@ -1168,6 +1284,16 @@ export default function ProfilePage() {
                             : "Location Unavailable")}
                     </p>
                   </div>
+                  {isTournamentBooking(selectedBooking) && (
+                    <button 
+                      onClick={() => router.push(`/tournament/${selectedBooking.tournament?._id || selectedBooking.tournamentId}`)}
+                      className="!p-3 !bg-[#1abc60]/10 hover:!bg-[#1abc60]/20 !text-[#1abc60] !rounded-lg !transition-colors !border !border-[#1abc60]/20 !cursor-pointer !flex !items-center !gap-2 !font-bold !text-xs"
+                      title="View Tournament"
+                    >
+                      <Trophy className="!w-4 !h-4" />
+                      VIEW TOURNAMENT
+                    </button>
+                  )}
                   {selectedBooking.turf && !isTournamentBooking(selectedBooking) && (
                     <button 
                       onClick={() => router.push(`/ground/${selectedBooking.turf?._id}`)}

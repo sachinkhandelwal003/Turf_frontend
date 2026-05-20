@@ -7,21 +7,13 @@ import { useRouter } from 'next/navigation';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
 
-// Mock Data Dropdowns ke liye
-const LOCATIONS = [
-  "Indiranagar, Bangalore",
-  "Koramangala, Bangalore",
-  "HSR Layout, Bangalore",
-  "Whitefield, Bangalore",
-  "Jayanagar, Bangalore"
-];
-// kldflresjihf;jksdansfd;kjh
 export default function Hero() {
   const router = useRouter();
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedSport, setSelectedSport] = useState('');
   const [searchType, setSearchType] = useState<'ground' | 'tournament'>('ground');
   const [sports, setSports] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [isSportOpen, setIsSportOpen] = useState(false);
   const [isDetecting, setIsDetecting] = useState(false);
@@ -49,12 +41,10 @@ export default function Hero() {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
           const data = await res.json();
           const city = data.address.city || data.address.town || data.address.village || data.address.state_district || "Unknown Location";
-          const state = data.address.state || "";
-          const locationString = state ? `${city}, ${state}` : city;
           
-          setSelectedLocation(locationString);
+          setSelectedLocation(city);
           setIsLocationOpen(false);
-          toast.success(`Location detected: ${locationString}`);
+          toast.success(`Location detected: ${city}`);
         } catch (error) {
           console.error("Reverse geocoding failed:", error);
           toast.error("Failed to detect city name");
@@ -71,17 +61,6 @@ export default function Hero() {
   };
 
   const handleSearch = () => {
-    if (!selectedLocation) {
-      toast.error("Please select or detect a location first!");
-      setIsLocationOpen(true);
-      return;
-    }
-    if (!selectedSport) {
-      toast.error("Please select a sport category!");
-      setIsSportOpen(true);
-      return;
-    }
-
     const params = new URLSearchParams();
     if (selectedLocation) params.set('location', selectedLocation);
     if (selectedSport) params.set('sport', selectedSport);
@@ -91,17 +70,29 @@ export default function Hero() {
   };
 
   useEffect(() => {
-    const fetchSports = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get('/masters');
-        if (res.data.success) {
-          const sportsList = res.data.masters
+        const [mastersRes, turfRes] = await Promise.all([
+          api.get('/masters'),
+          api.get('/turfs')
+        ]);
+
+        if (mastersRes.data.success) {
+          const sportsList = mastersRes.data.masters
             .filter((m: any) => m.category === 'sport')
             .map((m: any) => m.name);
           setSports(sportsList);
         }
+
+        if (turfRes.data.success) {
+          const citySet = new Set<string>();
+          turfRes.data.turfs.forEach((t: any) => {
+            if (t.location?.city) citySet.add(t.location.city);
+          });
+          setCities(Array.from(citySet).sort());
+        }
       } catch (error) {
-        console.error('Failed to fetch sports:', error);
+        console.error('Failed to fetch initial data:', error);
       }
     };
 
@@ -112,34 +103,26 @@ export default function Hero() {
           const s = res.data.settings;
           const hero = s.heroBanner || {};
           
-          // Fallback to top level fields if heroBanner is not an object
           const title = hero.title || s.heroTitle || s.hero_title || "UP YOUR GAME";
           const subtitle = hero.subtitle || s.heroSubtitle || s.hero_subtitle || "Premium sports venues, professional training, and competitive matches. Book your victory in seconds.";
           
-          // Check various possible image fields
           let image = hero.image || s.heroImage || s.hero_image || s.image || "";
           if (!image && s.images && s.images.length > 0) {
             image = s.images[0];
           }
           
           const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
-          
-          let finalImageUrl = "/heroimage.png"; // Default fallback
+          let finalImageUrl = "/heroimage.png"; 
           
           if (image) {
             if (image.startsWith('http')) {
               finalImageUrl = image;
             } else if (image.startsWith('/uploads') || image.startsWith('uploads')) {
-              // Backend uploads
               const path = image.startsWith('/') ? image : `/${image}`;
               finalImageUrl = `${baseUrl}${path}`;
             } else if (image.startsWith('/')) {
-              // Local public assets or absolute paths
-              // If it's a known backend path pattern, prepend baseUrl
-              // Otherwise keep as is for frontend public assets
               finalImageUrl = image;
             } else {
-              // Relative path, assume backend
               finalImageUrl = `${baseUrl}/${image}`;
             }
           }
@@ -155,7 +138,7 @@ export default function Hero() {
       }
     };
 
-    fetchSports();
+    fetchData();
     fetchHeroSettings();
   }, []);
 
@@ -188,7 +171,7 @@ export default function Hero() {
   }, []);
 
   return (
-    <section className="relative h-[550px] md:h-[650px] flex items-center justify-center font-sans overflow-hidden pt-[80px]">
+    <section className="relative h-[550px] md:h-[600px] flex items-center justify-center font-sans overflow-hidden pt-[80px]">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img
@@ -200,7 +183,7 @@ export default function Hero() {
         <div className="absolute inset-0 bg-black/40"></div>
       </div>
 
-      <div className="relative z-10 w-full max-w-[1200px] mx-auto px-4 text-center mt-[-40px]">
+      <div className="relative z-10 w-full max-w-[1200px] mx-auto px-4 text-center mt-[-20px]">
 
         {/* Main Heading */}
         <motion.h1
@@ -208,7 +191,7 @@ export default function Hero() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-5xl md:text-7xl lg:text-[85px] font-bold !text-white uppercase tracking-tight mb-4 leading-none"
+          className="text-5xl md:text-7xl lg:text-[85px] font-bold !text-white uppercase tracking-tight mb-3 md:mb-4 leading-none"
         >
           {formatTitle(heroData.title)}
         </motion.h1>
@@ -219,7 +202,7 @@ export default function Hero() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="text-white text-[13px] sm:text-[14px] md:text-[17px] font-medium mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed md:whitespace-pre-line px-2"
+          className="text-white text-[13px] sm:text-[14px] md:text-[16px] font-medium mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed md:whitespace-pre-line px-2"
         >
           <span className="md:hidden">
             {heroData.subtitle.replace(/\n/g, ' ')}
@@ -229,35 +212,36 @@ export default function Hero() {
           </span>
         </motion.p>
 
-        {/* ================= COMPACT SEARCH BAR ================= */}
+        {/* ================= RESPONSIVE, SLIM & SEAMLESS SEARCH BAR ================= */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="flex flex-col items-center w-[94%] sm:w-full max-w-[550px] mx-auto"
+          className="flex flex-col items-center w-[98%] sm:w-[94%] max-w-[600px] mx-auto"
         >
-          <div className="bg-white p-1 md:p-1.5 shadow-2xl flex flex-row items-center w-full rounded-lg md:rounded-xl">
+          <div className="bg-white p-1.5 md:p-2 shadow-2xl flex flex-row items-center w-full rounded-[14px] md:rounded-2xl relative">
+            
             {/* LOCATION SECTION */}
             <div ref={locationRef} className="relative flex-1 min-w-0">
               <div
-                className="flex items-center px-2 md:px-4 py-1.5 md:py-2 cursor-pointer"
+                className="flex items-center px-2 md:px-3 py-1.5 md:py-2.5 cursor-pointer mx-0.5 md:mx-1 rounded-xl hover:bg-gray-50 transition-colors"
                 onClick={() => {
                   setIsLocationOpen(!isLocationOpen);
                   setIsSportOpen(false);
                 }}
               >
-                <MapPin className="text-[#2b7bf5] w-3.5 h-3.5 md:w-5 md:h-5 mr-1.5 md:mr-2 flex-shrink-0" strokeWidth={1.5} />
+                <MapPin className="text-[#2b7bf5] w-3.5 h-3.5 md:w-[18px] md:h-[18px] mr-1.5 md:mr-2 flex-shrink-0" strokeWidth={2} />
                 <input
                   type="text"
                   readOnly
                   value={selectedLocation}
                   placeholder="Location"
-                  className="w-full outline-none text-gray-800 bg-transparent text-[12px] sm:text-[13px] md:text-[15px] font-medium placeholder:text-gray-500 cursor-pointer truncate"
+                  className="w-full outline-none text-gray-800 bg-transparent text-[13px] md:text-[14px] font-medium placeholder:text-gray-500 cursor-pointer truncate"
                 />
                 {selectedLocation && (
                   <X 
-                    className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 ml-0.5 md:ml-1 cursor-pointer flex-shrink-0" 
+                    className="w-3 h-3 md:w-[14px] md:h-[14px] text-gray-400 hover:text-gray-600 ml-1 cursor-pointer flex-shrink-0" 
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedLocation('');
@@ -272,119 +256,106 @@ export default function Hero() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute top-[120%] left-0 w-[200px] md:w-full bg-white rounded-lg md:rounded-xl shadow-lg border border-gray-100 py-1 md:py-2 z-50 text-left overflow-hidden"
+                    className="absolute top-[calc(100%+12px)] left-0 w-[200px] sm:w-[220px] md:w-[120%] bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 z-[100] text-left overflow-hidden"
                   >
                     {/* Auto Detect Option */}
                     <div
                       onClick={handleAutoDetect}
-                      className="px-3 md:px-4 py-2 md:py-3 hover:bg-[#e8f8ef] text-[12px] md:text-[14px] text-[#1abc60] font-bold cursor-pointer border-b border-gray-50 flex items-center gap-1.5 md:gap-2 group transition-colors"
+                      className="px-3 md:px-4 py-2.5 hover:bg-[#e8f8ef] text-[12px] md:text-[13px] text-[#1abc60] font-bold cursor-pointer border-b border-gray-50 flex items-center gap-2 group transition-colors"
                     >
-                      <Navigation className={`w-3.5 h-3.5 group-hover:animate-pulse ${isDetecting ? 'animate-spin' : ''}`} />
+                      <Navigation className={`w-3.5 h-3.5 md:w-[14px] md:h-[14px] group-hover:animate-pulse ${isDetecting ? 'animate-spin' : ''}`} />
                       {isDetecting ? "Detecting..." : "Detect Location"}
                     </div>
 
-                    <div className="max-h-[200px] md:max-h-[250px] overflow-y-auto">
-                      {LOCATIONS.map((loc, idx) => (
-                        <div
-                          key={idx}
-                          onClick={() => {
-                            setSelectedLocation(loc);
-                            setIsLocationOpen(false);
-                          }}
-                          className="px-3 md:px-4 py-2 hover:bg-gray-50 text-[12px] md:text-[14px] text-gray-700 cursor-pointer truncate"
-                        >
-                          {loc}
-                        </div>
-                      ))}
+                    <div className="max-h-[160px] md:max-h-[200px] overflow-y-auto custom-scrollbar bg-white">
+                      {cities.length > 0 ? (
+                        cities.map((loc, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => {
+                              setSelectedLocation(loc);
+                              setIsLocationOpen(false);
+                            }}
+                            className="px-3 md:px-4 py-2 hover:bg-gray-50 text-[12px] md:text-[13px] text-gray-700 cursor-pointer truncate font-medium border-b border-gray-50 last:border-0"
+                          >
+                            {loc}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-3 md:px-4 py-2.5 text-[12px] text-gray-400 italic">No locations found</div>
+                      )}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
-          {/* DIVIDER 1 */}
-          <div className="h-5 md:h-6 w-[1px] bg-gray-200 flex-shrink-0 mx-0.5 md:mx-1"></div>
+            {/* SEPARATOR */}
+            <div className="w-[1px] h-5 md:h-6 bg-gray-200 mx-0.5 md:mx-1 flex-shrink-0"></div>
 
-          {/* SPORT SECTION */}
-          <div ref={sportRef} className="relative flex-1 min-w-0">
-            <div
-              className="flex items-center justify-between px-2 md:px-5 py-1.5 md:py-1 cursor-pointer"
-              onClick={() => {
-                setIsSportOpen(!isSportOpen);
-                setIsLocationOpen(false);
-              }}
-            >
-              <div className="flex items-center flex-1 min-w-0">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                  className="text-[#1abc60] w-3.5 h-3.5 md:w-5 md:h-5 mr-1.5 md:mr-2 flex-shrink-0"
-                >
-                  <circle cx="9" cy="9" r="6" /><path d="M13.2 13.2L19 19" /><line x1="6" y1="9" x2="12" y2="9" /><line x1="9" y1="6" x2="9" y2="12" /><circle cx="18" cy="6" r="2" fill="currentColor" stroke="none" />
-                </svg>
+            {/* SPORT SECTION */}
+            <div ref={sportRef} className="relative flex-1 min-w-0">
+              <div
+                className="flex items-center px-2 md:px-3 py-1.5 md:py-2.5 cursor-pointer mx-0.5 md:mx-1 rounded-xl hover:bg-gray-50 transition-colors"
+                onClick={() => {
+                  setIsSportOpen(!isSportOpen);
+                  setIsLocationOpen(false);
+                }}
+              >
+                <div className="relative mr-1.5 md:mr-2 flex-shrink-0">
+                  <Search className="text-[#1abc60] w-3.5 h-3.5 md:w-[18px] md:h-[18px]" strokeWidth={2} />
+                  <div className="absolute -top-0.5 -right-0.5 w-1 h-1 md:w-1.5 md:h-1.5 bg-[#1abc60] rounded-full border border-white"></div>
+                </div>
                 <input
                   type="text"
                   readOnly
                   value={selectedSport}
                   placeholder="Sports"
-                  className="w-full outline-none text-gray-800 bg-transparent text-[12px] sm:text-[13px] md:text-[15px] font-medium placeholder:text-gray-500 cursor-pointer truncate"
+                  className="w-full outline-none text-gray-800 bg-transparent text-[13px] md:text-[14px] font-medium placeholder:text-gray-500 cursor-pointer truncate"
                 />
-                {selectedSport && (
-                  <X 
-                    className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 ml-0.5 md:ml-1 cursor-pointer flex-shrink-0" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedSport('');
-                    }}
-                  />
-                )}
+                <ChevronDown className={`w-3 h-3 md:w-[14px] md:h-[14px] text-gray-400 flex-shrink-0 transition-transform duration-300 ${isSportOpen ? 'rotate-180' : ''}`} />
               </div>
-              <ChevronDown
-                className="w-3 h-3 md:w-4 md:h-4 text-gray-400 transition-transform flex-shrink-0 ml-0.5 md:ml-0"
-                style={{ transform: isSportOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
-              />
+
+              <AnimatePresence>
+                {isSportOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute top-[calc(100%+12px)] left-1/2 -translate-x-1/2 w-[180px] sm:w-[200px] md:w-[120%] bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 z-[100] text-left overflow-hidden"
+                  >
+                    {/* max-h-[114px] exactly perfectly fits ~3 items (approx 38px height per item) */}
+                    <div className="max-h-[114px] overflow-y-auto custom-scrollbar bg-white">
+                      {sports.length > 0 ? (
+                        sports.map((sport, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => {
+                              setSelectedSport(sport);
+                              setIsSportOpen(false);
+                            }}
+                            className="px-3 md:px-4 py-2 hover:bg-[#e8f8ef] text-[12px] md:text-[13px] text-gray-700 hover:text-[#1abc60] cursor-pointer truncate font-medium border-b border-gray-50 last:border-0"
+                          >
+                            {sport}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-3 md:px-4 py-2.5 text-[12px] text-gray-400 italic">No sports found</div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            <AnimatePresence>
-              {isSportOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute top-[120%] left-0 w-[150px] md:w-full bg-white rounded-lg md:rounded-xl shadow-lg border border-gray-100 py-1 md:py-2 z-50 text-left"
-                >
-                  {sports.map((sport, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => {
-                        setSelectedSport(sport);
-                        setIsSportOpen(false);
-                      }}
-                      className="px-3 md:px-4 py-2 hover:bg-gray-50 text-[12px] md:text-[14px] text-gray-700 cursor-pointer"
-                    >
-                      {sport}
-                    </div>
-                  ))}
-                  {sports.length === 0 && (
-                    <div className="px-3 md:px-4 py-2 text-[12px] md:text-[14px] text-gray-400 italic">
-                      No sports available
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* DIVIDER 2 */}
-          <div className="h-5 md:h-6 w-[1px] bg-gray-200 flex-shrink-0 mx-0.5 md:mx-2"></div>
-
-          {/* SEARCH BUTTON */}
-          <button
-            onClick={handleSearch}
-            className="bg-[#1abc60] hover:bg-[#169c4e] !text-white font-medium py-2.5 px-3 md:py-4 md:px-6 rounded-md md:rounded-lg transition-colors flex items-center justify-center gap-1.5 text-[12px] md:text-[15px] flex-shrink-0 !border-none ml-1 md:ml-0"
-          >
-            <span className="hidden sm:inline">Search</span>
-            <Search className="w-4 h-4 md:w-[18px] md:h-[18px] text-white" strokeWidth={2.5} />
-          </button>
+            {/* SEARCH BUTTON */}
+            <button
+              onClick={handleSearch}
+              className="bg-[#1abc60] hover:bg-[#169c4e] !text-white font-bold p-2 sm:py-2 sm:px-4 md:py-2.5 md:px-6 rounded-[10px] md:rounded-xl transition-all flex items-center justify-center gap-1.5 text-[13px] md:text-[15px] flex-shrink-0 !border-none ml-1 md:ml-1.5 shadow-lg shadow-green-100 active:scale-95 cursor-pointer"
+            >
+              <span className="tracking-wide hidden sm:inline">Search</span>
+              <Search className="w-3.5 h-3.5 md:w-[18px] md:h-[18px] text-white flex-shrink-0" strokeWidth={2.5} />
+            </button>
 
           </div>
         </motion.div>

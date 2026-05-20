@@ -55,10 +55,16 @@ export default function TurfDetailsPage() {
   const [selectedCourts, setSelectedCourts] = useState<string[]>([]);
   const [bookedSlots, setBookedSlots] = useState<any[]>([]);
   const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
 
   // Split Payment States
   const [isSplitEnabled, setIsSplitEnabled] = useState(false);
   const [numPlayers, setNumPlayers] = useState(2);
+
+  useEffect(() => {
+    setSelectedSlots([]);
+    setSelectedCourts([]);
+  }, [selectedDate]);
 
   useEffect(() => {
     const fetchAvailability = async () => {
@@ -94,41 +100,105 @@ export default function TurfDetailsPage() {
   };
 
   const parseTimeToMinutes = (time: string) => {
-    const [h, m] = (time || '00:00').split(':').map((v) => Number(v));
-    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+    if (!time) return 0;
+    const parts = time.toLowerCase().split(':');
+    let h = parseInt(parts[0], 10);
+    let m = 0;
+    if (parts.length > 1) m = parseInt(parts[1], 10);
+    if (time.toLowerCase().includes('pm') && h < 12) h += 12;
+    if (time.toLowerCase().includes('am') && h === 12) h = 0;
+    return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
   };
   const formatMinutes = (mins: number) =>
     String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
 
   const getTimeSlots = () => {
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const baseHourlyRate = Number(turf?.pricePerHour ?? 1000);
+
     if (turf?.availableSlots && turf.availableSlots.length > 0) {
-      const groups: Record<string, string[]> = {};
+      const groups: Record<string, { time: string; totalPrice: number }[]> = {};
       turf.availableSlots.forEach((slot: any) => {
         const type = slot.type || "Other";
         if (!groups[type]) groups[type] = [];
-        groups[type].push(`${slot.startTime} - ${slot.endTime}`);
+        
+        const cur = parseTimeToMinutes(slot.startTime);
+        const endMins = parseTimeToMinutes(slot.endTime);
+        const d = endMins - cur;
+
+        const customSlot = turf?.priceHikes?.find((s: any) => {
+          const sStart = parseTimeToMinutes(s.startTime);
+          const sEnd = parseTimeToMinutes(s.endTime);
+          return (cur < sEnd && (cur + d) > sStart);
+        });
+
+        const dynamicSlot = turf?.slotPricings?.find((s: any) => {
+          const sStart = parseTimeToMinutes(s.startTime);
+          const sEnd = parseTimeToMinutes(s.endTime);
+          return (cur < sEnd && (cur + d) > sStart);
+        });
+
+        const basePriceForDuration = (baseHourlyRate * (d / 60));
+        const extra = Number(customSlot?.extraPrice || dynamicSlot?.price || 0);
+        const slotPrice = basePriceForDuration + extra;
+
+        groups[type].push({
+          time: `${slot.startTime} - ${slot.endTime}`,
+          totalPrice: slotPrice
+        });
       });
       return Object.entries(groups).map(([label, slots]) => ({ label, slots }));
     }
+
     if (!turf?.operatingHours) return [];
-    const dayName = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
-    const operatingDay = turf.operatingHours.find((d) => d.day === dayName);
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+
+    let operatingDay = turf.operatingHours.find(
+      (d) => d.day.toLowerCase() === dayName.toLowerCase()
+    );
+
+    // Better fallback: If specific day is not found OR operatingHours is empty
+    if (!operatingDay) {
+      operatingDay = { day: dayName, open: "06:00", close: "23:00", isOpen: true };
+    }
+
     if (!operatingDay || operatingDay.isOpen === false) return [];
 
-    const open = operatingDay.open || '06:00';
-    const close = operatingDay.close || '23:00';
+    let open = operatingDay.open || '06:00';
+    let close = operatingDay.close || '23:00';
     const d = Math.max(15, Number(turf.slotDuration || 60));
     let cur = parseTimeToMinutes(open);
-    const end = parseTimeToMinutes(close);
+    let end = parseTimeToMinutes(close);
 
-    const groups: Record<string, string[]> = { Morning: [], Afternoon: [], Evening: [] };
+    // Handle midnight closing time
+    if (end <= cur && end === 0) {
+      end = 24 * 60;
+    }
+
+    const groups: Record<string, { time: string; totalPrice: number }[]> = { Morning: [], Afternoon: [], Evening: [] };
+    
     while (cur + d <= end) {
       const start = formatMinutes(cur);
       const endTime = formatMinutes(cur + d);
       const value = `${start} - ${endTime}`;
       const hour = cur / 60;
       const label = hour < 12 ? 'Morning' : hour >= 17 ? 'Evening' : 'Afternoon';
-      groups[label].push(value);
+
+      const customSlot = turf?.priceHikes?.find((s: any) => {
+        const sStart = parseTimeToMinutes(s.startTime);
+        const sEnd = parseTimeToMinutes(s.endTime);
+        return (cur < sEnd && (cur + d) > sStart);
+      });
+
+      const basePriceForDuration = (baseHourlyRate * (d / 60));
+      const extra = customSlot ? Number(customSlot.extraPrice || 0) : 0;
+      const slotPrice = basePriceForDuration + extra;
+
+      groups[label].push({
+        time: value,
+        totalPrice: slotPrice
+      });
       cur += d;
     }
     return Object.entries(groups).map(([label, slots]) => ({ label, slots }));
@@ -148,6 +218,23 @@ export default function TurfDetailsPage() {
   useEffect(() => {
     if (id) fetchTurfDetails();
   }, [id]);
+
+  const [activeImage, setActiveImage] = useState(0);
+
+  useEffect(() => {
+    if (!turf?.images || turf.images.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setActiveImage((prev) => (prev + 1) % turf.images.length);
+    }, 3000); // 3 seconds per slide
+
+    return () => clearInterval(interval);
+  }, [turf?.images]);
+
+  const [year, month, day] = selectedDate.split('-').map(Number);
+  const dateObj = new Date(year, month - 1, day);
+  const dayNameForDisplay = dateObj.toLocaleDateString("en-US", { weekday: "long" });
+  const displayPrice = Number(turf?.pricePerHour ?? 1000);
 
   const fetchTurfDetails = async () => {
     try {
@@ -216,19 +303,46 @@ export default function TurfDetailsPage() {
       return;
     }
 
+    setIsBooking(true);
     try {
-      const dayName = new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" });
-      const dayRate = turf?.rates?.find((r: any) => r.day === dayName)?.price;
-      const effectiveHourlyRate = Number(dayRate ?? turf.pricePerHour ?? 0);
-      const totalMinutes = selectedSlots.reduce((sum, slot) => sum + Math.max(0, getSlotMinutes(slot)), 0);
-      const totalHours = totalMinutes / 60;
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+
+      const effectiveHourlyRate = Number(turf?.pricePerHour ?? 1000);
+      
+      const finalPrice = selectedSlots.reduce((sum, timeVal) => {
+        const [start, end] = timeVal.split(" - ");
+        const cur = parseTimeToMinutes(start);
+        const endMins = parseTimeToMinutes(end);
+        const slotDuration = endMins - cur;
+
+        const customSlot = turf?.priceHikes?.find((s: any) => {
+          const sStart = parseTimeToMinutes(s.startTime);
+          const sEnd = parseTimeToMinutes(s.endTime);
+          return cur < sEnd && (cur + slotDuration) > sStart;
+        });
+
+        const dynamicSlot = turf?.slotPricings?.find((s: any) => {
+          const sStart = parseTimeToMinutes(s.startTime);
+          const sEnd = parseTimeToMinutes(s.endTime);
+          return cur < sEnd && (cur + slotDuration) > sStart;
+        });
+
+        const basePrice = (effectiveHourlyRate * (slotDuration / 60));
+        const extraPrice = Number(customSlot?.extraPrice || dynamicSlot?.price || 0);
+        const slotPrice = basePrice + extraPrice;
+          
+        return sum + (slotPrice * selectedCourts.length);
+      }, 0);
+
       const res = await api.post("/bookings", {
         turfId: turf._id,
         sport: selectedSport,
         date: selectedDate,
         slots: selectedSlots,
         courts: selectedCourts,
-        price: effectiveHourlyRate * totalHours * selectedCourts.length,
+        price: finalPrice,
       });
 
       if (res.data.success) {
@@ -243,6 +357,8 @@ export default function TurfDetailsPage() {
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to create booking");
+    } finally {
+      setIsBooking(false);
     }
   };
 
@@ -277,7 +393,7 @@ export default function TurfDetailsPage() {
           <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 min-w-[280px] hidden md:block">
              <div className="flex justify-between items-end mb-4">
                 <div>
-                  <span className="text-4xl font-black text-gray-900">₹{turf.pricePerHour}</span>
+                  <span className="text-4xl font-black text-gray-900">₹{displayPrice}</span>
                   <span className="text-gray-400 font-bold ml-1">/ hr</span>
                 </div>
              </div>
@@ -428,7 +544,7 @@ export default function TurfDetailsPage() {
       <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 z-50">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <span className="text-2xl font-black text-gray-900">₹{turf.pricePerHour}</span>
+            <span className="text-2xl font-black text-gray-900">₹{displayPrice}</span>
             <span className="text-gray-400 text-xs font-bold block">/ hr</span>
           </div>
           <button 
@@ -525,34 +641,38 @@ export default function TurfDetailsPage() {
                   <div key={group.label} className="space-y-4">
                     <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{group.label}</h4>
                     <div className="grid grid-cols-2 gap-3">
-                      {group.slots.map((slot) => {
-                        const bookedCourts = getBookedCourtsForSlot(slot);
+                      {group.slots.map((slot: any) => {
+                        const slotValue = slot.time;
+                        const bookedCourts = getBookedCourtsForSlot(slotValue);
                         const isFullyBooked = bookedCourts.size >= (turf.courts?.length || 1);
                         const clashesWithSelectedCourts =
                           selectedCourts.length > 0 &&
                           selectedCourts.some((courtName) => bookedCourts.has(courtName));
-                        const isSelected = selectedSlots.includes(slot);
+                        const isSelected = selectedSlots.includes(slotValue);
 
                         return (
                           <button
-                            key={slot}
+                            key={slotValue}
                             disabled={isFullyBooked || clashesWithSelectedCourts}
                             onClick={() => {
                               if (isSelected) {
-                                setSelectedSlots(selectedSlots.filter(s => s !== slot));
+                                setSelectedSlots(selectedSlots.filter(s => s !== slotValue));
                               } else {
-                                setSelectedSlots([...selectedSlots, slot]);
+                                setSelectedSlots([...selectedSlots, slotValue]);
                               }
                             }}
-                            className={`p-3 rounded-xl border-2 font-bold text-sm transition-all ${
+                            className={`p-4 rounded-xl border-2 font-bold text-sm transition-all flex flex-col gap-1 ${
                               (isFullyBooked || clashesWithSelectedCourts)
                                 ? 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed' 
                                 : isSelected 
-                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm' 
-                                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                ? 'border-[#1abc60] bg-green-50 text-[#1abc60] shadow-sm'
+                                : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
                             }`}
                           >
-                            {formatRange(slot)}
+                            <span className="uppercase tracking-tight">{formatRange(slotValue)}</span>
+                            <span className={`text-[11px] font-black ${isSelected ? 'text-[#1abc60]' : 'text-gray-400'}`}>
+                              ₹{slot.totalPrice}
+                            </span>
                           </button>
                         );
                       })}
@@ -566,8 +686,11 @@ export default function TurfDetailsPage() {
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Estimated Total</span>
                   <span className="text-2xl font-black text-gray-900">
                     ₹{(() => {
-                      const dayName = new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long" });
-                      const dayRate = turf?.rates?.find((r: any) => r.day === dayName)?.price;
+                      const [year, month, day] = selectedDate.split('-').map(Number);
+                      const dateObj = new Date(year, month - 1, day);
+                      const dayName = dateObj.toLocaleDateString("en-US", { weekday: "long" });
+
+                      const dayRate = turf?.rates?.find((r: any) => r.day.toLowerCase() === dayName.toLowerCase())?.price;
                       const effectiveHourlyRate = Number(dayRate ?? turf.pricePerHour ?? 0);
                       const totalMinutes = selectedSlots.reduce((sum, slot) => sum + Math.max(0, getSlotMinutes(slot)), 0);
                       const totalHours = totalMinutes / 60;
@@ -577,10 +700,10 @@ export default function TurfDetailsPage() {
                 </div>
                 <button 
                   onClick={handleBooking}
-                  disabled={selectedSlots.length === 0 || selectedCourts.length === 0}
-                  className="flex-[2] bg-[#1abc60] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-green-100 hover:bg-[#16a085] transition-all disabled:opacity-50 disabled:grayscale"
+                  disabled={selectedSlots.length === 0 || selectedCourts.length === 0 || isBooking}
+                  className="flex-[2] bg-[#1abc60] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-green-100 hover:bg-[#16a085] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
                 >
-                  Confirm {selectedSlots.length} {selectedSlots.length === 1 ? 'Slot' : 'Slots'}
+                  {isBooking ? <Loader2 className="w-5 h-5 animate-spin" /> : `Confirm ${selectedSlots.length} ${selectedSlots.length === 1 ? 'Slot' : 'Slots'}`}
                 </button>
               </div>
             </motion.div>

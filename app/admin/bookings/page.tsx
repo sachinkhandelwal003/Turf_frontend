@@ -440,8 +440,14 @@ function AdminBookingsContent() {
   const buildSlotsForTurf = (turfId: string, date: string) => {
     const turf = availableTurfs.find((t) => t._id === turfId) as any;
     if (!turf) return [];
-    const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
-    const operatingDay = turf.operatingHours?.find((d: any) => d.day === dayName);
+    
+    const [year, month, day] = date.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+
+    const operatingDay = turf.operatingHours?.find(
+      (d: any) => d.day.toLowerCase() === dayName.toLowerCase()
+    );
     if (!operatingDay || operatingDay.isOpen === false) return [];
     const open = operatingDay.open || '06:00';
     const close = operatingDay.close || '23:00';
@@ -484,8 +490,12 @@ function AdminBookingsContent() {
   const getEffectiveSlotPrice = (turfId: string, date: string) => {
     const turf = availableTurfs.find((t) => t._id === turfId) as any;
     if (!turf) return 0;
-    const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
-    const dayRate = turf.rates?.find((r: any) => r.day === dayName)?.price;
+    
+    const [year, month, day] = date.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+
+    const dayRate = turf.rates?.find((r: any) => r.day.toLowerCase() === dayName.toLowerCase())?.price;
     return parseSafeNumber(dayRate ?? turf.pricePerHour ?? 0);
   };
 

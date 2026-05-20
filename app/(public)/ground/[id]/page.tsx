@@ -485,7 +485,6 @@ export default function VenueDetailsPage() {
               <h3 className="!text-xl !font-bold !text-gray-900 !mb-4">Sports at this Venue</h3>
               <div className="!flex !flex-wrap !gap-3 !relative !z-20">
                 {venue.sports?.map((sport: string) => {
-                  // Find if there's a sibling venue for this sport
                   const siblingForThisSport = siblingTurfs?.find((s: any) => 
                     s.sports?.some((sp: string) => sp.toLowerCase() === sport.toLowerCase()) || 
                     s.name.toLowerCase().includes(sport.toLowerCase())
@@ -494,24 +493,16 @@ export default function VenueDetailsPage() {
                   const isCurrentVenue = !siblingForThisSport || siblingForThisSport._id === id;
 
                   return (
-                    <button
+                    <div
                       key={sport}
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (siblingForThisSport && siblingForThisSport._id !== id) {
-                          window.location.href = `/ground/${siblingForThisSport._id}`;
-                        }
-                      }}
-                      className={`!flex !items-center !gap-2 !px-5 !py-2.5 !rounded-full !text-sm !font-bold !border !shadow-sm !transition-all !m-0 !duration-200 !pointer-events-auto
+                      className={`!flex !items-center !gap-2 !px-5 !py-2.5 !rounded-full !text-sm !font-bold !border !shadow-sm !m-0 !cursor-default
                         ${isCurrentVenue 
-                          ? '!bg-[#1abc60] !border-[#1abc60] !text-white !cursor-default !opacity-100' 
-                          : '!bg-[#0d8a45] !border-[#0d8a45] !text-white hover:!bg-[#0a6d36] hover:!scale-105 active:!scale-95 !cursor-pointer !z-[100] !shadow-md hover:!shadow-lg'
+                          ? '!bg-[#1abc60] !border-[#1abc60] !text-white' 
+                          : '!bg-[#0d8a45] !border-[#0d8a45] !text-white'
                         }`}
                     >
                       {sport} <Activity className="!w-4 !h-4" />
-                    </button>
+                    </div>
                   );
                 })}
 
@@ -523,18 +514,12 @@ export default function VenueDetailsPage() {
                   if (alreadyListed || sibling._id === id) return null;
 
                   return (
-                    <button
+                    <div
                       key={sibling._id}
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        window.location.href = `/ground/${sibling._id}`;
-                      }}
-                      className="!flex !items-center !gap-2 !px-5 !py-2.5 !rounded-full !text-sm !font-bold !bg-[#0d8a45] !border !border-[#0d8a45] !text-white !shadow-sm hover:!bg-[#0a6d36] hover:!scale-105 active:!scale-95 !transition-all !duration-200 !cursor-pointer !z-[100] !m-0 !shadow-md hover:!shadow-lg !pointer-events-auto"
+                      className="!flex !items-center !gap-2 !px-5 !py-2.5 !rounded-full !text-sm !font-bold !bg-[#0d8a45] !border !border-[#0d8a45] !text-white !shadow-sm !m-0 !cursor-default"
                     >
                       {siblingSport} <Activity className="!w-4 !h-4" />
-                    </button>
+                    </div>
                   );
                 })}
               </div>

@@ -40,6 +40,8 @@ interface Turf {
     endTime: string;
     type: string;
   }[];
+  priceHikes?: { startTime: string; endTime: string; extraPrice: number }[];
+  slotPricings?: { startTime: string; endTime: string; price: number }[];
 }
 
 export default function TurfDetailsPage() {

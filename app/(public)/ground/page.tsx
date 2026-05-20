@@ -97,7 +97,7 @@ const VenueCard = ({ venue }: { venue: Venue }) => {
             <div className="bg-white/95 backdrop-blur-sm text-gray-800 text-[11px] font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm ml-auto">
               <RatingStars rating={venue.rating} />
               <span className="ml-0.5">{venue.rating > 0 ? venue.rating : 'New'}</span>
-              {venue.reviewsCount > 0 && (
+              {venue.reviewsCount !== undefined && venue.reviewsCount > 0 && (
                 <span className="text-gray-500 text-[9px] font-normal">
                   ({venue.reviewsCount})
                 </span>

@@ -52,6 +52,8 @@ interface Booking {
   createdAt: string;
   updatedAt: string;
   hasReviewed?: boolean;
+  tournamentId?: string;
+  teamName?: string;
 }
 
 interface ActivityItem {

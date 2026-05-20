@@ -77,7 +77,7 @@ export default function FeaturedVenues() {
     }
 
     // Map to UI format
-    return filtered.slice(0, 6).map((t: any) => {
+    return filtered.slice(0, 3).map((t: any) => {
       const currentPrice = t.pricePerHour || 0;
 
       return {

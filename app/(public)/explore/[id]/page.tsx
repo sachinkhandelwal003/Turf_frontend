@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { 
   MapPin, Star, Clock, Info, Shield, CheckCircle2, 
   Calendar, ChevronRight, Loader2, Users, IndianRupee,
@@ -49,6 +50,7 @@ export default function TurfDetailsPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [turf, setTurf] = useState<Turf | null>(null);
+  const [siblingTurfs, setSiblingTurfs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedSport, setSelectedSport] = useState("");
@@ -243,6 +245,7 @@ export default function TurfDetailsPage() {
       const res = await api.get(`/turfs/${id}`);
       if (res.data.success) {
         setTurf(res.data.turf);
+        setSiblingTurfs(res.data.siblingTurfs || []);
         setSelectedSport(res.data.turf.sports[0]);
       }
     } catch (error) {
@@ -429,21 +432,49 @@ export default function TurfDetailsPage() {
           <div className="lg:col-span-2 space-y-12">
             
             {/* Sports Available */}
-            <section className="space-y-6">
-              <h2 className="text-xl font-black text-gray-900 uppercase tracking-wider">Sports Available</h2>
-              <div className="flex flex-wrap gap-4">
-                {turf.sports.map(s => (
-                  <button 
-                    key={s}
-                    onClick={() => setSelectedSport(s)}
-                    className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl border-2 transition-all font-bold ${selectedSport === s ? 'border-[#1abc60] bg-green-50 text-[#1abc60]' : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'}`}
-                  >
-                    <div className={`w-2 h-2 rounded-full ${selectedSport === s ? 'bg-[#1abc60] animate-pulse' : 'bg-gray-300'}`} />
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </section>
+            <section className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm">
+               <div className="flex items-center gap-3 mb-6">
+                 <div className="p-2 bg-emerald-50 rounded-xl">
+                   <Activity className="w-5 h-5 text-emerald-600" />
+                 </div>
+                 <h2 className="text-xl font-black text-gray-900 uppercase tracking-wider">Sports at this Venue</h2>
+               </div>
+               
+               <div className="flex flex-wrap gap-4">
+                 {/* Current Venue Primary Sport (Active) */}
+                 <div className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-md shadow-emerald-100">
+                   {turf.sports?.[0] || "Sport"}
+                   <CheckCircle2 className="w-4 h-4" />
+                 </div>
+
+                 {/* Sibling Venues (Other sports by same owner) - Clickable */}
+                 {siblingTurfs.map((sibling: any) => (
+                    <Link
+                      key={sibling._id}
+                      href={`/explore/${sibling._id}`}
+                      className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-2xl font-bold transition-all no-underline shadow-md shadow-emerald-100"
+                    >
+                      {sibling.sports?.[0] || sibling.name}
+                      <Activity className="w-4 h-4" />
+                    </Link>
+                  ))}
+
+                  {/* Other secondary sports of current venue (if any and not in siblings) */}
+                  {turf.sports?.slice(1).map((sport) => {
+                    const hasSiblingForThisSport = siblingTurfs.some(s => s.sports?.includes(sport));
+                    if (hasSiblingForThisSport) return null;
+                    return (
+                      <div
+                        key={sport}
+                        className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-md shadow-emerald-100"
+                      >
+                        {sport}
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                    );
+                  })}
+               </div>
+             </section>
 
             {/* Courts Available */}
             {turf.courts && turf.courts.length > 0 && (

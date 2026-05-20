@@ -17,7 +17,20 @@ export default function VenueDetailsPage() {
   const id = Array.isArray(params?.id) ? params.id[0] : (params?.id || ""); 
   
   const [venue, setVenue] = useState<any>(null);
+  const [siblingTurfs, setSiblingTurfs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // === UI STATES ===
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const [selectedDate, setSelectedDate] = useState(todayDateStr);
+  const [selectedSport, setSelectedSport] = useState<string>(""); // ADDED NEW STATE FOR SELECTED SPORT
+  const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
+  const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
+  const [isCourtModalOpen, setIsCourtModalOpen] = useState(false);
+  const [selectedCourts, setSelectedCourts] = useState<string[]>([]);
+  const [activeImage, setActiveImage] = useState(0);
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookedSlots, setBookedSlots] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchVenue = async () => {
@@ -29,6 +42,8 @@ export default function VenueDetailsPage() {
         const res = await api.get(`/turfs/${id}`);
         if (res.data.success) {
           const t = res.data.turf;
+          console.log("Sibling Turfs Received:", res.data.siblingTurfs);
+          setSiblingTurfs(res.data.siblingTurfs || []);
           const mappedVenue = {
             id: t._id,
             title: t.name,
@@ -62,6 +77,11 @@ export default function VenueDetailsPage() {
             unavailableDates: t.unavailableDates || []
           };
           setVenue(mappedVenue);
+          
+          // SETTING DEFAULT SPORT HERE
+          if (mappedVenue.sports && mappedVenue.sports.length > 0) {
+            setSelectedSport(mappedVenue.sports[0]);
+          }
         }
       } catch (error) {
         console.warn("Failed to fetch venue details:", id);
@@ -71,17 +91,6 @@ export default function VenueDetailsPage() {
     };
     fetchVenue();
   }, [id]);
-
-  // === UI STATES ===
-  const todayDateStr = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState(todayDateStr);
-  const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
-  const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
-  const [isCourtModalOpen, setIsCourtModalOpen] = useState(false);
-  const [selectedCourts, setSelectedCourts] = useState<string[]>([]);
-  const [activeImage, setActiveImage] = useState(0);
-  const [isBooking, setIsBooking] = useState(false);
-  const [bookedSlots, setBookedSlots] = useState<any[]>([]);
 
   useEffect(() => {
     setSelectedTimes([]);
@@ -330,7 +339,7 @@ export default function VenueDetailsPage() {
 
       const res = await api.post("/bookings", {
         turfId: id,
-        sport: venue?.sports?.[0] || "Sport",
+        sport: selectedSport || venue?.sports?.[0] || "Sport", // UPDATED TO SEND SELECTED SPORT
         date: selectedDate,
         slots: selectedTimes,
         courts: selectedCourts,
@@ -473,21 +482,61 @@ export default function VenueDetailsPage() {
             </div>
 
             <div className="!mb-12">
-              <h3 className="!text-xl !font-bold !text-gray-900 !mb-4">Sports Available</h3>
-              <div className="!flex !flex-wrap !gap-3">
-                {venue.sports.map((sport: string, index: number) => (
-                  <div 
-                    key={sport}
-                    className={`!flex !items-center !gap-2 !px-5 !py-2.5 !rounded-full !text-sm !font-bold !transition-colors !border ${
-                      index === 0 
-                        ? '!bg-[#1abc60] !border-[#1abc60] !text-white !shadow-sm' 
-                        : '!bg-white !border-gray-200 !text-gray-700 hover:!bg-gray-50'
-                    }`}
-                  >
-                    {sport} 
-                    {index === 0 ? <Activity className="!w-4 !h-4" /> : <Circle className="!w-4 !h-4 !text-gray-400" />}
-                  </div>
-                ))}
+              <h3 className="!text-xl !font-bold !text-gray-900 !mb-4">Sports at this Venue</h3>
+              <div className="!flex !flex-wrap !gap-3 !relative !z-20">
+                {venue.sports?.map((sport: string) => {
+                  // Find if there's a sibling venue for this sport
+                  const siblingForThisSport = siblingTurfs?.find((s: any) => 
+                    s.sports?.some((sp: string) => sp.toLowerCase() === sport.toLowerCase()) || 
+                    s.name.toLowerCase().includes(sport.toLowerCase())
+                  );
+
+                  const isCurrentVenue = !siblingForThisSport || siblingForThisSport._id === id;
+
+                  return (
+                    <button
+                      key={sport}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (siblingForThisSport && siblingForThisSport._id !== id) {
+                          window.location.href = `/ground/${siblingForThisSport._id}`;
+                        }
+                      }}
+                      className={`!flex !items-center !gap-2 !px-5 !py-2.5 !rounded-full !text-sm !font-bold !border !shadow-sm !transition-all !m-0 !duration-200 !pointer-events-auto
+                        ${isCurrentVenue 
+                          ? '!bg-[#1abc60] !border-[#1abc60] !text-white !cursor-default !opacity-100' 
+                          : '!bg-[#0d8a45] !border-[#0d8a45] !text-white hover:!bg-[#0a6d36] hover:!scale-105 active:!scale-95 !cursor-pointer !z-[100] !shadow-md hover:!shadow-lg'
+                        }`}
+                    >
+                      {sport} <Activity className="!w-4 !h-4" />
+                    </button>
+                  );
+                })}
+
+                {/* Additional sibling sports not in the current venue's sports list */}
+                {siblingTurfs?.map((sibling: any) => {
+                  const siblingSport = sibling.sports?.[0] || sibling.name;
+                  const alreadyListed = venue.sports?.some((s: string) => s.toLowerCase() === siblingSport.toLowerCase());
+                  
+                  if (alreadyListed || sibling._id === id) return null;
+
+                  return (
+                    <button
+                      key={sibling._id}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.location.href = `/ground/${sibling._id}`;
+                      }}
+                      className="!flex !items-center !gap-2 !px-5 !py-2.5 !rounded-full !text-sm !font-bold !bg-[#0d8a45] !border !border-[#0d8a45] !text-white !shadow-sm hover:!bg-[#0a6d36] hover:!scale-105 active:!scale-95 !transition-all !duration-200 !cursor-pointer !z-[100] !m-0 !shadow-md hover:!shadow-lg !pointer-events-auto"
+                    >
+                      {siblingSport} <Activity className="!w-4 !h-4" />
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

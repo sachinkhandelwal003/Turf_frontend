@@ -44,8 +44,8 @@ export default function CareersPage() {
             <h1 className="text-5xl lg:text-7xl font-black text-gray-900 mb-8 leading-[1.1]">
               We&apos;re <span className="text-blue-600 underline decoration-blue-200 underline-offset-8">Hiring.</span>
             </h1>
-            <p className="text-lg text-gray-600 leading-relaxed font-medium">
-              Join the team building India&apos;s most ground-owner-friendly, player-first sports booking platform.
+            <p className="text-lg text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
+              Join the team building India&apos;s most ground-owner-friendly, player-first sports booking platform. We&apos;re not just building an app; we&apos;re building the infrastructure for a healthier India.
             </p>
           </motion.div>
         </div>

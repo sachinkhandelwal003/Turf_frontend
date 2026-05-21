@@ -62,16 +62,26 @@ const Footer = () => {
               Support
             </h4>
             <ul className="space-y-4">
-              {['Contact Support', 'FAQs', 'Owner Help', 'Safety Center'].map(item => (
-                <li key={item}>
-                  <Link href={`/${item.toLowerCase().replace(/ /g, '-')}`}
-                    // FIX: Default Gray, Hover pe Green hoga
-                    className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block"
-                  >
-                    {item}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link href="/contact-support" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                  Contact Support
+                </Link>
+              </li>
+              <li>
+                <Link href="/faqs" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                  FAQs
+                </Link>
+              </li>
+              <li>
+                <Link href="/owner-help" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                  Owner Help
+                </Link>
+              </li>
+              <li>
+                <Link href="/safety-center" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                  Safety Center
+                </Link>
+              </li>
             </ul>
           </div>
 

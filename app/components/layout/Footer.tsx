@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from 'next/link';
 
@@ -33,7 +33,12 @@ const Footer = () => {
               Company
             </h4>
             <ul className="space-y-4">
-              {['About Us', 'Terms of Service', 'Privacy Policy', 'Careers'].map(item => (
+              <li>
+                <Link href="/about-us" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                  About Us
+                </Link>
+              </li>
+              {['Terms of Service', 'Privacy Policy'].map(item => (
                 <li key={item}>
                   <Link href={`/${item.toLowerCase().replace(/ /g, '-')}`}
                     // FIX: Default Gray, Hover pe Green hoga
@@ -43,6 +48,11 @@ const Footer = () => {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link href="/careers" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                  Careers
+                </Link>
+              </li>
             </ul>
           </div>
 

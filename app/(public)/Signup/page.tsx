@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Eye, EyeOff, ChevronDown, Loader2 } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, ChevronDown, Loader2, ArrowLeft } from 'lucide-react';
 import { apiRequest } from '@/app/api'; 
 import { useAuth } from '@/app/context/AuthContext';
 import { useEffect } from 'react';
@@ -96,8 +96,17 @@ export default function SignUp() {
   return (
     <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
       
-      <div className="bg-white w-full max-w-[420px] p-6 sm:p-10 rounded-2xl shadow-sm">
+      <div className="bg-white w-full max-w-[420px] p-6 sm:p-10 rounded-2xl shadow-sm relative">
         
+        {/* Back Button */}
+        <button 
+          onClick={() => router.back()}
+          className="absolute left-4 top-4 text-gray-400 hover:text-[#1abc60] transition-colors p-1"
+          title="Go Back"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+
         {/* LOGO */}
         <div className="flex justify-center mb-6">
           <img 

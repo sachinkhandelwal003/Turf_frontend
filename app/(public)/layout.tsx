@@ -1,7 +1,8 @@
-﻿﻿'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 import Navbar from '@/app/components/layout/Navbar';
 import Footer from '@/app/components/layout/Footer';
 import EnquiryModal from '@/components/EnquiryModal';
@@ -20,6 +21,10 @@ export default function PublicLayout({
 }) {
   const [showEnquiryModal, setShowEnquiryModal] = useState(false);
   const [autoShowTooltip, setAutoShowTooltip] = useState(false);
+  const pathname = usePathname();
+
+  // Hide navbar and footer on login and signup pages
+  const hideLayout = pathname === '/login' || pathname === '/Signup';
 
   useEffect(() => {
     // 1. Show enquiry modal after 3.5 seconds
@@ -47,9 +52,9 @@ export default function PublicLayout({
   return (
     <>
       {/* Main Page Content */}
-      <Navbar />
+      {!hideLayout && <Navbar />}
       <main className="min-h-screen">{children}</main>
-      <Footer />
+      {!hideLayout && <Footer />}
 
       {/* --- FLOATING WHATSAPP BUTTON --- */}
   

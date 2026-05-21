@@ -142,17 +142,16 @@ export default function AdminSettingsPage() {
       
       if (res.data && res.data.success && res.data.settings) {
         const apiData = res.data.settings;
-        const merged = {
-          ...settings,
-          ...apiData,
-          razorpay: apiData.razorpay || settings.razorpay
-        };
-        setSettings(merged);
-        saveToLocalStorage(merged);
-        console.log('API settings loaded and merged:', merged);
+        setSettings(prev => ({
+          ...prev,
+          ...apiData
+        }));
+        saveToLocalStorage(apiData);
+        console.log('API settings loaded:', apiData);
       }
     } catch (error) {
-      console.log('API fetch failed, using only localStorage');
+      console.error('API fetch failed:', error);
+      toast.error("Failed to load settings from server");
     } finally {
       setLoading(false);
     }
@@ -161,11 +160,7 @@ export default function AdminSettingsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('=== SAVING SETTINGS ===');
-    console.log('Current settings:', settings);
     setIsSaving(true);
-
-    saveToLocalStorage(settings);
     
     try {
       const formData = new FormData();
@@ -196,28 +191,25 @@ export default function AdminSettingsPage() {
         formData.append('heroBannerImage', "");
       }
 
-      console.log('Sending to API via FormData...');
       const res = await api.post("/settings", formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      console.log('API response:', res.data);
 
       if (res.data && res.data.success) {
-        const saved = res.data.settings || res.data;
-        const finalSettings = {
-          ...settings,
-          ...saved,
-          razorpay: saved.razorpay || settings.razorpay
-        };
-        setSettings(finalSettings);
-        saveToLocalStorage(finalSettings);
-        toast.success("✅ SETTINGS SAVED SUCCESSFULLY!");
+        const saved = res.data.settings;
+        setSettings(prev => ({
+          ...prev,
+          ...saved
+        }));
+        saveToLocalStorage(saved);
+        toast.success("Settings saved successfully!");
       } else {
-        toast.success("✅ Settings saved locally");
+        throw new Error(res.data.msg || "Failed to save settings");
       }
     } catch (error) {
-      console.error('API error:', error);
-      toast.success("✅ Settings saved locally");
+      console.error('Save error:', error);
+      const apiError = getApiError(error);
+      toast.error(apiError.response?.data?.msg || apiError.message || "Failed to save settings");
     } finally {
       setIsSaving(false);
     }

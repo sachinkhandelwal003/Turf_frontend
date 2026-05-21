@@ -36,11 +36,11 @@ export default function PrivacyPolicyPage() {
       title: "2. Personal Data We Collect",
       content: (
         <div className="space-y-6">
-          <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-            <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+          <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100">
+            <h4 className="font-bold text-emerald-900 mb-3 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" /> Data you give us
             </h4>
-            <ul className="space-y-2 text-blue-800 text-sm">
+            <ul className="space-y-2 text-emerald-800 text-sm">
               <li>• Identity: Name, Date of Birth, Gender</li>
               <li>• Contact: Mobile number (OTP verified), Email</li>
               <li>• Profile: Sports interests, Skill level, Preferred venues</li>
@@ -66,15 +66,15 @@ export default function PrivacyPolicyPage() {
       content: (
         <ul className="space-y-4 text-gray-600">
           <li className="flex gap-3">
-            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 shrink-0" />
+            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 shrink-0" />
             <p><span className="font-bold text-gray-900">Service Delivery:</span> To process bookings, facilitate payments via Razorpay, and manage your account.</p>
           </li>
           <li className="flex gap-3">
-            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 shrink-0" />
+            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 shrink-0" />
             <p><span className="font-bold text-gray-900">Personalization:</span> To recommend venues and matches based on your location and skill level.</p>
           </li>
           <li className="flex gap-3">
-            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 shrink-0" />
+            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 shrink-0" />
             <p><span className="font-bold text-gray-900">Communication:</span> To send booking confirmations, safety alerts, and updates about the platform.</p>
           </li>
         </ul>
@@ -87,7 +87,7 @@ export default function PrivacyPolicyPage() {
       content: (
         <div className="space-y-4 text-gray-600">
           <p>We share your data with <span className="font-bold text-gray-900">Venue Partners</span> only to the extent necessary for your booking (e.g., your name and contact for entry). We use industry-standard encryption to protect your information.</p>
-          <div className="p-4 border-l-4 border-blue-500 bg-gray-50 italic text-sm">
+          <div className="p-4 border-l-4 border-emerald-500 bg-gray-50 italic text-sm">
             GameOn does not sell your personal data to third-party advertisers.
           </div>
         </div>
@@ -96,20 +96,20 @@ export default function PrivacyPolicyPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-white selection:bg-emerald-100 selection:text-emerald-900">
       {/* Header */}
-      <section className="bg-gradient-to-b from-blue-50/50 to-white py-20 lg:py-32 overflow-hidden relative">
+      <section className="bg-gradient-to-b from-emerald-50/50 to-white py-20 lg:py-32 overflow-hidden relative">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center space-y-6"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-600 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
               <Lock className="w-3.5 h-3.5" /> Trust & Privacy
             </div>
             <h1 className="text-5xl lg:text-7xl font-black text-gray-900 tracking-tight">
-              Privacy <span className="text-blue-600 underline decoration-blue-200 underline-offset-8">Policy.</span>
+              Privacy <span className="text-emerald-600 underline decoration-emerald-200 underline-offset-8">Policy.</span>
             </h1>
             <div className="flex justify-center gap-6 text-xs font-bold text-gray-400 uppercase tracking-widest">
               <p>Effective: 4 May 2026</p>
@@ -117,7 +117,7 @@ export default function PrivacyPolicyPage() {
             </div>
           </motion.div>
         </div>
-        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[500px] h-[500px] bg-blue-100 rounded-full blur-3xl opacity-20" />
+        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[500px] h-[500px] bg-emerald-100 rounded-full blur-3xl opacity-20" />
       </section>
 
       {/* Content */}
@@ -136,7 +136,7 @@ export default function PrivacyPolicyPage() {
                 <div className="flex flex-col md:flex-row gap-8 md:gap-12">
                   <div className="md:w-1/4">
                     <div className="sticky top-32">
-                      <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+                      <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
                         {section.icon}
                       </div>
                       <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">{section.title.split('.')[1].trim()}</h3>
@@ -161,7 +161,7 @@ export default function PrivacyPolicyPage() {
             className="mt-32 p-10 lg:p-16 bg-gray-900 rounded-[3rem] text-white relative overflow-hidden"
           >
             <div className="relative z-10 space-y-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold uppercase tracking-wider text-blue-400">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold uppercase tracking-wider text-emerald-400">
                 <Bell className="w-3.5 h-3.5" /> Grievance Officer
               </div>
               <h2 className="text-4xl font-black">Questions or Concerns?</h2>
@@ -169,16 +169,16 @@ export default function PrivacyPolicyPage() {
                 <div>
                   <p className="text-gray-400 text-sm uppercase tracking-widest font-bold mb-4 opacity-50">Officer Details</p>
                   <p className="text-xl font-bold mb-1">Shivam Tiwari</p>
-                  <p className="text-blue-400 font-medium">Founder & CEO</p>
+                  <p className="text-emerald-400 font-medium">Founder & CEO</p>
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm uppercase tracking-widest font-bold mb-4 opacity-50">Contact</p>
-                  <a href="mailto:support@gameon-india.com" className="text-xl font-bold hover:text-blue-400 transition-colors">support@gameon-india.com</a>
+                  <a href="mailto:support@gameon-india.com" className="text-xl font-bold hover:text-emerald-400 transition-colors">support@gameon-india.com</a>
                   <p className="text-gray-500 text-sm mt-2">Response time: ~48 hours</p>
                 </div>
               </div>
             </div>
-            <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-600/20 rounded-full blur-3xl" />
           </motion.div>
         </div>
       </section>

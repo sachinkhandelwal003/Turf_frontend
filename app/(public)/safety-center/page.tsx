@@ -32,26 +32,26 @@ export default function SafetyCenterPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
       {/* ── HERO SECTION ── */}
-      <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-blue-50 to-white">
+      <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-emerald-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="max-w-3xl mx-auto space-y-8"
           >
-            <span className="inline-block px-4 py-1.5 mb-2 text-[10px] font-black tracking-[0.2em] text-blue-600 uppercase bg-blue-100 rounded-full">
+            <span className="inline-block px-4 py-1.5 mb-2 text-[10px] font-black tracking-[0.2em] text-emerald-600 uppercase bg-emerald-100 rounded-full">
               Safe Play Always
             </span>
             <h1 className="text-5xl lg:text-7xl font-black text-gray-900 tracking-tight leading-[1.1]">
               Your Safety is our <br/>
-              <span className="text-blue-600 underline decoration-blue-200 underline-offset-8">Priority.</span>
+              <span className="text-emerald-600 underline decoration-emerald-200 underline-offset-8">Priority.</span>
             </h1>
             <p className="text-lg text-gray-500 font-medium max-w-2xl mx-auto">
               At GameOn, we are committed to building a safe, inclusive, and secure sports ecosystem for players and venue owners alike.
             </p>
           </motion.div>
         </div>
-        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-blue-100 rounded-full blur-3xl opacity-30 pointer-events-none" />
+        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-emerald-100 rounded-full blur-3xl opacity-30 pointer-events-none" />
       </section>
 
       {/* ── SAFETY PILLARS ── */}
@@ -65,9 +65,9 @@ export default function SafetyCenterPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="p-10 bg-gray-50 rounded-[3rem] border border-gray-100 hover:border-blue-200 hover:bg-white hover:shadow-2xl hover:shadow-blue-50 transition-all group"
+                className="p-10 bg-gray-50 rounded-[3rem] border border-gray-100 hover:border-emerald-200 hover:bg-white hover:shadow-2xl hover:shadow-emerald-50 transition-all group"
               >
-                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-blue-600 mb-8 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-emerald-600 mb-8 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
                   {section.icon}
                 </div>
                 <h3 className="text-2xl font-black text-gray-900 mb-6">{section.title}</h3>
@@ -109,7 +109,7 @@ export default function SafetyCenterPage() {
             </div>
             <div className="bg-white/5 backdrop-blur-md p-10 lg:p-16 rounded-[3.5rem] border border-white/10 space-y-8">
               <div className="flex items-start gap-6">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-400 shrink-0">
+                <div className="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-400 shrink-0">
                   <MapPin className="w-6 h-6" />
                 </div>
                 <div>
@@ -129,7 +129,7 @@ export default function SafetyCenterPage() {
             </div>
           </div>
         </div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 rounded-full blur-[100px]" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-600/20 rounded-full blur-[100px]" />
       </section>
 
       {/* ── FINAL CTA ── */}
@@ -140,7 +140,7 @@ export default function SafetyCenterPage() {
             Safety is a shared responsibility. By following our guidelines, you help us create the best sports community in India.
           </p>
           <div className="pt-8">
-            <a href="/faqs" className="inline-flex items-center gap-2 text-blue-600 font-black uppercase tracking-widest text-sm hover:gap-4 transition-all">
+            <a href="/faqs" className="inline-flex items-center gap-2 text-emerald-600 font-black uppercase tracking-widest text-sm hover:gap-4 transition-all">
               Read Safety FAQs <ArrowRight className="w-5 h-5" />
             </a>
           </div>

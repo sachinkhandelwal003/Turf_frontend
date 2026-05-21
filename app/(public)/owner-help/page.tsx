@@ -34,7 +34,7 @@ export default function OwnerHelpPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
       {/* ── HERO SECTION ── */}
-      <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-blue-50 to-white">
+      <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-emerald-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div 
@@ -42,18 +42,18 @@ export default function OwnerHelpPage() {
               animate={{ opacity: 1, x: 0 }}
               className="space-y-8"
             >
-              <span className="inline-block px-4 py-1.5 text-[10px] font-black tracking-[0.2em] text-blue-600 uppercase bg-blue-100 rounded-full">
+              <span className="inline-block px-4 py-1.5 text-[10px] font-black tracking-[0.2em] text-emerald-600 uppercase bg-emerald-100 rounded-full">
                 Partner with GameOn
               </span>
               <h1 className="text-5xl lg:text-7xl font-black text-gray-900 leading-[1.1] tracking-tight">
                 Grow your <br/>
-                <span className="text-blue-600 underline decoration-blue-200 underline-offset-8">Sports Venue.</span>
+                <span className="text-emerald-600 underline decoration-emerald-200 underline-offset-8">Sports Venue.</span>
               </h1>
               <p className="text-lg text-gray-500 font-medium leading-relaxed">
                 Join India&apos;s fastest-growing sports infrastructure network. We handle the bookings, you handle the game.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <a href="/contact-support" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
+                <a href="/contact-support" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-200">
                   List Your Venue <ArrowRight className="w-5 h-5" />
                 </a>
                 <div className="flex items-center gap-3 px-6 py-4 bg-white border border-gray-100 rounded-2xl">
@@ -68,7 +68,7 @@ export default function OwnerHelpPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="relative"
             >
-              <div className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl shadow-blue-100 border-8 border-white">
+              <div className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl shadow-emerald-100 border-8 border-white">
                 <img 
                   src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2000&auto=format&fit=crop" 
                   alt="Sports Venue" 
@@ -87,7 +87,7 @@ export default function OwnerHelpPage() {
             </motion.div>
           </div>
         </div>
-        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-blue-100 rounded-full blur-3xl opacity-30 pointer-events-none" />
+        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-emerald-100 rounded-full blur-3xl opacity-30 pointer-events-none" />
       </section>
 
       {/* ── BENEFITS ── */}
@@ -106,9 +106,9 @@ export default function OwnerHelpPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 hover:border-blue-200 hover:bg-white hover:shadow-xl hover:shadow-blue-50 transition-all group"
+                className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 hover:border-emerald-200 hover:bg-white hover:shadow-xl hover:shadow-emerald-50 transition-all group"
               >
-                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-emerald-600 mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
                   {benefit.icon}
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">{benefit.title}</h3>
@@ -134,7 +134,7 @@ export default function OwnerHelpPage() {
                     "Full control over your pricing and slots"
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-4 text-gray-300">
-                      <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400">
+                      <div className="w-6 h-6 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400">
                         <CheckCircle2 className="w-4 h-4" />
                       </div>
                       <span className="font-medium">{item}</span>
@@ -143,16 +143,16 @@ export default function OwnerHelpPage() {
                 </div>
               </div>
               <div className="text-center lg:text-right">
-                <div className="inline-block bg-gradient-to-br from-blue-600 to-blue-800 p-12 rounded-[3rem] shadow-2xl shadow-blue-500/20">
-                  <p className="text-blue-100 text-sm font-black uppercase tracking-[0.3em] mb-4">You Keep</p>
+                <div className="inline-block bg-gradient-to-br from-emerald-600 to-emerald-800 p-12 rounded-[3rem] shadow-2xl shadow-emerald-500/20">
+                  <p className="text-emerald-100 text-sm font-black uppercase tracking-[0.3em] mb-4">You Keep</p>
                   <p className="text-8xl font-black text-white tracking-tighter">82%</p>
-                  <p className="text-blue-200 text-xs font-bold mt-4 uppercase tracking-widest">Of every booking</p>
+                  <p className="text-emerald-200 text-xs font-bold mt-4 uppercase tracking-widest">Of every booking</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/20 rounded-full blur-[100px]" />
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-emerald-600/20 rounded-full blur-[100px]" />
       </section>
 
       {/* ── FAQ PREVIEW ── */}
@@ -172,7 +172,7 @@ export default function OwnerHelpPage() {
             ))}
           </div>
           <div className="pt-8">
-            <a href="/contact-support" className="inline-flex items-center gap-2 text-blue-600 font-black uppercase tracking-widest text-sm hover:gap-4 transition-all">
+            <a href="/contact-support" className="inline-flex items-center gap-2 text-emerald-600 font-black uppercase tracking-widest text-sm hover:gap-4 transition-all">
               Talk to a Partner Manager <ArrowRight className="w-5 h-5" />
             </a>
           </div>

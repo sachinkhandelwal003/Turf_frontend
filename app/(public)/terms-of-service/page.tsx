@@ -59,9 +59,9 @@ export default function TermsOfServicePage() {
       title: "3. Booking & Payments",
       content: (
         <div className="space-y-6">
-          <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-            <h4 className="font-bold text-blue-900 mb-2">Secure Payments</h4>
-            <p className="text-sm text-blue-800 leading-relaxed">
+          <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100">
+            <h4 className="font-bold text-emerald-900 mb-2">Secure Payments</h4>
+            <p className="text-sm text-emerald-800 leading-relaxed">
               All payments are processed by Razorpay (RBI regulated). We do not store sensitive details like CVV or PINs.
             </p>
           </div>

@@ -30,7 +30,7 @@ export default function CareersPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* ── 1. HERO SECTION ── */}
-      <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-blue-50 to-white">
+      <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-emerald-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
@@ -38,11 +38,11 @@ export default function CareersPage() {
             transition={{ duration: 0.8 }}
             className="text-center max-w-3xl mx-auto"
           >
-            <span className="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-blue-600 uppercase bg-blue-100 rounded-full">
+            <span className="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-emerald-600 uppercase bg-emerald-100 rounded-full">
               Careers at GameOn
             </span>
             <h1 className="text-5xl lg:text-7xl font-black text-gray-900 mb-8 leading-[1.1]">
-              We&apos;re <span className="text-blue-600 underline decoration-blue-200 underline-offset-8">Hiring.</span>
+              We&apos;re <span className="text-emerald-600 underline decoration-emerald-200 underline-offset-8">Hiring.</span>
             </h1>
             <p className="text-lg text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
               Join the team building India&apos;s most ground-owner-friendly, player-first sports booking platform. We&apos;re not just building an app; we&apos;re building the infrastructure for a healthier India.
@@ -51,7 +51,7 @@ export default function CareersPage() {
         </div>
         
         {/* Abstract background elements */}
-        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-blue-100 rounded-full blur-3xl opacity-30 pointer-events-none" />
+        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-emerald-100 rounded-full blur-3xl opacity-30 pointer-events-none" />
       </section>
 
       {/* ── 2. OUR VISION ── */}
@@ -65,7 +65,7 @@ export default function CareersPage() {
               viewport={{ once: true }}
               className="space-y-8"
             >
-              <motion.div variants={itemVariants} className="inline-flex items-center gap-3 p-2 bg-blue-50 rounded-2xl text-blue-600">
+              <motion.div variants={itemVariants} className="inline-flex items-center gap-3 p-2 bg-emerald-50 rounded-2xl text-emerald-600">
                 <Rocket className="w-6 h-6" />
                 <span className="font-bold uppercase tracking-wider text-sm">Join the Early Team</span>
               </motion.div>
@@ -79,7 +79,7 @@ export default function CareersPage() {
                 <p>
                   We are a small, early team in our first year, headquartered in Ghaziabad and launching across Delhi, Noida, and Gurgaon. 
                 </p>
-                <p className="font-bold text-gray-900 border-l-4 border-blue-500 pl-6 py-2">
+                <p className="font-bold text-gray-900 border-l-4 border-emerald-500 pl-6 py-2">
                   The product, the partnerships, and the culture are still being shaped — which means the people who join now actually get to shape them.
                 </p>
                 <p>
@@ -93,14 +93,14 @@ export default function CareersPage() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
-              className="relative aspect-video lg:aspect-square rounded-[3rem] overflow-hidden shadow-2xl shadow-blue-100"
+              className="relative aspect-video lg:aspect-square rounded-[3rem] overflow-hidden shadow-2xl shadow-emerald-100"
             >
               <img 
                 src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2000&auto=format&fit=crop" 
                 alt="Working at GameOn" 
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-blue-900/60 to-transparent flex items-end p-10">
+              <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/60 to-transparent flex items-end p-10">
                 <p className="text-white font-bold text-2xl leading-tight">
                   Shape the future of Indian sports infrastructure.
                 </p>
@@ -141,9 +141,9 @@ export default function CareersPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="bg-white p-8 rounded-[2.5rem] border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-50 transition-all group"
+                className="bg-white p-8 rounded-[2.5rem] border border-gray-100 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-50 transition-all group"
               >
-                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                   <role.icon className="w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">{role.title}</h3>
@@ -160,13 +160,13 @@ export default function CareersPage() {
           <div className="bg-gray-900 rounded-[3.5rem] p-10 lg:p-20 text-white relative overflow-hidden">
             <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
               <div className="space-y-8">
-                <div className="inline-flex items-center gap-3 p-2 bg-blue-500/10 rounded-2xl text-blue-400">
+                <div className="inline-flex items-center gap-3 p-2 bg-emerald-500/10 rounded-2xl text-emerald-400">
                   <Send className="w-6 h-6" />
                   <span className="font-bold uppercase tracking-wider text-sm">How to Apply</span>
                 </div>
                 <h2 className="text-4xl lg:text-5xl font-black leading-tight">Ready to play? <br/>Write to us.</h2>
                 <div className="space-y-6 text-gray-400 font-medium">
-                  <p>Send your application to <a href="mailto:support@gameon-india.com" className="text-blue-400 underline decoration-blue-400/30 underline-offset-4 hover:text-blue-300 transition-colors">support@gameon-india.com</a> with:</p>
+                  <p>Send your application to <a href="mailto:support@gameon-india.com" className="text-emerald-400 underline decoration-emerald-400/30 underline-offset-4 hover:text-emerald-300 transition-colors">support@gameon-india.com</a> with:</p>
                   <ul className="space-y-4">
                     {[
                       "A short note on what you'd want to work on at GameOn and why",
@@ -187,7 +187,7 @@ export default function CareersPage() {
                 <h3 className="text-2xl font-bold">Contact Details</h3>
                 <div className="space-y-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-blue-400">
+                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-emerald-400">
                       <MapPin className="w-5 h-5" />
                     </div>
                     <div>
@@ -199,46 +199,28 @@ export default function CareersPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-blue-400">
-                      <Globe className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-white mb-1 uppercase tracking-widest opacity-50">Website</p>
-                      <Link href="https://www.gameon-india.com" className="text-sm hover:text-blue-400 transition-colors">www.gameon-india.com</Link>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-blue-400">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-emerald-400">
                       <Mail className="w-5 h-5" />
                     </div>
                     <div>
                       <p className="text-sm font-bold text-white mb-1 uppercase tracking-widest opacity-50">Email</p>
-                      <a href="mailto:support@gameon-india.com" className="text-sm hover:text-blue-400 transition-colors">support@gameon-india.com</a>
+                      <p className="text-sm font-medium">support@gameon-india.com</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-emerald-400">
+                      <Globe className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white mb-1 uppercase tracking-widest opacity-50">Website</p>
+                      <p className="text-sm font-medium">www.gameon-india.com</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            
-            {/* Background pattern */}
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-emerald-600/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2" />
-          </div>
-        </div>
-      </section>
-
-      {/* ── 5. FOOTER CTA ── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-5xl font-black text-gray-900 mb-8">Let&apos;s get more of India playing.</h2>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/about-us" className="px-8 py-4 bg-gray-100 text-gray-900 rounded-2xl font-bold hover:bg-gray-200 transition-all">
-              Our Story
-            </Link>
-            <Link href="mailto:support@gameon-india.com" className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
-              Drop an Email
-            </Link>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-600/10 rounded-full blur-[100px]" />
           </div>
         </div>
       </section>

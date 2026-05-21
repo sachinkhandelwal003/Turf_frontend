@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Send, Loader2, MessageSquare, Clock, Globe } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, Loader2, MessageSquare, Clock, Globe, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 export default function ContactSupportPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -211,9 +212,9 @@ export default function ContactSupportPage() {
               </div>
               <h3 className="text-2xl font-bold">Check our FAQs</h3>
               <p className="text-gray-500 font-medium">Find instant answers to common questions about bookings, cancellations, and more.</p>
-              <a href="/faqs" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:gap-4 transition-all">
+              <Link href="/faqs" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:gap-4 transition-all">
                 Go to FAQs <ArrowRight className="w-5 h-5" />
-              </a>
+              </Link>
             </div>
             <div className="bg-white p-10 rounded-[3rem] border border-gray-100 space-y-6">
               <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">

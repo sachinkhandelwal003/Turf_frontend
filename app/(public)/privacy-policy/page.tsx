@@ -1,6 +1,9 @@
- "use client";
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { ShieldCheck, Calendar, MapPin, Mail, Phone, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 const sections = [
   {
@@ -8,12 +11,12 @@ const sections = [
     number: "01",
     title: "Who We Are",
     content: (
-      <>
-        <p>
-          This Privacy Policy is published by <strong>GameOn Sports Services Private Limited</strong>{" "}
-          ("GameOn", "we", "us", "our"), a company incorporated under the Companies Act, 2013.
+      <div className="space-y-4">
+        <p className="text-gray-600 leading-relaxed text-lg">
+          This Privacy Policy is published by <strong className="text-gray-900">GameOn Sports Services Private Limited</strong>{" "}
+          (&quot;GameOn&quot;, &quot;we&quot;, &quot;us&quot;, &quot;our&quot;), a company incorporated under the Companies Act, 2013.
         </p>
-        <div className="info-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-6">
           {[
             ["CIN", "U93290UW2026PTC252581"],
             ["Date of Incorporation", "4 May 2026"],
@@ -21,34 +24,41 @@ const sections = [
             ["Email", "support@gameon-india.com"],
             ["Phone", "+91 88961 72818"],
           ].map(([label, value]) => (
-            <div className="info-row" key={label}>
-              <span className="info-label">{label}</span>
-              <span className="info-value">{value}</span>
+            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100" key={label}>
+              <span className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</span>
+              <span className="block text-sm font-medium text-gray-900">{value}</span>
             </div>
           ))}
         </div>
-        <p>
+        <p className="text-gray-600 leading-relaxed">
           GameOn operates a Platform that allows users in India to discover, book, and pay for
           sports venues (turfs, courts, grounds, academies, and related facilities), to find and
           host matches with other players, and to engage with sports communities.
         </p>
-        <p>
-          We are the <strong>data fiduciary</strong> under the Digital Personal Data Protection
-          Act, 2023 ("DPDP Act") and the body corporate under the Information Technology Act, 2000
+        <p className="text-gray-600 leading-relaxed">
+          We are the <strong className="text-gray-900">data fiduciary</strong> under the Digital Personal Data Protection
+          Act, 2023 (&quot;DPDP Act&quot;) and the body corporate under the Information Technology Act, 2000
           and the IT (Reasonable Security Practices and Procedures and Sensitive Personal Data or
-          Information) Rules, 2011 ("SPDI Rules").
+          Information) Rules, 2011 (&quot;SPDI Rules&quot;).
         </p>
-        <p>This Privacy Policy is published in compliance with:</p>
-        <ul>
-          <li>The Information Technology Act, 2000 and rules made thereunder, including the SPDI Rules and the IT (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021</li>
-          <li>The Digital Personal Data Protection Act, 2023 (as and when fully notified, including its operative rules)</li>
-          <li>The Consumer Protection Act, 2019 and the Consumer Protection (E-Commerce) Rules, 2020</li>
+        <p className="text-gray-600 font-medium mt-6">This Privacy Policy is published in compliance with:</p>
+        <ul className="list-none space-y-3">
+          {[
+            "The Information Technology Act, 2000 and rules made thereunder, including the SPDI Rules and the IT (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021",
+            "The Digital Personal Data Protection Act, 2023 (as and when fully notified, including its operative rules)",
+            "The Consumer Protection Act, 2019 and the Consumer Protection (E-Commerce) Rules, 2020"
+          ].map((item, i) => (
+            <li key={i} className="flex items-start gap-3 text-gray-600">
+              <ChevronRight className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+              <span>{item}</span>
+            </li>
+          ))}
         </ul>
-        <p className="note">
+        <div className="bg-emerald-50 border-l-4 border-emerald-500 p-5 rounded-r-2xl mt-8 text-emerald-900 font-medium text-sm italic">
           This document does not require any digital or physical signature and is a legally binding
           electronic record under the Information Technology Act, 2000.
-        </p>
-      </>
+        </div>
+      </div>
     ),
   },
   {
@@ -56,27 +66,27 @@ const sections = [
     number: "02",
     title: "Scope and Acceptance",
     content: (
-      <>
+      <div className="space-y-4 text-gray-600 leading-relaxed">
         <p>
           By visiting the website, installing or using the GameOn app, or otherwise availing of
           the Platform, you confirm that you have read, understood, and agreed to this Privacy
           Policy and our Terms of Service. If you do not agree to any part of this Policy, please
           do not use the Platform.
         </p>
-        <p>This Policy applies to:</p>
-        <ul>
+        <p className="font-medium text-gray-900 pt-4">This Policy applies to:</p>
+        <ul className="list-disc pl-5 space-y-2 marker:text-emerald-500">
           <li>Users who register and book venues, host or join matches, or interact with content</li>
           <li>Venue Partners who list facilities on GameOn</li>
           <li>Visitors to the website who do not create an account</li>
           <li>Any other person who provides personal data to us in connection with the Platform</li>
         </ul>
-        <p>This Policy <strong>does not apply</strong> to:</p>
-        <ul>
+        <p className="font-medium text-gray-900 pt-4">This Policy <strong className="text-red-500">does not apply</strong> to:</p>
+        <ul className="list-disc pl-5 space-y-2 marker:text-red-400">
           <li>Third-party websites, apps, or services to which we may link</li>
           <li>Data you provide directly to a Venue Partner outside the Platform</li>
           <li>Information that has been irreversibly anonymised or aggregated and cannot reasonably be linked to you</li>
         </ul>
-      </>
+      </div>
     ),
   },
   {
@@ -84,67 +94,92 @@ const sections = [
     number: "03",
     title: "Personal Data We Collect",
     content: (
-      <>
-        <p>
+      <div className="space-y-8 text-gray-600 leading-relaxed">
+        <p className="text-lg">
           We collect only the data that is necessary to operate the Platform, to process your
           bookings, and to comply with applicable law.
         </p>
 
-        <h4>3.1 Data you give us directly</h4>
-        <ul>
-          <li><strong>Identity data:</strong> Full name, date of birth (to confirm you are 18+ or to obtain parental consent if between 13 and 18), gender (optional), profile photo (optional).</li>
-          <li><strong>Contact data:</strong> Mobile phone number (verified by OTP), email address, postal address (only if you ask us to ship or deliver something to you).</li>
-          <li><strong>Account credentials:</strong> Encrypted password or social-login token (Google / Apple sign-in); we never store your social provider password.</li>
-          <li><strong>Sports & profile data:</strong> Sports you play, skill level, preferred timings, preferred venues, teams or groups you create, match history, ratings and reviews.</li>
-          <li><strong>Booking and transaction data:</strong> Venues booked, sport, date, time slot, party size, amount, mode of payment, invoice details, refunds, and cancellation reasons.</li>
-          <li><strong>Communications data:</strong> Messages sent through our in-app chat, support tickets, emails, WhatsApp messages, and survey or feedback responses.</li>
-          <li><strong>Venue Partner data:</strong> Business name, owner / authorised representative name, PAN, GSTIN (where applicable), bank account details for settlement, photos of the venue, pricing, slot inventory, cancellation rules, and KYC documents we are legally required to verify.</li>
-        </ul>
+        <div className="space-y-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+          <h4 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+            <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg text-xs">3.1</span> 
+            Data you give us directly
+          </h4>
+          <ul className="list-disc pl-5 space-y-2 marker:text-gray-400">
+            <li><strong className="text-gray-900">Identity data:</strong> Full name, date of birth (to confirm you are 18+ or to obtain parental consent if between 13 and 18), gender (optional), profile photo (optional).</li>
+            <li><strong className="text-gray-900">Contact data:</strong> Mobile phone number (verified by OTP), email address, postal address (only if you ask us to ship or deliver something to you).</li>
+            <li><strong className="text-gray-900">Account credentials:</strong> Encrypted password or social-login token (Google / Apple sign-in); we never store your social provider password.</li>
+            <li><strong className="text-gray-900">Sports & profile data:</strong> Sports you play, skill level, preferred timings, preferred venues, teams or groups you create, match history, ratings and reviews.</li>
+            <li><strong className="text-gray-900">Booking and transaction data:</strong> Venues booked, sport, date, time slot, party size, amount, mode of payment, invoice details, refunds, and cancellation reasons.</li>
+            <li><strong className="text-gray-900">Communications data:</strong> Messages sent through our in-app chat, support tickets, emails, WhatsApp messages, and survey or feedback responses.</li>
+            <li><strong className="text-gray-900">Venue Partner data:</strong> Business name, owner / authorised representative name, PAN, GSTIN (where applicable), bank account details for settlement, photos of the venue, pricing, slot inventory, cancellation rules, and KYC documents we are legally required to verify.</li>
+          </ul>
+        </div>
 
-        <h4>3.2 Data we collect automatically</h4>
-        <ul>
-          <li><strong>Device data:</strong> Device model, OS and version, unique device identifiers (Android Advertising ID, IDFA on iOS, or equivalents), mobile network operator, screen resolution, app version, time-zone, and language.</li>
-          <li><strong>Log data:</strong> IP address, login timestamps, session duration, screens viewed, taps and clicks, search queries, crash logs, and diagnostic information.</li>
-          <li><strong>Approximate and precise location data:</strong> With your prior in-app permission, we collect your precise GPS location to show you nearby venues, sort venue results by distance, and improve "venues near me" discovery. You can deny or revoke this permission at any time from device settings.</li>
-          <li><strong>Cookies and similar technologies (website only):</strong> First-party cookies and local storage to keep you signed in, remember your city, and measure aggregate usage. See Section 11.</li>
-        </ul>
+        <div className="space-y-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+          <h4 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+            <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg text-xs">3.2</span> 
+            Data we collect automatically
+          </h4>
+          <ul className="list-disc pl-5 space-y-2 marker:text-gray-400">
+            <li><strong className="text-gray-900">Device data:</strong> Device model, OS and version, unique device identifiers (Android Advertising ID, IDFA on iOS, or equivalents), mobile network operator, screen resolution, app version, time-zone, and language.</li>
+            <li><strong className="text-gray-900">Log data:</strong> IP address, login timestamps, session duration, screens viewed, taps and clicks, search queries, crash logs, and diagnostic information.</li>
+            <li><strong className="text-gray-900">Approximate and precise location data:</strong> With your prior in-app permission, we collect your precise GPS location to show you nearby venues, sort venue results by distance, and improve &quot;venues near me&quot; discovery. You can deny or revoke this permission at any time from device settings.</li>
+            <li><strong className="text-gray-900">Cookies and similar technologies (website only):</strong> First-party cookies and local storage to keep you signed in, remember your city, and measure aggregate usage. See Section 11.</li>
+          </ul>
+        </div>
 
-        <h4>3.3 Data from phone contacts (optional, with permission)</h4>
-        <p>
-          If — and only if — you choose to invite friends to GameOn through our in-app "Invite
-          friends" feature, we request your permission to read your phone's contact list. We use
-          contacts data solely to:
-        </p>
-        <ul>
-          <li>Display your contacts inside the invite screen so you can select whom to invite</li>
-          <li>Send invitations (SMS / WhatsApp message) to the specific contacts you choose</li>
-          <li>Match your contacts (using phone numbers) with existing GameOn users for "people you may know" suggestions</li>
-        </ul>
-        <p className="highlight-box">
-          We do <strong>not</strong> upload your full contact list to our servers as a continuous sync, sell contact data, share contact data with advertisers, or use contact data for any purpose other than the invite and "people you may know" features.
-        </p>
+        <div className="space-y-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+          <h4 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+            <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg text-xs">3.3</span> 
+            Data from phone contacts (optional, with permission)
+          </h4>
+          <p>
+            If — and only if — you choose to invite friends to GameOn through our in-app &quot;Invite
+            friends&quot; feature, we request your permission to read your phone&apos;s contact list. We use
+            contacts data solely to:
+          </p>
+          <ul className="list-disc pl-5 space-y-2 marker:text-gray-400">
+            <li>Display your contacts inside the invite screen so you can select whom to invite</li>
+            <li>Send invitations (SMS / WhatsApp message) to the specific contacts you choose</li>
+            <li>Match your contacts (using phone numbers) with existing GameOn users for &quot;people you may know&quot; suggestions</li>
+          </ul>
+          <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl mt-4 text-emerald-900 font-medium text-sm">
+            We do <strong className="text-emerald-950 font-black">not</strong> upload your full contact list to our servers as a continuous sync, sell contact data, share contact data with advertisers, or use contact data for any purpose other than the invite and &quot;people you may know&quot; features.
+          </div>
+        </div>
 
-        <h4>3.4 Data we receive from third parties</h4>
-        <ul>
-          <li><strong>Payment gateway (Razorpay):</strong> Payment status, masked card or UPI identifier (last 4 digits / VPA prefix), gateway transaction ID, refund status. We never see or store your full card number, CVV, UPI PIN, OTP, or netbanking password.</li>
-          <li><strong>Identity / social sign-in (Google, Apple):</strong> Your name, email address, profile picture, and a unique provider ID. We do not receive your password.</li>
-          <li><strong>Venue Partners:</strong> Booking-related data the Venue Partner records on their end (check-in confirmation, no-show flag, walk-in fees).</li>
-          <li><strong>Public sources:</strong> Where required for Venue Partner KYC, publicly available registries (MCA, GST portal, PAN verification utilities).</li>
-        </ul>
+        <div className="space-y-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+          <h4 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+            <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg text-xs">3.4</span> 
+            Data we receive from third parties
+          </h4>
+          <ul className="list-disc pl-5 space-y-2 marker:text-gray-400">
+            <li><strong className="text-gray-900">Payment gateway (Razorpay):</strong> Payment status, masked card or UPI identifier (last 4 digits / VPA prefix), gateway transaction ID, refund status. We never see or store your full card number, CVV, UPI PIN, OTP, or netbanking password.</li>
+            <li><strong className="text-gray-900">Identity / social sign-in (Google, Apple):</strong> Your name, email address, profile picture, and a unique provider ID. We do not receive your password.</li>
+            <li><strong className="text-gray-900">Venue Partners:</strong> Booking-related data the Venue Partner records on their end (check-in confirmation, no-show flag, walk-in fees).</li>
+            <li><strong className="text-gray-900">Public sources:</strong> Where required for Venue Partner KYC, publicly available registries (MCA, GST portal, PAN verification utilities).</li>
+          </ul>
+        </div>
 
-        <h4>3.5 Sensitive personal data (SPDI)</h4>
-        <p>
-          Under the SPDI Rules, the following categories are "sensitive personal data or
-          information" and we collect them only with your explicit consent and only where necessary:
-        </p>
-        <ul>
-          <li>Passwords (stored only as a salted hash)</li>
-          <li>Financial information such as bank account, card, or UPI details (handled by the payment gateway; we receive only masked tokens)</li>
-          <li>Physical, physiological, or mental-health information — <em>we do not collect this</em></li>
-          <li>Sexual orientation — <em>we do not collect this</em></li>
-          <li>Biometric information — <em>we do not collect this</em></li>
-        </ul>
-      </>
+        <div className="space-y-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+          <h4 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+            <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg text-xs">3.5</span> 
+            Sensitive personal data (SPDI)
+          </h4>
+          <p>
+            Under the SPDI Rules, the following categories are &quot;sensitive personal data or
+            information&quot; and we collect them only with your explicit consent and only where necessary:
+          </p>
+          <ul className="list-disc pl-5 space-y-2 marker:text-gray-400">
+            <li>Passwords (stored only as a salted hash)</li>
+            <li>Financial information such as bank account, card, or UPI details (handled by the payment gateway; we receive only masked tokens)</li>
+            <li>Physical, physiological, or mental-health information — <em className="text-gray-400">we do not collect this</em></li>
+            <li>Sexual orientation — <em className="text-gray-400">we do not collect this</em></li>
+            <li>Biometric information — <em className="text-gray-400">we do not collect this</em></li>
+          </ul>
+        </div>
+      </div>
     ),
   },
   {
@@ -152,21 +187,21 @@ const sections = [
     number: "04",
     title: "How We Use Your Data",
     content: (
-      <>
+      <div className="space-y-6 text-gray-600 leading-relaxed">
         <p>
           We will not use your personal data for any new purpose materially different from those
           listed below without first notifying you and, where required, obtaining your fresh consent.
         </p>
-        <div className="table-wrapper">
-          <table>
-            <thead>
+        <div className="overflow-x-auto border border-gray-200 rounded-2xl shadow-sm">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th>Purpose</th>
-                <th>Examples</th>
-                <th>Legal Basis</th>
+                <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Purpose</th>
+                <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Examples</th>
+                <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Legal Basis</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100 bg-white">
               {[
                 ["Account creation & authentication", "Registering you, OTP login, password reset", "Performance of contract; consent"],
                 ["Operating the Platform", "Showing venues, processing bookings, sending confirmations, in-app chat", "Performance of contract"],
@@ -177,17 +212,17 @@ const sections = [
                 ["Safety, fraud prevention, security", "Detecting payment fraud, spam, abusive behaviour, fake listings", "Legitimate interests; compliance with law"],
                 ["Analytics & product improvement", "Crash reports, feature usage, A/B tests (pseudonymised where possible)", "Legitimate interests"],
                 ["Legal & regulatory compliance", "Tax records, lawful government requests, dispute resolution", "Compliance with law"],
-              ].map(([purpose, examples, basis]) => (
-                <tr key={purpose}>
-                  <td><strong>{purpose}</strong></td>
-                  <td>{examples}</td>
-                  <td>{basis}</td>
+              ].map(([purpose, examples, basis], i) => (
+                <tr key={i} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">{purpose}</td>
+                  <td className="px-6 py-4">{examples}</td>
+                  <td className="px-6 py-4 text-emerald-700 bg-emerald-50/50">{basis}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </>
+      </div>
     ),
   },
   {
@@ -195,32 +230,32 @@ const sections = [
     number: "05",
     title: "Push Notifications, SMS, and WhatsApp Messages",
     content: (
-      <>
+      <div className="space-y-4 text-gray-600 leading-relaxed">
         <p>
           By creating an account, you consent to receive transactional communications necessary
           to operate the service:
         </p>
-        <ul>
+        <ul className="list-disc pl-5 space-y-2 marker:text-emerald-500">
           <li>Booking confirmations, reminders, cancellation, and refund notifications</li>
           <li>One-time passwords (OTPs) for login and payment verification</li>
           <li>Match invites and chat messages from other users you have interacted with</li>
           <li>Account-security alerts</li>
         </ul>
-        <p className="note">
-          Transactional communications are part of the service and <strong>cannot be turned off</strong> entirely without deactivating your account.
-        </p>
-        <p>
+        <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl text-sm text-gray-700 font-medium">
+          Transactional communications are part of the service and <strong className="text-gray-900">cannot be turned off</strong> entirely without deactivating your account.
+        </div>
+        <p className="pt-4">
           Promotional communications are sent only if you opt in during onboarding or in app
           settings. You can withdraw this consent at any time by:
         </p>
-        <ul>
-          <li>Toggling off "Promotional notifications" in Settings → Notifications</li>
+        <ul className="list-disc pl-5 space-y-2 marker:text-gray-400">
+          <li>Toggling off &quot;Promotional notifications&quot; in Settings → Notifications</li>
           <li>Replying STOP to a promotional SMS</li>
-          <li>Clicking "Unsubscribe" in any marketing email</li>
+          <li>Clicking &quot;Unsubscribe&quot; in any marketing email</li>
           <li>Sending DND requests through the in-app channel selector for WhatsApp</li>
         </ul>
-        <p>We comply with the TRAI Telecom Commercial Communications Customer Preference Regulations, 2018 (TCCCPR).</p>
-      </>
+        <p className="text-sm italic text-gray-400 mt-4">We comply with the TRAI Telecom Commercial Communications Customer Preference Regulations, 2018 (TCCCPR).</p>
+      </div>
     ),
   },
   {
@@ -228,19 +263,19 @@ const sections = [
     number: "06",
     title: "Cash-at-Venue, Booking Cancellation, and Refund Data",
     content: (
-      <>
+      <div className="space-y-4 text-gray-600 leading-relaxed">
         <p>
-          Where you choose <strong>Cash at Venue</strong> as a payment mode, we collect your
+          Where you choose <strong className="text-gray-900">Cash at Venue</strong> as a payment mode, we collect your
           booking commitment details (name, mobile, venue, slot) but do not process the payment
           through GameOn — the transaction settles directly with the Venue Partner.
         </p>
         <p>
           For prepaid bookings, refund timelines and policies are governed by our Terms of Service
-          and the Venue Partner's published cancellation policy. Refund-related data is retained
+          and the Venue Partner&apos;s published cancellation policy. Refund-related data is retained
           for the statutory period required under the Income Tax Act, 1961 and the GST Act, 2017
-          — typically <strong>8 years</strong> from the end of the financial year.
+          — typically <strong className="text-gray-900">8 years</strong> from the end of the financial year.
         </p>
-      </>
+      </div>
     ),
   },
   {
@@ -248,22 +283,32 @@ const sections = [
     number: "07",
     title: "Sharing of Personal Data",
     content: (
-      <>
-        <p className="highlight-box">
-          <strong>We do not sell your personal data to anyone, ever.</strong>
-        </p>
-        <ul>
-          <li><strong>With Venue Partners:</strong> Your name, mobile number, sport, party size, and slot details for confirmed bookings. Venue Partners are contractually bound to use this data solely for the booking.</li>
-          <li><strong>With payment gateways:</strong> Razorpay processes payments and shares transaction outcomes with us.</li>
-          <li><strong>With service providers (processors):</strong> Cloud hosting (Amazon Web Services or equivalent India-region servers), analytics and crash reporting (Google Firebase), customer support tooling, transactional SMS and WhatsApp providers, and email delivery providers. All processors are bound by written contracts requiring confidentiality, purpose-limitation, and security controls.</li>
-          <li><strong>With law-enforcement and regulators:</strong> Where required by order of a court, tribunal, or competent government authority under applicable law.</li>
-          <li><strong>In a corporate transaction:</strong> In a merger, acquisition, financing, restructuring, or sale of assets, your data may be transferred to the successor entity subject to the same protections of this Policy. You will be notified of any such change.</li>
-          <li><strong>With your explicit consent:</strong> Any sharing not listed above will be undertaken only after we obtain your specific consent.</li>
+      <div className="space-y-6 text-gray-600 leading-relaxed">
+        <div className="bg-emerald-600 text-white p-6 rounded-2xl shadow-lg shadow-emerald-200 font-bold text-lg text-center">
+          We do not sell your personal data to anyone, ever.
+        </div>
+        <ul className="space-y-4">
+          {[
+            { title: "With Venue Partners", desc: "Your name, mobile number, sport, party size, and slot details for confirmed bookings. Venue Partners are contractually bound to use this data solely for the booking." },
+            { title: "With payment gateways", desc: "Razorpay processes payments and shares transaction outcomes with us." },
+            { title: "With service providers (processors)", desc: "Cloud hosting (Amazon Web Services or equivalent India-region servers), analytics and crash reporting (Google Firebase), customer support tooling, transactional SMS and WhatsApp providers, and email delivery providers. All processors are bound by written contracts requiring confidentiality, purpose-limitation, and security controls." },
+            { title: "With law-enforcement and regulators", desc: "Where required by order of a court, tribunal, or competent government authority under applicable law." },
+            { title: "In a corporate transaction", desc: "In a merger, acquisition, financing, restructuring, or sale of assets, your data may be transferred to the successor entity subject to the same protections of this Policy. You will be notified of any such change." },
+            { title: "With your explicit consent", desc: "Any sharing not listed above will be undertaken only after we obtain your specific consent." }
+          ].map((item, i) => (
+            <li key={i} className="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="w-8 h-8 shrink-0 bg-white rounded-full flex items-center justify-center font-bold text-emerald-600 shadow-sm">{i+1}</div>
+              <div>
+                <strong className="text-gray-900 block mb-1">{item.title}</strong>
+                <span className="text-sm">{item.desc}</span>
+              </div>
+            </li>
+          ))}
         </ul>
-        <p className="note">
+        <p className="text-sm bg-gray-100 p-4 rounded-xl text-gray-500 italic">
           We do not share your personal data with advertising networks for cross-site behavioural advertising. We do not run third-party ad SDKs (e.g., Meta Audience Network, Google AdMob) inside the GameOn app at this time.
         </p>
-      </>
+      </div>
     ),
   },
   {
@@ -271,22 +316,22 @@ const sections = [
     number: "08",
     title: "Where Your Data Is Stored, and Cross-Border Transfers",
     content: (
-      <>
+      <div className="space-y-4 text-gray-600 leading-relaxed">
         <p>
           We store and process your personal data on cloud infrastructure located in{" "}
-          <strong>India (AWS Mumbai / Hyderabad regions or equivalent India-region providers)</strong>.
+          <strong className="text-emerald-700 bg-emerald-50 px-2 py-1 rounded">India (AWS Mumbai / Hyderabad regions or equivalent India-region providers)</strong>.
         </p>
         <p>
           Some service providers (e.g., Google Firebase for crash reporting, our
           customer-support and email tooling) may process limited operational data on servers
           outside India. Where such transfer occurs, we ensure that:
         </p>
-        <ul>
+        <ul className="list-disc pl-5 space-y-2 marker:text-emerald-500">
           <li>It is necessary for the contract or for legitimate business operations</li>
           <li>The receiving party is bound by a written agreement that provides at least the same level of data protection as required under Indian law</li>
           <li>The receiving country is not restricted under Section 16 of the DPDP Act</li>
         </ul>
-      </>
+      </div>
     ),
   },
   {
@@ -294,16 +339,16 @@ const sections = [
     number: "09",
     title: "Data Retention",
     content: (
-      <>
-        <div className="table-wrapper">
-          <table>
-            <thead>
+      <div className="space-y-6 text-gray-600 leading-relaxed">
+        <div className="overflow-x-auto border border-gray-200 rounded-2xl shadow-sm">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th>Category of Data</th>
-                <th>Retention Period</th>
+                <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Category of Data</th>
+                <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Retention Period</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100 bg-white">
               {[
                 ["Active account data (profile, bookings, communications)", "Throughout the life of your account"],
                 ["Inactive accounts (no login for 24 consecutive months)", "Reminder sent; if no login within 30 days, deactivated. Data retained only for legally required durations."],
@@ -312,21 +357,21 @@ const sections = [
                 ["Marketing-consent records and consent withdrawals", "3 years after withdrawal"],
                 ["Server logs and crash diagnostics", "90 days, rolling"],
                 ["Customer-support tickets", "3 years after closure"],
-              ].map(([cat, period]) => (
-                <tr key={cat}>
-                  <td>{cat}</td>
-                  <td>{period}</td>
+              ].map(([cat, period], i) => (
+                <tr key={i} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">{cat}</td>
+                  <td className="px-6 py-4 text-gray-600">{period}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p>
+        <p className="bg-gray-50 p-4 rounded-xl text-sm italic">
           After the applicable retention period, we delete or irreversibly anonymise your personal
           data, except where retention is required under a legal hold, an ongoing dispute, or a
           request from a regulator.
         </p>
-      </>
+      </div>
     ),
   },
   {
@@ -334,24 +379,31 @@ const sections = [
     number: "10",
     title: "Your Rights",
     content: (
-      <>
+      <div className="space-y-4 text-gray-600 leading-relaxed">
         <p>
           As a Data Principal under the DPDP Act and the SPDI Rules, you have the following rights,
           exercisable free of charge by writing to{" "}
-          <a href="mailto:support@gameon-india.com">support@gameon-india.com</a>:
+          <a href="mailto:support@gameon-india.com" className="text-blue-600 font-bold hover:underline">support@gameon-india.com</a>:
         </p>
-        <ul>
-          <li><strong>Right to access:</strong> Obtain a summary of the personal data we hold about you and how we process it.</li>
-          <li><strong>Right to correction:</strong> Have inaccurate or incomplete personal data corrected.</li>
-          <li><strong>Right to erasure:</strong> Request deletion of your personal data where no longer necessary, subject to our retention obligations under law.</li>
-          <li><strong>Right to withdraw consent:</strong> Withdraw any consent at any time. Withdrawal does not affect lawful processing carried out before the withdrawal.</li>
-          <li><strong>Right to nominate:</strong> Nominate another individual to exercise these rights on your behalf in the event of your death or incapacity.</li>
-          <li><strong>Right to grievance redressal:</strong> Lodge a complaint with our Grievance Officer (see Section 14) and, if unsatisfied, with the Data Protection Board of India once constituted under the DPDP Act.</li>
-        </ul>
-        <p className="note">
-          We respond to requests within <strong>30 days</strong> of receipt (or sooner if required by law). To protect your data, we may need to verify your identity (typically by OTP) before acting on certain requests.
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          {[
+            { title: "Right to access", desc: "Obtain a summary of the personal data we hold about you and how we process it." },
+            { title: "Right to correction", desc: "Have inaccurate or incomplete personal data corrected." },
+            { title: "Right to erasure", desc: "Request deletion of your personal data where no longer necessary, subject to our retention obligations." },
+            { title: "Right to withdraw consent", desc: "Withdraw any consent at any time. Does not affect lawful processing carried out before withdrawal." },
+            { title: "Right to nominate", desc: "Nominate another individual to exercise these rights on your behalf in the event of death or incapacity." },
+            { title: "Right to grievance redressal", desc: "Lodge a complaint with our Grievance Officer and subsequently with the Data Protection Board." }
+          ].map((item, i) => (
+            <div key={i} className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm hover:border-emerald-200 hover:shadow-md transition-all">
+              <strong className="block text-gray-900 mb-2">{item.title}</strong>
+              <span className="text-sm text-gray-500">{item.desc}</span>
+            </div>
+          ))}
+        </div>
+        <p className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-sm text-emerald-800 mt-4">
+          We respond to requests within <strong className="font-bold">30 days</strong> of receipt (or sooner if required by law). To protect your data, we may need to verify your identity (typically by OTP) before acting on certain requests.
         </p>
-      </>
+      </div>
     ),
   },
   {
@@ -359,17 +411,17 @@ const sections = [
     number: "11",
     title: "Cookies and Similar Technologies (Website)",
     content: (
-      <>
+      <div className="space-y-4 text-gray-600 leading-relaxed">
         <p>Our website uses:</p>
-        <ul>
-          <li><strong>Strictly necessary cookies:</strong> to keep you signed in, maintain booking state, and remember your city. These cannot be turned off.</li>
-          <li><strong>Analytics cookies:</strong> Google Analytics to count visits and measure traffic (aggregated, non-identifying).</li>
-          <li><strong>Preference cookies:</strong> to remember language, time-zone, and consent choices.</li>
+        <ul className="list-disc pl-5 space-y-2 marker:text-gray-400">
+          <li><strong className="text-gray-900">Strictly necessary cookies:</strong> to keep you signed in, maintain booking state, and remember your city. These cannot be turned off.</li>
+          <li><strong className="text-gray-900">Analytics cookies:</strong> Google Analytics to count visits and measure traffic (aggregated, non-identifying).</li>
+          <li><strong className="text-gray-900">Preference cookies:</strong> to remember language, time-zone, and consent choices.</li>
         </ul>
-        <p className="note">
+        <p className="text-sm bg-gray-50 p-4 rounded-xl border border-gray-100">
           We do not use third-party advertising cookies, retargeting pixels, or cross-site tracking cookies on the website at this time. You can clear cookies from your browser settings at any time; some site features may not work as expected if you do.
         </p>
-      </>
+      </div>
     ),
   },
   {
@@ -377,9 +429,9 @@ const sections = [
     number: "12",
     title: "Children's Privacy",
     content: (
-      <>
+      <div className="space-y-4 text-gray-600 leading-relaxed">
         <p>
-          The Platform is intended for users <strong>aged 18 and above</strong>. We do not knowingly
+          The Platform is intended for users <strong className="text-gray-900">aged 18 and above</strong>. We do not knowingly
           collect personal data from children under 18 without verifiable parental consent.
         </p>
         <p>
@@ -392,10 +444,10 @@ const sections = [
         <p>
           If you believe a child under 18 has provided us personal data without verifiable parental
           consent, please contact us at{" "}
-          <a href="mailto:support@gameon-india.com">support@gameon-india.com</a> and we will delete
+          <a href="mailto:support@gameon-india.com" className="text-blue-600 font-bold hover:underline">support@gameon-india.com</a> and we will delete
           such data promptly.
         </p>
-      </>
+      </div>
     ),
   },
   {
@@ -403,25 +455,32 @@ const sections = [
     number: "13",
     title: "Security",
     content: (
-      <>
+      <div className="space-y-4 text-gray-600 leading-relaxed">
         <p>We follow industry-accepted security practices, including:</p>
-        <ul>
-          <li>HTTPS / TLS 1.2+ encryption of all data in transit</li>
-          <li>Encryption at rest of sensitive fields (passwords, financial tokens)</li>
-          <li>Role-based access controls and the principle of least privilege</li>
-          <li>Annual security reviews and periodic vulnerability scans</li>
-          <li>Logging and monitoring of access to production systems</li>
-          <li>Reasonable Security Practices and Procedures as required under Section 8 of the SPDI Rules (we follow the ISO/IEC 27001 framework or an equivalent international standard)</li>
-        </ul>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-4">
+          {[
+            "HTTPS / TLS 1.2+ encryption of all data in transit",
+            "Encryption at rest of sensitive fields (passwords, financial tokens)",
+            "Role-based access controls and the principle of least privilege",
+            "Annual security reviews and periodic vulnerability scans",
+            "Logging and monitoring of access to production systems",
+            "Reasonable Security Practices and Procedures as required under Section 8 of the SPDI Rules"
+          ].map((item, i) => (
+            <div key={i} className="flex items-start gap-3 bg-white border border-gray-100 p-4 rounded-xl shadow-sm">
+              <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+              <span className="text-sm font-medium text-gray-700">{item}</span>
+            </div>
+          ))}
+        </div>
         <p>
           In the event of a personal data breach likely to result in significant harm, we will notify
           the Data Protection Board (when constituted) and affected Data Principals as required
           under Section 8(6) of the DPDP Act, within the prescribed timelines.
         </p>
-        <p className="note">
+        <p className="text-sm italic text-gray-400">
           No method of transmission or electronic storage is 100% secure. We commit to commercially reasonable measures.
         </p>
-      </>
+      </div>
     ),
   },
   {
@@ -429,32 +488,34 @@ const sections = [
     number: "14",
     title: "Grievance Officer",
     content: (
-      <>
+      <div className="space-y-6 text-gray-600 leading-relaxed">
         <p>
           In accordance with the Information Technology Act, 2000, the SPDI Rules, the Intermediary
           Guidelines, 2021, and the Consumer Protection (E-Commerce) Rules, 2020:
         </p>
-        <div className="info-grid">
-          {[
-            ["Name", "Shivam Tiwari"],
-            ["Designation", "Founder & Chief Executive Officer, Grievance Officer"],
-            ["Address", "KH-126, Bypass Road, Shanti Shivpuri, Ghaziabad, Uttar Pradesh — 201001"],
-            ["Email", "support@gameon-india.com"],
-            ["Phone", "+91 88961 72818"],
-            ["Hours", "Monday to Friday, 10:00 AM – 6:00 PM IST (excluding public holidays)"],
-          ].map(([label, value]) => (
-            <div className="info-row" key={label}>
-              <span className="info-label">{label}</span>
-              <span className="info-value">{value}</span>
-            </div>
-          ))}
+        <div className="bg-gray-900 text-white rounded-3xl p-8 shadow-xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+              ["Name", "Shivam Tiwari"],
+              ["Designation", "Founder & Chief Executive Officer, Grievance Officer"],
+              ["Address", "KH-126, Bypass Road, Shanti Shivpuri, Ghaziabad, Uttar Pradesh — 201001"],
+              ["Email", "support@gameon-india.com"],
+              ["Phone", "+91 88961 72818"],
+              ["Hours", "Monday to Friday, 10:00 AM – 6:00 PM IST (excluding public holidays)"],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{label}</span>
+                <span className="block text-sm font-medium text-gray-100">{value}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <p>
-          The Grievance Officer will <strong>acknowledge your complaint within 48 hours</strong> of
-          receipt and resolve it within <strong>15 days</strong> (or 1 month for sensitive personal
+        <p className="bg-blue-50 text-blue-900 p-4 rounded-xl text-sm border border-blue-100">
+          The Grievance Officer will <strong className="font-bold">acknowledge your complaint within 48 hours</strong> of
+          receipt and resolve it within <strong className="font-bold">15 days</strong> (or 1 month for sensitive personal
           data grievances, per the SPDI Rules).
         </p>
-      </>
+      </div>
     ),
   },
   {
@@ -462,13 +523,13 @@ const sections = [
     number: "15",
     title: "Changes to This Privacy Policy",
     content: (
-      <>
+      <div className="space-y-4 text-gray-600 leading-relaxed">
         <p>
-          The "Last Updated" date at the top of this page always shows when this Policy was last
+          The &quot;Last Updated&quot; date at the top of this page always shows when this Policy was last
           revised. For material changes (new categories of data collected, new purposes, new third
           parties), we notify you via:
         </p>
-        <ul>
+        <ul className="list-disc pl-5 space-y-2 marker:text-emerald-500 font-medium text-gray-700">
           <li>An in-app notification on your next sign-in</li>
           <li>An email to your registered email address</li>
           <li>A prominent notice on the website homepage for at least 14 days</li>
@@ -476,7 +537,7 @@ const sections = [
         <p>
           Your continued use of the Platform after such notice constitutes acceptance of the revised Policy.
         </p>
-      </>
+      </div>
     ),
   },
   {
@@ -484,36 +545,14 @@ const sections = [
     number: "16",
     title: "Governing Law and Jurisdiction",
     content: (
-      <>
+      <div className="space-y-4 text-gray-600 leading-relaxed">
         <p>
-          This Privacy Policy is governed by the <strong>laws of India</strong>. Any dispute
+          This Privacy Policy is governed by the <strong className="text-gray-900">laws of India</strong>. Any dispute
           arising out of or in connection with this Policy is subject to the exclusive jurisdiction
-          of the competent courts at <strong>Ghaziabad, Uttar Pradesh, India</strong>, without
+          of the competent courts at <strong className="text-gray-900">Ghaziabad, Uttar Pradesh, India</strong>, without
           prejudice to any rights you may have under applicable consumer-protection laws.
         </p>
-      </>
-    ),
-  },
-  {
-    id: "contact",
-    number: "17",
-    title: "Contact Us",
-    content: (
-      <>
-        <div className="info-grid">
-          {[
-            ["Email", "support@gameon-india.com"],
-            ["Postal", "GameOn Sports Services Private Limited, KH-126, Bypass Road, Shanti Shivpuri, Ghaziabad, Uttar Pradesh — 201001"],
-            ["Phone", "+91 88961 72818"],
-            ["Website", "www.gameon-india.com"],
-          ].map(([label, value]) => (
-            <div className="info-row" key={label}>
-              <span className="info-label">{label}</span>
-              <span className="info-value">{value}</span>
-            </div>
-          ))}
-        </div>
-      </>
+      </div>
     ),
   },
 ];
@@ -523,19 +562,19 @@ const appendices = [
     id: "appendix-a",
     title: "Appendix A — Play Store Data Safety Disclosure",
     content: (
-      <>
-        <div className="table-wrapper">
-          <table>
-            <thead>
+      <div className="space-y-6 text-gray-600 leading-relaxed">
+        <div className="overflow-x-auto border border-gray-200 rounded-2xl shadow-sm">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-gray-800 text-white border-b border-gray-200">
               <tr>
-                <th>Data Type</th>
-                <th>Collected?</th>
-                <th>Shared with Third Parties?</th>
-                <th>Purpose</th>
-                <th>Optional / Required</th>
+                <th className="px-4 py-3 font-bold uppercase tracking-wider text-xs">Data Type</th>
+                <th className="px-4 py-3 font-bold uppercase tracking-wider text-xs">Collected?</th>
+                <th className="px-4 py-3 font-bold uppercase tracking-wider text-xs">Shared with Third Parties?</th>
+                <th className="px-4 py-3 font-bold uppercase tracking-wider text-xs">Purpose</th>
+                <th className="px-4 py-3 font-bold uppercase tracking-wider text-xs">Optional / Required</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100 bg-white">
               {[
                 ["Name", "Yes", "Shared with Venue Partner for confirmed bookings", "Account management; booking fulfilment", "Required"],
                 ["Email address", "Yes", "No", "Account management; communications", "Required"],
@@ -555,593 +594,190 @@ const appendices = [
                 ["Other financial info (full card / CVV / UPI PIN)", "No — never collected", "—", "—", "—"],
                 ["Health & fitness data", "No", "—", "—", "—"],
                 ["Sensitive personal info (race, religion, political opinion, sexual orientation, biometric, genetic)", "No", "—", "—", "—"],
-              ].map(([type, collected, shared, purpose, optional]) => (
-                <tr key={type}>
-                  <td>{type}</td>
-                  <td>{collected}</td>
-                  <td>{shared}</td>
-                  <td>{purpose}</td>
-                  <td>{optional}</td>
+              ].map(([type, collected, shared, purpose, optional], i) => (
+                <tr key={i} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 font-bold text-gray-900">{type}</td>
+                  <td className="px-4 py-3">{collected}</td>
+                  <td className="px-4 py-3 text-xs">{shared}</td>
+                  <td className="px-4 py-3 text-xs">{purpose}</td>
+                  <td className="px-4 py-3 text-xs font-medium text-emerald-700 bg-emerald-50/50">{optional}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p><strong>Security practices declared for Play Store:</strong></p>
-        <ul>
-          <li>Data is encrypted in transit (HTTPS / TLS 1.2+).</li>
-          <li>You can request that data be deleted (in-app + via support@gameon-india.com).</li>
-          <li>Data collection and security practices follow Google Play's Families Policy where applicable.</li>
-        </ul>
-      </>
+        <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+          <p className="font-bold text-gray-900 mb-2">Security practices declared for Play Store:</p>
+          <ul className="list-disc pl-5 space-y-1 marker:text-gray-400 text-sm">
+            <li>Data is encrypted in transit (HTTPS / TLS 1.2+).</li>
+            <li>You can request that data be deleted (in-app + via support@gameon-india.com).</li>
+            <li>Data collection and security practices follow Google Play&apos;s Families Policy where applicable.</li>
+          </ul>
+        </div>
+      </div>
     ),
   },
   {
     id: "appendix-b",
     title: "Appendix B — Apple App Store Privacy Nutrition Label",
     content: (
-      <>
-        <ul>
-          <li><strong>Data Used to Track You:</strong> None. GameOn does not track users across other companies' apps and websites.</li>
-          <li><strong>Data Linked to You:</strong> Name, Email, Phone Number, User ID, Address (optional), Precise Location (optional), Coarse Location, Contacts (with permission, invite flow only), Photos (profile, optional), Purchase History, Payment Info (masked tokens only), App Interactions, Search History, Customer Support communications, Crash Data, Performance Data, Diagnostics.</li>
-          <li><strong>Data Not Linked to You:</strong> None at launch.</li>
+      <div className="space-y-4 text-gray-600 leading-relaxed bg-white border border-gray-200 p-6 rounded-3xl shadow-sm">
+        <ul className="space-y-4">
+          <li className="flex flex-col sm:flex-row gap-2 sm:gap-6">
+            <strong className="text-gray-900 shrink-0 w-48">Data Used to Track You:</strong> 
+            <span className="text-gray-600">None. GameOn does not track users across other companies&apos; apps and websites.</span>
+          </li>
+          <li className="flex flex-col sm:flex-row gap-2 sm:gap-6 pt-4 border-t border-gray-100">
+            <strong className="text-gray-900 shrink-0 w-48">Data Linked to You:</strong> 
+            <span className="text-gray-600">Name, Email, Phone Number, User ID, Address (optional), Precise Location (optional), Coarse Location, Contacts (with permission, invite flow only), Photos (profile, optional), Purchase History, Payment Info (masked tokens only), App Interactions, Search History, Customer Support communications, Crash Data, Performance Data, Diagnostics.</span>
+          </li>
+          <li className="flex flex-col sm:flex-row gap-2 sm:gap-6 pt-4 border-t border-gray-100">
+            <strong className="text-gray-900 shrink-0 w-48">Data Not Linked to You:</strong> 
+            <span className="text-gray-600">None at launch.</span>
+          </li>
         </ul>
-      </>
+      </div>
     ),
   },
 ];
 
 export default function PrivacyPolicy() {
-  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string>("who-we-are");
 
-  const allSections = [...sections];
+  // Smooth scroll logic for TOC sidebar
+  const scrollToSection = (id: string) => {
+    setActiveSection(id);
+    const element = document.getElementById(id);
+    if (element) {
+      const y = element.getBoundingClientRect().top + window.scrollY - 100; // 100px offset for fixed headers
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
-
-        :root {
-          --bg: #0a0f0a;
-          --surface: #111711;
-          --surface2: #171f17;
-          --border: #1e2b1e;
-          --border-bright: #2d4a2d;
-          --accent: #4cff72;
-          --accent-dim: #2a8c3f;
-          --accent-muted: rgba(76, 255, 114, 0.08);
-          --text: #e8f0e8;
-          --text-secondary: #8aab8a;
-          --text-muted: #4a6b4a;
-          --number: #2d4a2d;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        .pp-root {
-          font-family: 'DM Sans', sans-serif;
-          background: var(--bg);
-          color: var(--text);
-          min-height: 100vh;
-          font-size: 15px;
-          line-height: 1.7;
-        }
-
-        /* ── Header ── */
-        .pp-header {
-          border-bottom: 1px solid var(--border);
-          padding: 48px 0 40px;
-          position: relative;
-          overflow: hidden;
-        }
-        .pp-header::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(ellipse 60% 100% at 50% -20%, rgba(76,255,114,0.07) 0%, transparent 70%);
-          pointer-events: none;
-        }
-        .pp-header-inner {
-          max-width: 860px;
-          margin: 0 auto;
-          padding: 0 24px;
-          position: relative;
-        }
-        .pp-logo {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 32px;
-        }
-        .pp-logo-icon {
-          width: 36px;
-          height: 36px;
-          background: var(--accent);
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 18px;
-        }
-        .pp-logo-name {
-          font-family: 'Syne', sans-serif;
-          font-weight: 800;
-          font-size: 20px;
-          color: var(--text);
-          letter-spacing: -0.02em;
-        }
-        .pp-title {
-          font-family: 'Syne', sans-serif;
-          font-size: clamp(32px, 6vw, 52px);
-          font-weight: 800;
-          letter-spacing: -0.03em;
-          line-height: 1.05;
-          color: var(--text);
-          margin-bottom: 20px;
-        }
-        .pp-title span {
-          color: var(--accent);
-        }
-        .pp-meta {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 16px;
-          font-size: 13px;
-          color: var(--text-secondary);
-        }
-        .pp-meta-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .pp-meta-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--accent);
-        }
-
-        /* ── Layout ── */
-        .pp-body {
-          max-width: 860px;
-          margin: 0 auto;
-          padding: 48px 24px 80px;
-        }
-
-        /* ── TOC ── */
-        .pp-toc {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          padding: 28px 32px;
-          margin-bottom: 48px;
-        }
-        .pp-toc-title {
-          font-family: 'Syne', sans-serif;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--accent);
-          margin-bottom: 20px;
-        }
-        .pp-toc-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 4px;
-        }
-        .pp-toc-link {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 8px 10px;
-          border-radius: 6px;
-          color: var(--text-secondary);
-          text-decoration: none;
-          font-size: 13.5px;
-          transition: all 0.15s ease;
-          cursor: pointer;
-          background: none;
-          border: none;
-          text-align: left;
-          width: 100%;
-        }
-        .pp-toc-link:hover {
-          background: var(--accent-muted);
-          color: var(--accent);
-        }
-        .pp-toc-num {
-          font-family: 'Syne', sans-serif;
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--text-muted);
-          min-width: 24px;
-        }
-
-        /* ── Sections ── */
-        .pp-section {
-          margin-bottom: 8px;
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          overflow: hidden;
-          transition: border-color 0.2s ease;
-        }
-        .pp-section.open {
-          border-color: var(--border-bright);
-        }
-        .pp-section-header {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          padding: 22px 28px;
-          cursor: pointer;
-          background: var(--surface);
-          transition: background 0.15s ease;
-          user-select: none;
-        }
-        .pp-section-header:hover {
-          background: var(--surface2);
-        }
-        .pp-section.open .pp-section-header {
-          background: var(--surface2);
-          border-bottom: 1px solid var(--border);
-        }
-        .pp-section-num {
-          font-family: 'Syne', sans-serif;
-          font-size: 13px;
-          font-weight: 700;
-          color: var(--text-muted);
-          min-width: 28px;
-        }
-        .pp-section-title {
-          font-family: 'Syne', sans-serif;
-          font-size: 16px;
-          font-weight: 700;
-          letter-spacing: -0.01em;
-          color: var(--text);
-          flex: 1;
-        }
-        .pp-chevron {
-          color: var(--text-muted);
-          transition: transform 0.25s ease, color 0.15s ease;
-          font-size: 18px;
-          line-height: 1;
-        }
-        .pp-section.open .pp-chevron {
-          transform: rotate(180deg);
-          color: var(--accent);
-        }
-        .pp-section-body {
-          display: none;
-          padding: 28px 28px 28px 76px;
-          background: var(--bg);
-        }
-        .pp-section.open .pp-section-body {
-          display: block;
-        }
-
-        /* ── Content styles ── */
-        .pp-section-body p {
-          color: var(--text-secondary);
-          margin-bottom: 14px;
-        }
-        .pp-section-body p:last-child { margin-bottom: 0; }
-        .pp-section-body strong { color: var(--text); font-weight: 500; }
-        .pp-section-body em { color: var(--text-muted); font-style: italic; }
-        .pp-section-body a { color: var(--accent); text-decoration: none; }
-        .pp-section-body a:hover { text-decoration: underline; }
-
-        .pp-section-body h4 {
-          font-family: 'Syne', sans-serif;
-          font-size: 13px;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-          color: var(--accent-dim);
-          margin: 24px 0 12px;
-        }
-        .pp-section-body h4:first-child { margin-top: 0; }
-
-        .pp-section-body ul {
-          list-style: none;
-          padding: 0;
-          margin-bottom: 14px;
-        }
-        .pp-section-body ul li {
-          color: var(--text-secondary);
-          padding: 5px 0 5px 18px;
-          position: relative;
-          font-size: 14.5px;
-        }
-        .pp-section-body ul li::before {
-          content: '—';
-          position: absolute;
-          left: 0;
-          color: var(--text-muted);
-          font-size: 12px;
-          top: 7px;
-        }
-
-        .info-grid {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          overflow: hidden;
-          margin: 16px 0;
-        }
-        .info-row {
-          display: grid;
-          grid-template-columns: 160px 1fr;
-          gap: 16px;
-          padding: 11px 16px;
-          border-bottom: 1px solid var(--border);
-          align-items: start;
-        }
-        .info-row:last-child { border-bottom: none; }
-        .info-label {
-          font-size: 12px;
-          font-weight: 500;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          padding-top: 2px;
-        }
-        .info-value {
-          font-size: 14px;
-          color: var(--text-secondary);
-        }
-
-        .highlight-box {
-          background: rgba(76, 255, 114, 0.05);
-          border-left: 3px solid var(--accent);
-          padding: 14px 16px;
-          border-radius: 0 6px 6px 0;
-          margin: 16px 0;
-          color: var(--text) !important;
-        }
-
-        .note {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 6px;
-          padding: 12px 16px;
-          font-size: 13.5px !important;
-          color: var(--text-muted) !important;
-        }
-
-        /* ── Tables ── */
-        .table-wrapper {
-          overflow-x: auto;
-          margin: 16px 0;
-          border-radius: 8px;
-          border: 1px solid var(--border);
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 13.5px;
-          min-width: 500px;
-        }
-        thead tr {
-          background: var(--surface2);
-        }
-        th {
-          padding: 11px 14px;
-          text-align: left;
-          font-family: 'Syne', sans-serif;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--text-muted);
-          border-bottom: 1px solid var(--border);
-        }
-        td {
-          padding: 11px 14px;
-          color: var(--text-secondary);
-          border-bottom: 1px solid var(--border);
-          vertical-align: top;
-        }
-        tr:last-child td { border-bottom: none; }
-        tbody tr:hover td { background: var(--surface); }
-
-        /* ── Appendices ── */
-        .pp-appendix {
-          margin-top: 48px;
-        }
-        .pp-appendix-label {
-          font-family: 'Syne', sans-serif;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--accent);
-          margin-bottom: 16px;
-        }
-        .pp-appendix-section {
-          margin-bottom: 8px;
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          overflow: hidden;
-        }
-        .pp-appendix-section.open { border-color: var(--border-bright); }
-        .pp-appendix-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 20px 28px;
-          cursor: pointer;
-          background: var(--surface);
-          user-select: none;
-          transition: background 0.15s ease;
-        }
-        .pp-appendix-header:hover { background: var(--surface2); }
-        .pp-appendix-section.open .pp-appendix-header {
-          background: var(--surface2);
-          border-bottom: 1px solid var(--border);
-        }
-        .pp-appendix-title {
-          font-family: 'Syne', sans-serif;
-          font-size: 15px;
-          font-weight: 700;
-          color: var(--text);
-        }
-        .pp-appendix-body {
-          display: none;
-          padding: 28px;
-          background: var(--bg);
-        }
-        .pp-appendix-section.open .pp-appendix-body { display: block; }
-        .pp-appendix-body p { color: var(--text-secondary); margin-bottom: 12px; }
-        .pp-appendix-body ul { list-style: none; padding: 0; margin-bottom: 12px; }
-        .pp-appendix-body ul li {
-          color: var(--text-secondary);
-          padding: 5px 0 5px 18px;
-          position: relative;
-          font-size: 14px;
-        }
-        .pp-appendix-body ul li::before {
-          content: '—';
-          position: absolute;
-          left: 0;
-          color: var(--text-muted);
-          font-size: 12px;
-          top: 7px;
-        }
-        .pp-appendix-body strong { color: var(--text); font-weight: 500; }
-
-        /* ── Footer ── */
-        .pp-footer {
-          border-top: 1px solid var(--border);
-          padding: 32px 0;
-          text-align: center;
-        }
-        .pp-footer-inner {
-          max-width: 860px;
-          margin: 0 auto;
-          padding: 0 24px;
-          color: var(--text-muted);
-          font-size: 13px;
-        }
-        .pp-footer-inner a { color: var(--accent-dim); text-decoration: none; }
-
-        @media (max-width: 600px) {
-          .pp-section-body { padding: 20px; }
-          .info-row { grid-template-columns: 1fr; gap: 4px; }
-          .pp-toc-grid { grid-template-columns: 1fr; }
-        }
-      `}</style>
-
-      <div className="pp-root">
-        {/* Header */}
-        <header className="pp-header">
-          <div className="pp-header-inner">
-            <div className="pp-logo">
-              <div className="pp-logo-icon">⚽</div>
-              <span className="pp-logo-name">GameOn</span>
+    <div className="min-h-screen bg-white font-sans selection:bg-emerald-100 selection:text-emerald-900">
+      {/* ── HERO SECTION ── */}
+      <section className="relative py-20 lg:py-28 overflow-hidden bg-gradient-to-b from-emerald-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-3xl mx-auto space-y-6"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs uppercase tracking-widest mb-2">
+              <ShieldCheck className="w-4 h-4" /> Legal Document
             </div>
-            <h1 className="pp-title">Privacy <span>Policy</span></h1>
-            <div className="pp-meta">
-              <div className="pp-meta-item">
-                <div className="pp-meta-dot" />
-                Effective: 4 May 2026
-              </div>
-              <div className="pp-meta-item">
-                <div className="pp-meta-dot" />
-                Last Updated: 20 May 2026
-              </div>
-              <div className="pp-meta-item">
-                <div className="pp-meta-dot" />
-                Applies to: gameon-india.com &amp; mobile apps
-              </div>
+            <h1 className="text-5xl lg:text-7xl font-black text-gray-900 tracking-tight leading-[1.1]">
+              Privacy <span className="text-emerald-600 underline decoration-emerald-200 underline-offset-8">Policy</span>
+            </h1>
+            <div className="flex flex-wrap justify-center gap-4 lg:gap-8 pt-4 text-sm font-medium text-gray-500">
+              <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-emerald-500" /> Effective: 4 May 2026</div>
+              <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-emerald-500" /> Updated: 20 May 2026</div>
+              <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-emerald-500" /> India</div>
             </div>
-          </div>
-        </header>
+          </motion.div>
+        </div>
+        {/* Abstract background blur */}
+        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-emerald-200/40 rounded-full blur-3xl opacity-50" />
+      </section>
 
-        {/* Body */}
-        <main className="pp-body">
-          {/* TOC */}
-          <nav className="pp-toc">
-            <div className="pp-toc-title">Table of Contents</div>
-            <div className="pp-toc-grid">
+      {/* ── MAIN CONTENT LAYOUT ── */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 flex flex-col lg:flex-row gap-12 lg:gap-20 items-start">
+        
+        {/* Left: Sticky Table of Contents Sidebar */}
+        <div className="w-full lg:w-[320px] shrink-0 lg:sticky lg:top-28">
+          <div className="bg-gray-50 border border-gray-100 rounded-3xl p-6 lg:p-8">
+            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6">Table of Contents</h3>
+            <nav className="space-y-1">
               {sections.map((s) => (
                 <button
                   key={s.id}
-                  className="pp-toc-link"
-                  onClick={() =>
-                    setActiveSection((prev) => (prev === s.id ? null : s.id))
-                  }
+                  onClick={() => scrollToSection(s.id)}
+                  className={`w-full flex items-center gap-3 text-left px-4 py-3 rounded-xl transition-all text-sm font-bold ${
+                    activeSection === s.id 
+                      ? "bg-white shadow-sm text-emerald-600 border border-gray-100" 
+                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent"
+                  }`}
                 >
-                  <span className="pp-toc-num">{s.number}</span>
+                  <span className={`text-[10px] uppercase tracking-wider ${activeSection === s.id ? "text-emerald-400" : "text-gray-400"}`}>{s.number}</span>
                   {s.title}
                 </button>
               ))}
-            </div>
-          </nav>
-
-          {/* Sections */}
-          {sections.map((s) => (
-            <div
-              key={s.id}
-              className={`pp-section${activeSection === s.id ? " open" : ""}`}
-            >
-              <div
-                className="pp-section-header"
-                onClick={() =>
-                  setActiveSection((prev) => (prev === s.id ? null : s.id))
-                }
-                role="button"
-                aria-expanded={activeSection === s.id}
-              >
-                <span className="pp-section-num">{s.number}</span>
-                <span className="pp-section-title">{s.title}</span>
-                <span className="pp-chevron">▾</span>
+              
+              <div className="pt-6 pb-2">
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Appendices</h3>
               </div>
-              <div className="pp-section-body">{s.content}</div>
+              
+              {appendices.map((a, idx) => (
+                <button
+                  key={a.id}
+                  onClick={() => scrollToSection(a.id)}
+                  className={`w-full flex items-center gap-3 text-left px-4 py-3 rounded-xl transition-all text-sm font-bold ${
+                    activeSection === a.id 
+                      ? "bg-white shadow-sm text-emerald-600 border border-gray-100" 
+                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent"
+                  }`}
+                >
+                  <span className={`text-[10px] uppercase tracking-wider ${activeSection === a.id ? "text-emerald-400" : "text-gray-400"}`}>App {String.fromCharCode(65+idx)}</span>
+                  <span className="truncate">{a.title.split('—')[0].trim()}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        {/* Right: Content Sections */}
+        <div className="w-full flex-1 space-y-24 pb-32">
+          {sections.map((s) => (
+            <div key={s.id} id={s.id} className="scroll-mt-32">
+              <div className="flex items-center gap-4 mb-8">
+                <span className="flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 font-black text-lg">
+                  {s.number}
+                </span>
+                <h2 className="text-3xl font-black text-gray-900 leading-tight">
+                  {s.title}
+                </h2>
+              </div>
+              <div className="prose prose-emerald max-w-none prose-p:text-gray-600 prose-headings:text-gray-900 prose-strong:text-gray-900">
+                {s.content}
+              </div>
             </div>
           ))}
 
-          {/* Appendices */}
-          <div className="pp-appendix">
-            <div className="pp-appendix-label">Appendices</div>
+          {/* Appendices Container */}
+          <div className="pt-12 border-t border-gray-100 space-y-24">
+            <h2 className="text-4xl font-black text-gray-900 mb-12">Appendices</h2>
             {appendices.map((a) => (
-              <div
-                key={a.id}
-                className={`pp-appendix-section${activeSection === a.id ? " open" : ""}`}
-              >
-                <div
-                  className="pp-appendix-header"
-                  onClick={() =>
-                    setActiveSection((prev) => (prev === a.id ? null : a.id))
-                  }
-                  role="button"
-                  aria-expanded={activeSection === a.id}
-                >
-                  <span className="pp-appendix-title">{a.title}</span>
-                  <span className="pp-chevron">▾</span>
+              <div key={a.id} id={a.id} className="scroll-mt-32">
+                <div className="mb-8">
+                  <h3 className="text-2xl font-bold text-gray-900 leading-tight">
+                    {a.title}
+                  </h3>
                 </div>
-                <div className="pp-appendix-body">{a.content}</div>
+                <div className="prose prose-emerald max-w-none">
+                  {a.content}
+                </div>
               </div>
             ))}
           </div>
-        </main>
+        </div>
+      </section>
 
-        {/* Footer */}
-        <footer className="pp-footer">
-          <div className="pp-footer-inner">
-            <p>
-              © 2026 GameOn Sports Services Private Limited · CIN: U93290UW2026PTC252581
-              &nbsp;·&nbsp;
-              <a href="mailto:support@gameon-india.com">support@gameon-india.com</a>
-              &nbsp;·&nbsp;
-              <a href="tel:+918896172818">+91 88961 72818</a>
-            </p>
-            <p style={{ marginTop: "8px" }}>
-              Registered Office: KH-126, Bypass Road, Shanti Shivpuri, Ghaziabad, UP — 201001
-            </p>
+      {/* ── FOOTER BAR ── */}
+      <footer className="border-t border-gray-100 bg-gray-50 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm font-medium space-y-4">
+          <p>
+            © 2026 GameOn Sports Services Private Limited · CIN: U93290UW2026PTC252581
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 lg:gap-8 text-gray-600">
+            <a href="mailto:support@gameon-india.com" className="flex items-center gap-2 hover:text-emerald-600 transition-colors"><Mail className="w-4 h-4"/> support@gameon-india.com</a>
+            <a href="tel:+918896172818" className="flex items-center gap-2 hover:text-emerald-600 transition-colors"><Phone className="w-4 h-4"/> +91 88961 72818</a>
           </div>
-        </footer>
-      </div>
-    </>
+          <p className="pt-4 text-xs text-gray-400">
+            Registered Office: KH-126, Bypass Road, Shanti Shivpuri, Ghaziabad, UP — 201001
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }

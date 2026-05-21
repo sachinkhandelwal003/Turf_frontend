@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, X, User, LogOut, Coins, UserCheck } from 'lucide-react'; 
+import { Menu, X, User, LogOut, Coins, UserCheck, LayoutDashboard } from 'lucide-react'; 
 import { useAuth } from '@/app/context/AuthContext';
 
 const navLinks = [
@@ -131,6 +131,16 @@ export default function Navbar() {
                           >
                             <User className="!w-4 !h-4 !block !shrink-0" strokeWidth={2.5} /> My Profile
                           </Link>
+
+                          {(user?.role === 'admin' || user?.role === 'superadmin') && (
+                            <Link
+                              href="/admin/dashboard"
+                              onClick={() => setIsDropdownOpen(false)}
+                              className="flex items-center gap-3 px-5 py-3 text-[14px] font-bold !text-gray-700 hover:bg-gray-50 transition-colors !no-underline"
+                            >
+                              <LayoutDashboard className="!w-4 !h-4 !block !shrink-0" strokeWidth={2.5} /> Dashboard
+                            </Link>
+                          )}
                           
                           <div
                             onClick={() => {
@@ -243,6 +253,15 @@ export default function Navbar() {
                         </div>
                         My Profile
                       </Link>
+
+                      {(user?.role === 'admin' || user?.role === 'superadmin') && (
+                        <Link href="/admin/dashboard" onClick={() => setIsOpen(false)} className="flex items-center gap-3 text-[18px] font-bold !text-gray-700 !no-underline">
+                          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                            <LayoutDashboard className="!w-4 !h-4 !block !shrink-0 !text-gray-600" />
+                          </div>
+                          Dashboard
+                        </Link>
+                      )}
                       <div onClick={() => { logout(); setIsOpen(false); window.location.href = '/'; }} className="flex items-center gap-3 text-[18px] font-bold !text-red-500 cursor-pointer">
                         <LogOut className="!w-5 !h-5 !block !shrink-0" /> Sign Out
                       </div>

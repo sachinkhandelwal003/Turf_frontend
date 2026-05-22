@@ -179,52 +179,82 @@ export default function ExploreTurfsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {turfs.map((turf) => (
-                  <motion.div 
-                    key={turf._id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-xl hover:shadow-gray-200/50 transition-all group"
-                  >
-                    <div className="h-56 bg-gray-100 relative">
-                      <img src={turf.images[0] || 'https://images.unsplash.com/photo-1459865264687-595d652de67e?q=80&w=2070&auto=format&fit=crop'} alt={turf.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <div className="absolute top-4 left-4 bg-[#1abc60] text-white text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-lg shadow-green-900/20">Featured</div>
-                      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                        <span className="text-[10px] font-black text-gray-900">{turf.rating || 'New'}</span>
-                      </div>
-                    </div>
-                    <div className="p-6 space-y-4">
-                      <div>
-                        <h3 className="text-lg font-black text-gray-900 leading-tight group-hover:text-[#1abc60] transition-colors">{turf.name}</h3>
-                        <div className="flex items-center gap-1 text-xs font-medium text-gray-400 mt-1">
-                          <MapPin className="w-3 h-3" />
-                          <span>{turf.location.address}, {turf.location.city}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-1.5">
-                        {turf.amenities.slice(0, 3).map(a => (
-                          <span key={a} className="px-2 py-1 bg-gray-50 text-gray-500 rounded-lg text-[9px] font-black uppercase tracking-wider border border-gray-100">{a}</span>
-                        ))}
-                        {turf.amenities.length > 3 && <span className="text-[9px] font-black text-gray-300">+{turf.amenities.length - 3}</span>}
-                      </div>
+                {turfs.map((turf: any) => {
+                  // Get minimum price from sportConfigs or use pricePerHour
+                  let currentPrice = Number(turf.pricePerHour || 0);
+                  if (turf.sportConfigs && turf.sportConfigs.length > 0) {
+                    const sportPrices = turf.sportConfigs.map((sc: any) => Number(sc.pricePerHour || 0)).filter((p: number) => p > 0);
+                    if (sportPrices.length > 0) {
+                      currentPrice = Math.min(...sportPrices);
+                    }
+                  }
 
-                      <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
-                        <div>
-                          <span className="text-xl font-black text-gray-900">₹{turf.pricePerHour}</span>
-                          <span className="text-xs font-bold text-gray-400">/hr</span>
+                  // Get images from sportConfigs if main images array is empty
+                  let displayImage = 'https://images.unsplash.com/photo-1459865264687-595d652de67e?q=80&w=2070&auto=format&fit=crop';
+                  let allImages = [...(turf.images || [])];
+                  
+                  if (turf.sportConfigs && turf.sportConfigs.length > 0) {
+                    turf.sportConfigs.forEach((sc: any) => {
+                      if (sc.images && sc.images.length > 0) {
+                        allImages = [...allImages, ...sc.images];
+                      }
+                    });
+                  }
+
+                  if (allImages.length > 0) {
+                    const firstImg = allImages[0];
+                    displayImage = firstImg.startsWith('http') 
+                      ? firstImg 
+                      : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${firstImg}`;
+                  }
+
+                  return (
+                    <motion.div 
+                      key={turf._id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-xl hover:shadow-gray-200/50 transition-all group"
+                    >
+                      <div className="h-56 bg-gray-100 relative">
+                        <img src={displayImage} alt={turf.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <div className="absolute top-4 left-4 bg-[#1abc60] text-white text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-lg shadow-green-900/20">Featured</div>
+                        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                          <span className="text-[10px] font-black text-gray-900">{turf.rating || 'New'}</span>
                         </div>
-                        <Link 
-                          href={`/explore/${turf._id}`}
-                          className="bg-[#1abc60] text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-[#16a085] transition-all shadow-lg shadow-green-100"
-                        >
-                          Book Now
-                        </Link>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                      <div className="p-6 space-y-4">
+                        <div>
+                          <h3 className="text-lg font-black text-gray-900 leading-tight group-hover:text-[#1abc60] transition-colors">{turf.name}</h3>
+                          <div className="flex items-center gap-1 text-xs font-medium text-gray-400 mt-1">
+                            <MapPin className="w-3 h-3" />
+                            <span>{turf.location?.address}, {turf.location?.city}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-1.5">
+                          {turf.sports?.slice(0, 3).map((s: string) => (
+                            <span key={s} className="px-2 py-1 bg-gray-50 text-gray-500 rounded-lg text-[9px] font-black uppercase tracking-wider border border-gray-100">{s}</span>
+                          ))}
+                          {turf.sports?.length > 3 && <span className="text-[9px] font-black text-gray-300">+{turf.sports.length - 3}</span>}
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
+                          <div>
+                            <span className="text-xl font-black text-gray-900">₹{currentPrice}</span>
+                            <span className="text-xs font-bold text-gray-400">/hr</span>
+                          </div>
+                          <Link 
+                            href={`/ground/${turf._id}`}
+                            className="bg-[#1abc60] text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-[#16a085] transition-all shadow-lg shadow-green-100"
+                          >
+                            Book Now
+                          </Link>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </main>

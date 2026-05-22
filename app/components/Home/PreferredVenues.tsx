@@ -78,18 +78,42 @@ export default function FeaturedVenues() {
 
     // Map to UI format
     return filtered.slice(0, 3).map((t: any) => {
-      const currentPrice = t.pricePerHour || 0;
+      // Get minimum price from sportConfigs or use pricePerHour
+      let currentPriceValue = Number(t.pricePerHour || 0);
+      if (t.sportConfigs && t.sportConfigs.length > 0) {
+        const sportPrices = t.sportConfigs.map((sc: any) => Number(sc.pricePerHour || 0)).filter((p: number) => p > 0);
+        if (sportPrices.length > 0) {
+          currentPriceValue = Math.min(...sportPrices);
+        }
+      }
+
+      // Get images from sportConfigs if main images array is empty
+      let displayImage = '/Perreferred1.png';
+      let allImages = [...(t.images || [])];
+      
+      if (t.sportConfigs && t.sportConfigs.length > 0) {
+        t.sportConfigs.forEach((sc: any) => {
+          if (sc.images && sc.images.length > 0) {
+            allImages = [...allImages, ...sc.images];
+          }
+        });
+      }
+
+      if (allImages.length > 0) {
+        const firstImg = allImages[0];
+        displayImage = firstImg.startsWith('http') 
+          ? firstImg 
+          : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${firstImg}`;
+      }
 
       return {
         id: t._id,
         name: t.name,
-        location: `${t.location.landmark ? t.location.landmark + ', ' : ''}${t.location.city}`,
-        price: `₹${currentPrice}`,
+        location: `${t.location?.landmark ? t.location.landmark + ', ' : ''}${t.location?.city}`,
+        price: `₹${currentPriceValue}`,
         rating: t.rating || 0,
         reviewsCount: t.reviewsCount || 0,
-        img: t.img || (t.images?.[0]?.startsWith('http') 
-          ? t.images[0] 
-          : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${t.images?.[0] || '/Perreferred1.png'}`),
+        img: displayImage,
       };
     });
   }, [allTurfs, searchQuery, selectedSports, selectedCity]);

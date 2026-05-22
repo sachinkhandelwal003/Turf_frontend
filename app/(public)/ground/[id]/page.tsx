@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   MapPin, Star, ChevronDown, Calendar, Clock, ChevronLeft,
   Activity, CheckCircle2, Circle, X, Loader2 
@@ -19,6 +19,7 @@ export default function VenueDetailsPage() {
   const [venue, setVenue] = useState<any>(null);
   const [siblingTurfs, setSiblingTurfs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   // === UI STATES ===
   const todayDateStr = new Date().toISOString().split('T')[0];
@@ -67,6 +68,14 @@ export default function VenueDetailsPage() {
               ? img 
               : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${img}`) || [],
             sports: t.sports || ["Sports"],
+            sportConfigs: (t.sportConfigs || []).map((config: any) => ({
+              ...config,
+              images: config.images?.map((img: string) => img.startsWith('http') 
+                ? img 
+                : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${img}`) || [],
+              courts: config.courts || [],
+              slotPricings: config.slotPricings || []
+            })),
             amenities: (t.amenities || []).map((a: any) => (typeof a === 'string' ? a : (a?.name || 'Amenity'))),
             about: t.description || t.about || "Premium sports facility featuring high-quality turf and excellent amenities. Perfect for competitive matches and friendly games.",
             courts: t.courts || [],
@@ -186,11 +195,15 @@ export default function VenueDetailsPage() {
       return groups;
     }
 
-    const baseHourlyRate = Number(venue?.price ?? 1000);
+    const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName === selectedSport);
+    const baseHourlyRate = activeSportConfig ? activeSportConfig.pricePerHour : Number(venue?.price ?? 1000);
+    const activeSlotDuration = activeSportConfig?.slotDuration || Number(venue?.slotDuration || 60);
+    const activeSlotPricings = (activeSportConfig?.slotPricings?.length > 0) ? activeSportConfig.slotPricings : (venue?.slotPricings || []);
+    const activeCourts = (activeSportConfig?.courts?.length > 0) ? activeSportConfig.courts : (venue?.courts || []);
 
     let open = operatingDay.open || "06:00";
     let close = operatingDay.close || "23:00";
-    const duration = Number(venue?.slotDuration || 60);
+    const duration = Number(activeSlotDuration);
 
     let cur = parseTimeToMinutes(open);
     let end = parseTimeToMinutes(close);
@@ -222,7 +235,7 @@ export default function VenueDetailsPage() {
         return (cur < sEnd && (cur + d) > sStart);
       });
 
-      const dynamicSlot = venue?.slotPricings?.find((s: any) => {
+      const dynamicSlot = activeSlotPricings?.find((s: any) => {
         const sStart = parseTimeToMinutes(s.startTime);
         const sEnd = parseTimeToMinutes(s.endTime);
         return (cur < sEnd && (cur + d) > sStart);
@@ -242,7 +255,7 @@ export default function VenueDetailsPage() {
 
       groups[type].push({
         time: label,
-        status: (isPast || bookedCourts.length >= (venue?.courts?.length || 1)) ? "disabled" : "available",
+        status: (isPast || bookedCourts.length >= (activeCourts.length || 1)) ? "disabled" : "available",
         value: timeVal,
         bookedCourts,
         isPast,
@@ -257,8 +270,13 @@ export default function VenueDetailsPage() {
   const currentSlots = getTimeSlots();
 
   const getCourts = () => {
-    if (venue?.courts && venue.courts.length > 0) {
-      return venue.courts.map((c: any) => typeof c === 'string' ? c : (c.name || 'Court'));
+    const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName === selectedSport);
+    const targetCourts = (activeSportConfig?.courts && activeSportConfig.courts.length > 0) 
+      ? activeSportConfig.courts 
+      : venue?.courts;
+
+    if (targetCourts && targetCourts.length > 0) {
+      return targetCourts.map((c: any) => typeof c === 'string' ? c : (c.name || 'Court'));
     }
     return ["Court 1"];
   };
@@ -309,8 +327,9 @@ export default function VenueDetailsPage() {
       const date = new Date(year, month - 1, day);
       const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
 
-      const dayRate = venue?.rates?.find((r: any) => r.day.toLowerCase() === dayName.toLowerCase())?.price;
-      const effectiveHourlyRate = Number(venue?.price ?? 1000);
+      const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName === (selectedSport || venue?.sports?.[0]));
+      const effectiveHourlyRate = activeSportConfig ? activeSportConfig.pricePerHour : Number(venue?.price ?? 1000);
+      const activeSlotPricings = (activeSportConfig?.slotPricings?.length > 0) ? activeSportConfig.slotPricings : (venue?.slotPricings || []);
       
       const finalPrice = selectedTimes.reduce((sum, timeVal) => {
         const [start, end] = timeVal.split(" - ");
@@ -324,7 +343,7 @@ export default function VenueDetailsPage() {
           return cur < sEnd && (cur + slotDuration) > sStart;
         });
 
-        const dynamicSlot = venue?.slotPricings?.find((s: any) => {
+        const dynamicSlot = activeSlotPricings?.find((s: any) => {
           const sStart = parseTimeToMinutes(s.startTime);
           const sEnd = parseTimeToMinutes(s.endTime);
           return cur < sEnd && (cur + slotDuration) > sStart;
@@ -412,8 +431,9 @@ export default function VenueDetailsPage() {
   const dateObj = new Date(year, month - 1, day);
   const dayNameForDisplay = dateObj.toLocaleDateString("en-US", { weekday: "long" });
 
-  const displayPrice = Number(venue?.price ?? 1000);
-  const displayPriceWithSymbol = `₹${displayPrice}`;
+  const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName === selectedSport);
+  const displayPrice = activeSportConfig ? activeSportConfig.pricePerHour : Number(venue?.price ?? 1000);
+  const currentImages = (activeSportConfig?.images && activeSportConfig.images.length > 0) ? activeSportConfig.images : venue.images;
 
   return (
     <div className="!min-h-screen !bg-[#f8fafc] !pb-20 !pt-24 !font-sans">
@@ -458,15 +478,15 @@ export default function VenueDetailsPage() {
             <div className="!space-y-4 !mb-12">
               <div className="!relative !h-[300px] md:!h-[450px] !w-full !rounded-2xl !overflow-hidden !shadow-sm !border !border-gray-200 !bg-white">
                 <img 
-                  src={venue.images?.[activeImage] || venue.image} 
+                  src={currentImages?.[activeImage] || currentImages?.[0] || venue.image} 
                   alt={venue.title} 
                   className="!w-full !h-full !object-cover !transition-all !duration-500"
                 />
               </div>
               
-              {venue.images && venue.images.length > 1 && (
+              {currentImages && currentImages.length > 1 && (
                 <div className="!flex !gap-3 !overflow-x-auto !pb-2 !custom-scrollbar">
-                  {venue.images.map((img: string, idx: number) => (
+                  {currentImages.map((img: string, idx: number) => (
                     <button 
                       key={idx}
                       onClick={() => setActiveImage(idx)}
@@ -485,41 +505,24 @@ export default function VenueDetailsPage() {
               <h3 className="!text-xl !font-bold !text-gray-900 !mb-4">Sports at this Venue</h3>
               <div className="!flex !flex-wrap !gap-3 !relative !z-20">
                 {venue.sports?.map((sport: string) => {
-                  const siblingForThisSport = siblingTurfs?.find((s: any) => 
-                    s.sports?.some((sp: string) => sp.toLowerCase() === sport.toLowerCase()) || 
-                    s.name.toLowerCase().includes(sport.toLowerCase())
-                  );
-
-                  const isCurrentVenue = !siblingForThisSport || siblingForThisSport._id === id;
+                  const isSelected = selectedSport === sport;
 
                   return (
-                    <div
+                    <button
                       key={sport}
-                      className={`!flex !items-center !gap-2 !px-5 !py-2.5 !rounded-full !text-sm !font-bold !border !shadow-sm !m-0 !cursor-default
-                        ${isCurrentVenue 
-                          ? '!bg-[#1abc60] !border-[#1abc60] !text-white' 
-                          : '!bg-[#0d8a45] !border-[#0d8a45] !text-white'
+                      onClick={() => {
+                        setSelectedSport(sport);
+                        setActiveImage(0);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className={`!flex !items-center !gap-2 !px-5 !py-2.5 !rounded-full !text-sm !font-bold !border !shadow-sm !m-0 !cursor-pointer !transition-all
+                        ${isSelected 
+                          ? '!bg-[#1abc60] !border-[#1abc60] !text-white !ring-2 !ring-[#1abc60] !ring-offset-2' 
+                          : '!bg-white !border-gray-200 !text-gray-700 hover:!border-[#1abc60] hover:!text-[#1abc60]'
                         }`}
                     >
                       {sport} <Activity className="!w-4 !h-4" />
-                    </div>
-                  );
-                })}
-
-                {/* Additional sibling sports not in the current venue's sports list */}
-                {siblingTurfs?.map((sibling: any) => {
-                  const siblingSport = sibling.sports?.[0] || sibling.name;
-                  const alreadyListed = venue.sports?.some((s: string) => s.toLowerCase() === siblingSport.toLowerCase());
-                  
-                  if (alreadyListed || sibling._id === id) return null;
-
-                  return (
-                    <div
-                      key={sibling._id}
-                      className="!flex !items-center !gap-2 !px-5 !py-2.5 !rounded-full !text-sm !font-bold !bg-[#0d8a45] !border !border-[#0d8a45] !text-white !shadow-sm !m-0 !cursor-default"
-                    >
-                      {siblingSport} <Activity className="!w-4 !h-4" />
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -561,18 +564,31 @@ export default function VenueDetailsPage() {
               <div className="!space-y-4 !mb-8">
                 
                 {/* Date Picker */}
-                <div className="!relative !bg-white hover:!bg-gray-50 !border !border-gray-200 !rounded-xl !px-4 !py-4 !flex !items-center !justify-between !cursor-pointer focus-within:!border-[#1abc60] focus-within:!ring-1 focus-within:!ring-[#1abc60] !transition-all">
+                <div 
+                  onClick={() => {
+                    if (dateInputRef.current) {
+                      try {
+                        // @ts-ignore
+                        dateInputRef.current.showPicker();
+                      } catch (e) {
+                        dateInputRef.current.click();
+                      }
+                    }
+                  }}
+                  className="!relative !bg-white hover:!bg-gray-50 !border !border-gray-200 !rounded-xl !px-4 !py-4 !flex !items-center !justify-between !cursor-pointer focus-within:!border-[#1abc60] focus-within:!ring-1 focus-within:!ring-[#1abc60] !transition-all"
+                >
                   <div className="!flex !items-center !text-sm !font-bold !text-gray-800">
                     <Calendar className="!w-4 !h-4 !mr-3 !text-[#1abc60]" /> 
                     {formattedDate}
                   </div>
                   <ChevronDown className="!w-4 !h-4 !text-gray-400" />
                   <input 
+                    ref={dateInputRef}
                     type="date" 
                     value={selectedDate}
                     min={todayDateStr}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="!absolute !inset-0 !w-full !h-full !opacity-0 !cursor-pointer"
+                    className="!absolute !inset-0 !w-full !h-full !opacity-0 !cursor-pointer !-z-10"
                   />
                 </div>
 
@@ -766,9 +782,7 @@ export default function VenueDetailsPage() {
             </div>
             
             <div className="!p-6 !space-y-3 !overflow-y-auto !custom-scrollbar">
-              {venue.courts.map((court: any) => {
-                const courtName = typeof court === 'string' ? court : (court.name || 'Court');
-                const courtType = typeof court === 'string' ? '' : (court.courtType || '');
+              {currentCourts.map((courtName: any) => {
                 const isSelected = selectedCourts.includes(courtName);
                 
                 const isAlreadyBooked = selectedTimes.some(timeVal => {
@@ -796,7 +810,6 @@ export default function VenueDetailsPage() {
                   >
                     <div className="!flex !flex-col !text-left">
                       <span className={`!text-sm !font-bold ${isAlreadyBooked ? '!text-gray-400' : isSelected ? '!text-[#1abc60]' : '!text-gray-900'}`}>{courtName}</span>
-                      <span className="!text-[10px] !font-medium !text-gray-500 !uppercase !tracking-widest !mt-0.5">{courtType} Surface</span>
                       {isAlreadyBooked && <span className="!text-[10px] !text-gray-400 !font-bold !uppercase !mt-1">Booked for Selected Time</span>}
                     </div>
                     {isSelected && (

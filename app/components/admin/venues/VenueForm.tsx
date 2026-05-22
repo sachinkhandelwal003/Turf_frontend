@@ -4,7 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { 
   Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2,
   Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash, Calendar, Info,
-  PlusCircle, Trash2
+  PlusCircle, Trash2, Trophy
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -22,6 +22,16 @@ interface PriceHike {
   startTime: string;
   endTime: string;
   extraPrice: number;
+}
+
+interface SportConfig {
+  sportName: string;
+  pricePerHour: string;
+  slotDuration: number;
+  slotPricings: { startTime: string; endTime: string; price: number; isPeak: boolean }[];
+  courts: { name: string; isActive: boolean }[];
+  images: string[]; // URLs of images
+  newImages?: File[]; // For new uploads
 }
 
 interface FormShape {
@@ -45,6 +55,7 @@ interface FormShape {
   weekendOpen: string;
   weekendClose: string;
   termsAccepted: boolean;
+  sportConfigs: SportConfig[];
 }
 
 interface ApiCarryForwardShape {
@@ -74,6 +85,7 @@ const defaultForm: FormShape = {
   weekendOpen: '08:00',
   weekendClose: '22:00',
   termsAccepted: false,
+  sportConfigs: [],
 };
 
 const fallbackSports = ['Football', 'Cricket', 'Tennis', 'Basketball'];
@@ -89,6 +101,14 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
   const [form, setForm] = useState<FormShape>(defaultForm);
   const [loading, setLoading] = useState(mode === 'edit');
   const [saving, setSaving] = useState(false);
+  const [activeSportTab, setActiveSportSportTab] = useState<string | null>(null);
+  const [newAmenity, setNewAmenity] = useState('');
+
+  useEffect(() => {
+    if (form.sports.length > 0 && !activeSportTab) {
+      setActiveSportSportTab(form.sports[0]);
+    }
+  }, [form.sports]);
   const [sportsOptions, setSportsOptions] = useState<string[]>(fallbackSports);
   const [surfaceOptions, setSurfaceOptions] = useState<string[]>(fallbackSurfaceOptions);
   const [amenitiesOptions, setAmenitiesOptions] = useState<string[]>(fallbackAmenities);
@@ -227,6 +247,15 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           weekendOpen: weekendHours?.open || '08:00',
           weekendClose: weekendHours?.close || '22:00',
           termsAccepted: true,
+          sportConfigs: Array.isArray(target.sportConfigs) 
+            ? target.sportConfigs.map((sc: any) => ({
+                ...sc,
+                pricePerHour: String(sc.pricePerHour || ''),
+                slotDuration: Number(sc.slotDuration || 60),
+                images: sc.images || [],
+                newImages: []
+              }))
+            : [],
         });
         if (Array.isArray(target.operatingHours) && target.operatingHours.length) {
           setOperatingHours(
@@ -296,7 +325,25 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
     setForm((prev) => {
       const exists = prev[field].includes(value);
       const next = exists ? prev[field].filter((item) => item !== value) : [...prev[field], value];
-      return { ...prev, [field]: next };
+      
+      let nextSportConfigs = [...prev.sportConfigs];
+      if (field === 'sports') {
+        if (exists) {
+          nextSportConfigs = nextSportConfigs.filter(c => c.sportName !== value);
+        } else {
+          nextSportConfigs.push({
+            sportName: value,
+            pricePerHour: prev.pricePerHour || '0',
+            slotDuration: 60,
+            slotPricings: [],
+            courts: [{ name: 'Court 1', isActive: true }],
+            images: [],
+            newImages: []
+          });
+        }
+      }
+
+      return { ...prev, [field]: next, sportConfigs: nextSportConfigs };
     });
   };
 
@@ -458,12 +505,25 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
     setSaving(true);
     try {
       const resolvedSurfaceType = form.surfaceType || surfaceOptions[0] || 'Synthetic';
+      
+      // Ensure we have a base price, fallback to first sport config if needed
+      let finalBasePrice = Number(form.pricePerHour || 0);
+      if (finalBasePrice === 0 && form.sportConfigs.length > 0) {
+        // Try to find the minimum price among all sports to use as base display price
+        const prices = form.sportConfigs.map(c => Number(c.pricePerHour || 0)).filter(p => p > 0);
+        if (prices.length > 0) {
+          finalBasePrice = Math.min(...prices);
+        } else {
+          finalBasePrice = Number(form.sportConfigs[0].pricePerHour || 0);
+        }
+      }
+
       const payload = new FormData();
       payload.append('name', form.name);
       payload.append('description', form.description);
       payload.append('sports', JSON.stringify(form.sports));
       payload.append('amenities', JSON.stringify(form.amenities));
-      payload.append('pricePerHour', String(Number(form.pricePerHour || 0)));
+      payload.append('pricePerHour', String(finalBasePrice));
       payload.append('upiId', form.upiId || '');
       payload.append('peakHourSurcharge', String(Number(form.peakHourSurcharge || 0)));
       payload.append('surfaceType', resolvedSurfaceType);
@@ -481,8 +541,25 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       payload.append('operatingHours', JSON.stringify(effectiveOperatingHours()));
       payload.append('availableSlots', JSON.stringify(apiCarryForward.availableSlots));
       payload.append('rates', JSON.stringify(apiCarryForward.rates));
-      payload.append('slotPricings', JSON.stringify(form.slotPricings));
       payload.append('priceHikes', JSON.stringify(form.priceHikes));
+      
+      // Handle sportConfigs and their images
+      const sportConfigsToSubmit = form.sportConfigs.map((config, idx) => {
+        // We will handle files separately
+        const { newImages, ...rest } = config;
+        return rest;
+      });
+      payload.append('sportConfigs', JSON.stringify(sportConfigsToSubmit));
+
+      // Append sport-specific files
+      form.sportConfigs.forEach((config, idx) => {
+        if (config.newImages && config.newImages.length > 0) {
+          config.newImages.forEach(file => {
+            payload.append(`sportImages_${config.sportName}`, file);
+          });
+        }
+      });
+
       payload.append(
         'courts',
         JSON.stringify(apiCarryForward.courts)
@@ -514,13 +591,14 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       toast.success(mode === 'edit' ? 'Venue updated successfully.' : 'Venue submitted for review.');
       router.push('/admin/venues/list');
     } catch (error: any) {
+      const errorMessage = error?.response?.data?.msg || error?.response?.data?.error || 'Failed to save venue.';
       await Swal.fire({
         title: 'Save Failed',
-        text: error?.response?.data?.error || 'Failed to save venue.',
+        text: errorMessage,
         icon: 'error',
         confirmButtonColor: '#ef4444',
       });
-      toast.error(error?.response?.data?.error || 'Failed to save venue.');
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -598,308 +676,10 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         </div>
       </div>
 
-      {/* Section 2: Sports & Facilities */}
+      {/* Section 2: Location Details */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
           <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">2</span>
-          <h2 className="text-base font-semibold text-gray-900">Sports & Facilities</h2>
-        </div>
-        
-        <div className="p-6">
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700">Supported Sports</label>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {sportsOptions.map((sport) => (
-                <button
-                  key={sport}
-                  type="button"
-                  onClick={() => toggleListValue('sports', sport)}
-                  className={`!flex !items-center !justify-between !rounded-lg !border !px-4 !py-2.5 !text-sm !font-medium !transition-colors !cursor-pointer ${
-                    form.sports.includes(sport)
-                      ? '!border-[#1abc60] !bg-green-50 !text-[#1abc60]'
-                      : '!border-gray-200 !bg-white !text-gray-600 hover:!border-gray-300 hover:!bg-gray-50'
-                  }`}
-                >
-                  {sport}
-                  {form.sports.includes(sport) && <CheckCircle2 className="h-4 w-4" />}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="mt-8 grid gap-8 lg:grid-cols-2">
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700">Surface Type</label>
-              <div className="space-y-2 rounded-lg border border-gray-200 p-4 bg-gray-50/50">
-                {surfaceOptions.map((surface) => (
-                  <label key={surface} className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                    <input
-                      type="radio"
-                      checked={form.surfaceType === surface}
-                      onChange={() => setForm((prev) => ({ ...prev, surfaceType: surface }))}
-                      className="hidden"
-                    />
-                    {form.surfaceType === surface ? (
-                      <Circle className="h-4 w-4 fill-[#1abc60] text-[#1abc60]" />
-                    ) : (
-                      <Circle className="h-4 w-4 text-gray-400" />
-                    )}
-                    {surface}
-                  </label>
-                ))}
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700">Amenities</label>
-              <div className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-4 bg-gray-50/50 sm:grid-cols-2">
-                {amenitiesOptions.map((item) => (
-                  <label key={item} className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={form.amenities.includes(item)}
-                      onChange={() => toggleListValue('amenities', item)}
-                      className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60] !cursor-pointer"
-                    />
-                    {item}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Day-wise Pricing (Mon–Sun) */}
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <div className="flex items-center gap-2 mb-4">
-              <Calendar className="h-4 w-4 text-[#1abc60]" />
-              <h3 className="text-sm font-semibold text-gray-900">Day-wise Pricing (Monday to Sunday)</h3>
-            </div>
-
-            <p className="text-xs text-gray-500 mb-4">
-              Set different prices for each day. These will be used when generating slots and pricing.
-            </p>
-
-            <div className="space-y-2">
-              {(apiCarryForward.rates?.length ? apiCarryForward.rates : days.map((d) => ({ day: d, price: 0, isPeak: false }))).map((rate: any) => (
-                <div key={rate.day} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
-                  <div className="w-24 text-sm font-semibold text-gray-700">{rate.day}</div>
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="relative flex-1">
-                      <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input
-                        type="number"
-                        value={Number(rate.price || 0)}
-                        onChange={(e) => updateDayRate(rate.day, { price: Number(e.target.value || 0) })}
-                        className="!w-full !pl-9 !pr-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
-                        placeholder="e.g. 1500"
-                      />
-                    </div>
-                    <label className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(rate.isPeak)}
-                        onChange={(e) => updateDayRate(rate.day, { isPeak: e.target.checked })}
-                        className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60]"
-                      />
-                      Peak
-                    </label>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Dynamic Slot-wise Pricing */}
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-[#1abc60]" />
-                <h3 className="text-sm font-semibold text-gray-900">Dynamic Slot-wise Pricing</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setForm(prev => ({
-                    ...prev,
-                    slotPricings: [...prev.slotPricings, { startTime: '06:00', endTime: '07:00', price: Number(prev.pricePerHour) || 0, isPeak: false }]
-                  }));
-                }}
-                className="!flex !items-center !gap-1.5 !rounded-lg !bg-[#1abc60]/10 !px-3 !py-1.5 !text-xs !font-bold !text-[#1abc60] hover:!bg-[#1abc60]/20 !transition-all !cursor-pointer"
-              >
-                + Add Custom Slot Price
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mb-4">
-              Set specific prices for individual time slots. This will override the base rate for these slots.
-            </p>
-
-            <div className="space-y-3">
-              {form.slotPricings.map((slot, idx) => (
-                <div key={idx} className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm relative group">
-                  <div className="flex-1 min-w-[100px] space-y-1">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">Start</label>
-                    <select
-                      value={slot.startTime}
-                      onChange={(e) => {
-                        const newSlots = [...form.slotPricings];
-                        newSlots[idx].startTime = e.target.value;
-                        setForm(prev => ({ ...prev, slotPricings: newSlots }));
-                      }}
-                      className="!w-full !rounded-md !border !border-gray-300 !bg-white !px-2 !py-1.5 !text-xs focus:!outline-none"
-                    >
-                      {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                    </select>
-                  </div>
-                  <div className="flex-1 min-w-[100px] space-y-1">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">End</label>
-                    <select
-                      value={slot.endTime}
-                      onChange={(e) => {
-                        const newSlots = [...form.slotPricings];
-                        newSlots[idx].endTime = e.target.value;
-                        setForm(prev => ({ ...prev, slotPricings: newSlots }));
-                      }}
-                      className="!w-full !rounded-md !border !border-gray-300 !bg-white !px-2 !py-1.5 !text-xs focus:!outline-none"
-                    >
-                      {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                    </select>
-                  </div>
-                  <div className="flex-1 min-w-[100px] space-y-1">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">Extra Price (₹)</label>
-                    <input
-                      type="number"
-                      value={slot.price}
-                      onChange={(e) => {
-                        const newSlots = [...form.slotPricings];
-                        newSlots[idx].price = Number(e.target.value);
-                        setForm(prev => ({ ...prev, slotPricings: newSlots }));
-                      }}
-                      className="!w-full !rounded-md !border !border-gray-300 !bg-white !px-3 !py-1.5 !text-sm !font-bold !text-[#1abc60] focus:!outline-none"
-                      placeholder="e.g. 200"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 pt-4">
-                    <input
-                      type="checkbox"
-                      checked={slot.isPeak}
-                      onChange={(e) => {
-                        const newSlots = [...form.slotPricings];
-                        newSlots[idx].isPeak = e.target.checked;
-                        setForm(prev => ({ ...prev, slotPricings: newSlots }));
-                      }}
-                      className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60]"
-                    />
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">Peak</label>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newSlots = form.slotPricings.filter((_, i) => i !== idx);
-                      setForm(prev => ({ ...prev, slotPricings: newSlots }));
-                    }}
-                    className="!p-1.5 !text-gray-400 hover:!text-red-500 hover:!bg-white !rounded-md !transition-all !self-end !mb-0.5 !cursor-pointer"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Peak Hour Price Hikes */}
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h4 className="text-sm font-bold text-gray-900">Peak Hour Price Hikes</h4>
-                <p className="text-xs text-gray-500">Apply extra charges for specific time slots (e.g., festivals or peak hours).</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setForm(prev => ({
-                    ...prev,
-                    priceHikes: [
-                      ...(prev.priceHikes || []),
-                      { startTime: "17:00", endTime: "22:00", extraPrice: 0 }
-                    ]
-                  }));
-                }}
-                className="!flex !items-center !gap-1.5 !px-3 !py-1.5 !bg-[#1abc60]/10 !text-[#1abc60] !rounded-lg !text-xs !font-bold hover:!bg-[#1abc60]/20 !transition-all !cursor-pointer !border-none"
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-                Add Price Hike
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {(form.priceHikes || []).map((hike, idx) => (
-                <div key={idx} className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-gray-200 bg-gray-50 shadow-sm relative group">
-                  <div className="flex-1 min-w-[120px] space-y-1">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">Start Time</label>
-                    <input
-                      type="time"
-                      value={hike.startTime}
-                      onChange={(e) => {
-                        const newHikes = [...form.priceHikes];
-                        newHikes[idx].startTime = e.target.value;
-                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
-                      }}
-                      className="!w-full !px-3 !py-1.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!ring-1 focus:!ring-[#1abc60]"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-[120px] space-y-1">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">End Time</label>
-                    <input
-                      type="time"
-                      value={hike.endTime}
-                      onChange={(e) => {
-                        const newHikes = [...form.priceHikes];
-                        newHikes[idx].endTime = e.target.value;
-                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
-                      }}
-                      className="!w-full !px-3 !py-1.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !outline-none focus:!ring-1 focus:!ring-[#1abc60]"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-[120px] space-y-1">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">Extra Price (₹)</label>
-                    <input
-                      type="number"
-                      value={hike.extraPrice}
-                      onChange={(e) => {
-                        const newHikes = [...form.priceHikes];
-                        newHikes[idx].extraPrice = Number(e.target.value);
-                        setForm(prev => ({ ...prev, priceHikes: newHikes }));
-                      }}
-                      className="!w-full !px-3 !py-1.5 !bg-white !border !border-gray-300 !rounded-md !text-sm !font-bold !text-[#1abc60] !outline-none focus:!ring-1 focus:!ring-[#1abc60]"
-                      placeholder="0"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newHikes = form.priceHikes.filter((_, i) => i !== idx);
-                      setForm(prev => ({ ...prev, priceHikes: newHikes }));
-                    }}
-                    className="!p-1.5 !text-gray-400 hover:!text-red-500 hover:!bg-white !rounded-md !transition-all !self-end !mb-0.5 !cursor-pointer !border-none !bg-transparent"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-              {(!form.priceHikes || form.priceHikes.length === 0) && (
-                <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl">
-                  <p className="text-xs text-gray-400 font-medium italic">No custom price hikes configured.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Section 3: Location Details */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">3</span>
           <h2 className="text-base font-semibold text-gray-900">Location Details</h2>
         </div>
         
@@ -970,16 +750,6 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                 placeholder="Paste Google Maps URL"
                 className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400"
               />
-              {form.mapUrl && (
-                <a
-                  href={form.mapUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-block text-xs font-medium text-[#1abc60] hover:underline mt-1"
-                >
-                  Verify Map Link
-                </a>
-              )}
             </div>
           </div>
           
@@ -1003,28 +773,413 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         </div>
       </div>
 
-      {/* Section 4: Pricing & Availability */}
+      {/* Section 3: Amenities & Surface */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">3</span>
+          <h2 className="text-base font-semibold text-gray-900">Amenities & Surface</h2>
+        </div>
+        
+        <div className="p-6 space-y-8">
+          {/* Surface Type */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-gray-700">Surface Type</label>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {surfaceOptions.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, surfaceType: option }))}
+                  className={`!flex !items-center !justify-between !rounded-lg !border !px-4 !py-2.5 !text-sm !font-medium !transition-colors !cursor-pointer ${
+                    form.surfaceType === option
+                      ? '!border-[#1abc60] !bg-green-50 !text-[#1abc60]'
+                      : '!border-gray-200 !bg-white !text-gray-600 hover:!border-gray-300 hover:!bg-gray-50'
+                  }`}
+                >
+                  {option}
+                  {form.surfaceType === option && <CheckCircle2 className="h-4 w-4" />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Amenities */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">Amenities (Common for all sports)</label>
+              <div className="flex gap-2">
+                <input 
+                  type="text"
+                  value={newAmenity}
+                  onChange={(e) => setNewAmenity(e.target.value)}
+                  placeholder="Add custom amenity..."
+                  className="!px-3 !py-1.5 !bg-white !border !border-gray-300 !rounded-lg !text-xs focus:!border-[#1abc60] !outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (newAmenity.trim()) {
+                        if (!amenitiesOptions.includes(newAmenity.trim())) {
+                          setAmenitiesOptions(prev => [...prev, newAmenity.trim()]);
+                        }
+                        if (!form.amenities.includes(newAmenity.trim())) {
+                          toggleListValue('amenities', newAmenity.trim());
+                        }
+                        setNewAmenity('');
+                      }
+                    }
+                  }}
+                />
+                <button 
+                  type="button"
+                  onClick={() => {
+                    if (newAmenity.trim()) {
+                      if (!amenitiesOptions.includes(newAmenity.trim())) {
+                        setAmenitiesOptions(prev => [...prev, newAmenity.trim()]);
+                      }
+                      if (!form.amenities.includes(newAmenity.trim())) {
+                        toggleListValue('amenities', newAmenity.trim());
+                      }
+                      setNewAmenity('');
+                    }
+                  }}
+                  className="!bg-[#1abc60] !text-white !px-3 !py-1.5 !rounded-lg !text-xs !font-bold hover:!bg-[#17a554] !transition-colors !border-none !cursor-pointer"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {amenitiesOptions.map((amenity) => (
+                <button
+                  key={amenity}
+                  type="button"
+                  onClick={() => toggleListValue('amenities', amenity)}
+                  className={`!flex !items-center !justify-between !rounded-lg !border !px-4 !py-2.5 !text-sm !font-medium !transition-colors !cursor-pointer ${
+                    form.amenities.includes(amenity)
+                      ? '!border-[#1abc60] !bg-green-50 !text-[#1abc60]'
+                      : '!border-gray-200 !bg-white !text-gray-600 hover:!border-gray-300 hover:!bg-gray-50'
+                  }`}
+                >
+                  {amenity}
+                  {form.amenities.includes(amenity) && <CheckCircle2 className="h-4 w-4" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 4: Sports & Pricing */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
           <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">4</span>
-          <h2 className="text-base font-semibold text-gray-900">Pricing & Hours</h2>
+          <h2 className="text-base font-semibold text-gray-900">Sports & Pricing</h2>
         </div>
         
         <div className="p-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Base Rate (Per Hour)</label>
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input 
-                  type="number"
-                  value={form.pricePerHour} 
-                  onChange={(e) => setForm((prev) => ({ ...prev, pricePerHour: e.target.value }))} 
-                  placeholder="e.g. 1200" 
-                  className="!w-full !pl-9 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400" 
-                />
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-gray-700">Select Sports</label>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {sportsOptions.map((sport) => (
+                <button
+                  key={sport}
+                  type="button"
+                  onClick={() => toggleListValue('sports', sport)}
+                  className={`!flex !items-center !justify-between !rounded-lg !border !px-4 !py-2.5 !text-sm !font-medium !transition-colors !cursor-pointer ${
+                    form.sports.includes(sport)
+                      ? '!border-[#1abc60] !bg-green-50 !text-[#1abc60]'
+                      : '!border-gray-200 !bg-white !text-gray-600 hover:!border-gray-300 hover:!bg-gray-50'
+                  }`}
+                >
+                  {sport}
+                  {form.sports.includes(sport) && <CheckCircle2 className="h-4 w-4" />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {form.sports.length > 0 ? (
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+                {form.sports.map((sport) => (
+                  <button
+                    key={sport}
+                    type="button"
+                    onClick={() => setActiveSportSportTab(sport)}
+                    className={`!px-4 !py-2 !rounded-lg !text-xs !font-bold !whitespace-nowrap !transition-all ${
+                      activeSportTab === sport
+                        ? '!bg-[#1abc60] !text-white !shadow-md !shadow-green-100'
+                        : '!bg-gray-100 !text-gray-500 hover:!bg-gray-200'
+                    }`}
+                  >
+                    {sport}
+                  </button>
+                ))}
               </div>
-              <p className="text-xs text-gray-500">Standard rate applied to regular slots.</p>
+
+              <div className="space-y-8">
+                {form.sportConfigs
+                  .filter(c => c.sportName === activeSportTab)
+                  .map((config, sIdx) => {
+                    // Find actual index in form.sportConfigs
+                    const actualIdx = form.sportConfigs.findIndex(c => c.sportName === config.sportName);
+                    return (
+                    <div key={config.sportName} className="rounded-xl border border-gray-200 bg-gray-50/30 overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="px-4 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="h-4 w-4 text-[#1abc60]" />
+                          <span className="text-sm font-bold text-gray-900 uppercase tracking-tight">{config.sportName} Settings</span>
+                        </div>
+                      </div>
+
+                      <div className="p-4 space-y-6">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Price Per Hour (₹)</label>
+                            <div className="relative">
+                              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <input
+                                type="number"
+                                value={config.pricePerHour}
+                                onChange={(e) => {
+                                  const next = [...form.sportConfigs];
+                                  next[actualIdx].pricePerHour = e.target.value;
+                                  setForm(prev => ({ ...prev, sportConfigs: next }));
+                                }}
+                                className="!w-full !pl-9 !pr-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !font-bold focus:!border-[#1abc60] focus:!ring-2 focus:!ring-[#1abc60]/20"
+                                placeholder="e.g. 1500"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Slot Duration (Minutes)</label>
+                            <div className="relative">
+                              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <select
+                                value={config.slotDuration}
+                                onChange={(e) => {
+                                  const next = [...form.sportConfigs];
+                                  next[actualIdx].slotDuration = Number(e.target.value);
+                                  setForm(prev => ({ ...prev, sportConfigs: next }));
+                                }}
+                                className="!w-full !pl-9 !pr-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !font-bold focus:!border-[#1abc60] focus:!ring-2 focus:!ring-[#1abc60]/20"
+                              >
+                                {[30, 45, 60, 90, 120].map(m => (
+                                  <option key={m} value={m}>{m} Minutes</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Courts / Pitches</label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = [...form.sportConfigs];
+                                next[actualIdx].courts.push({ name: `Court ${next[actualIdx].courts.length + 1}`, isActive: true });
+                                setForm(prev => ({ ...prev, sportConfigs: next }));
+                              }}
+                              className="text-[10px] font-bold text-[#1abc60] hover:underline cursor-pointer"
+                            >
+                              + Add Court
+                            </button>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                            {config.courts.map((court, cIdx) => (
+                              <div key={cIdx} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-2">
+                                <input
+                                  value={court.name}
+                                  onChange={(e) => {
+                                    const next = [...form.sportConfigs];
+                                    next[actualIdx].courts[cIdx].name = e.target.value;
+                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                  }}
+                                  className="flex-1 !border-none !bg-transparent !p-0 !text-xs !font-medium focus:!ring-0"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...form.sportConfigs];
+                                    next[actualIdx].courts = next[actualIdx].courts.filter((_, i) => i !== cIdx);
+                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                  }}
+                                  className="text-gray-400 hover:text-red-500 cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{config.sportName} Photos</label>
+                          <div className="flex flex-wrap gap-4">
+                            {config.images.map((img, iIdx) => (
+                              <div key={iIdx} className="relative h-20 w-20 rounded-lg overflow-hidden border border-gray-200">
+                                <img src={img} alt="Sport" className="h-full w-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...form.sportConfigs];
+                                    next[actualIdx].images = next[actualIdx].images.filter((_, i) => i !== iIdx);
+                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                  }}
+                                  className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                            {(config.newImages || []).map((file, iIdx) => (
+                              <div key={iIdx} className="relative h-20 w-20 rounded-lg overflow-hidden border border-gray-200">
+                                <img src={URL.createObjectURL(file)} alt="Preview" className="h-full w-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...form.sportConfigs];
+                                    next[actualIdx].newImages = next[actualIdx].newImages?.filter((_, i) => i !== iIdx);
+                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                  }}
+                                  className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.multiple = true;
+                                input.accept = 'image/*';
+                                input.onchange = (e) => {
+                                  const files = Array.from((e.target as HTMLInputElement).files || []);
+                                  if (files.length) {
+                                    const next = [...form.sportConfigs];
+                                    next[actualIdx].newImages = [...(next[actualIdx].newImages || []), ...files];
+                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                  }
+                                };
+                                input.click();
+                              }}
+                              className="h-20 w-20 flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 text-gray-400 hover:border-[#1abc60] hover:text-[#1abc60] transition-colors cursor-pointer"
+                            >
+                              <ImagePlus className="h-5 w-5" />
+                              <span className="text-[10px] font-bold">Add</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Peak Hour Rates</label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = [...form.sportConfigs];
+                                next[actualIdx].slotPricings.push({ startTime: '18:00', endTime: '22:00', price: Number(config.pricePerHour) + 200, isPeak: true });
+                                setForm(prev => ({ ...prev, sportConfigs: next }));
+                              }}
+                              className="text-[10px] font-bold text-[#1abc60] hover:underline cursor-pointer"
+                            >
+                              + Add Peak Slot
+                            </button>
+                          </div>
+                          <div className="space-y-2">
+                            {config.slotPricings.map((slot, pIdx) => (
+                              <div key={pIdx} className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
+                                <select
+                                  value={slot.startTime}
+                                  onChange={(e) => {
+                                    const next = [...form.sportConfigs];
+                                    next[actualIdx].slotPricings[pIdx].startTime = e.target.value;
+                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                  }}
+                                  className="!text-xs !rounded !border-gray-200 !py-1"
+                                >
+                                  {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                </select>
+                                <span className="text-gray-400 text-xs">to</span>
+                                <select
+                                  value={slot.endTime}
+                                  onChange={(e) => {
+                                    const next = [...form.sportConfigs];
+                                    next[actualIdx].slotPricings[pIdx].endTime = e.target.value;
+                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                  }}
+                                  className="!text-xs !rounded !border-gray-200 !py-1"
+                                >
+                                  {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                </select>
+                                <div className="relative flex-1 min-w-[100px]">
+                                  <IndianRupee className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+                                  <input
+                                    type="number"
+                                    value={slot.price}
+                                    onChange={(e) => {
+                                      const next = [...form.sportConfigs];
+                                      next[actualIdx].slotPricings[pIdx].price = Number(e.target.value);
+                                      setForm(prev => ({ ...prev, sportConfigs: next }));
+                                    }}
+                                    className="!w-full !pl-6 !pr-2 !py-1 !text-xs !font-bold !text-[#1abc60] !border-gray-200 !rounded focus:!ring-1 focus:!ring-[#1abc60]"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...form.sportConfigs];
+                                    next[actualIdx].slotPricings = next[actualIdx].slotPricings.filter((_, i) => i !== pIdx);
+                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                  }}
+                                  className="text-gray-400 hover:text-red-500 cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-8 py-10 border-t border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400">
+              <Trophy className="h-10 w-10 mb-2 opacity-10" />
+              <p className="text-sm italic">Select sports above to configure specific pricing and courts.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Section 5: Operating Settings */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">5</span>
+          <h2 className="text-base font-semibold text-gray-900">Operating Settings</h2>
+        </div>
+        
+        <div className="p-6">
+          <div className="grid gap-6 md:grid-cols-2 mb-8">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Slot Duration</label>
+              <select
+                value={slotDuration}
+                onChange={(e) => setSlotDuration(Math.max(15, Number(e.target.value) || 60))}
+                className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
+              >
+                {[30, 45, 60, 90, 120].map((m) => (
+                  <option key={m} value={m}>{m} minutes</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">UPI ID for Payments</label>
@@ -1035,353 +1190,126 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                   value={form.upiId} 
                   onChange={(e) => setForm((prev) => ({ ...prev, upiId: e.target.value }))} 
                   placeholder="e.g. owner@okaxis" 
-                  className="!w-full !pl-9 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400" 
+                  className="!w-full !pl-9 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]" 
                 />
               </div>
-              <p className="text-xs text-gray-500">Used for generating payment QR codes during offline bookings.</p>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Peak Hour Surcharge</label>
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input 
-                  type="number"
-                  value={form.peakHourSurcharge} 
-                  onChange={(e) => setForm((prev) => ({ ...prev, peakHourSurcharge: e.target.value }))} 
-                  placeholder="e.g. 300" 
-                  className="!w-full !pl-9 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors placeholder:!text-gray-400" 
-                />
-              </div>
-              <p className="text-xs text-gray-500">Additional amount added during evening/weekend peak hours.</p>
             </div>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Courts Configuration</h3>
-            <div className="space-y-4">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Number of Courts</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={50}
-                    value={courtsCount}
-                    onChange={(e) => setCourtsCount(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
-                    className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
-                  />
-                  <p className="text-xs text-gray-500">Add or remove courts for your venue.</p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Slot Duration (minutes)</label>
-                  <select
-                    value={slotDuration}
-                    onChange={(e) => setSlotDuration(Math.max(15, Number(e.target.value) || 60))}
-                    className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
-                  >
-                    {[30, 45, 60, 90, 120].map((m) => (
-                      <option key={m} value={m}>
-                        {m} minutes
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Individual Court Editor */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
-                {apiCarryForward.courts.map((court, idx) => (
-                  <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Court #{idx + 1}</span>
-                    </div>
-                    <input 
-                      type="text"
-                      value={court.name}
-                      onChange={(e) => {
-                        const newCourts = [...apiCarryForward.courts];
-                        newCourts[idx].name = e.target.value;
-                        setApiCarryForward({ ...apiCarryForward, courts: newCourts });
-                      }}
-                      placeholder="Court Name"
-                      className="!w-full !px-2 !py-1.5 !bg-white !border !border-gray-200 !rounded-lg !text-xs !font-medium focus:!ring-1 focus:!ring-[#1abc60]"
-                    />
-                    <select
-                      value={court.courtType}
-                      onChange={(e) => {
-                        const newCourts = [...apiCarryForward.courts];
-                        newCourts[idx].courtType = e.target.value;
-                        setApiCarryForward({ ...apiCarryForward, courts: newCourts });
-                      }}
-                      className="!w-full !px-2 !py-1.5 !bg-white !border !border-gray-200 !rounded-lg !text-[10px] !font-bold uppercase focus:!ring-1 focus:!ring-[#1abc60] cursor-pointer"
-                    >
-                      {surfaceOptions.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Operating Hours</h3>
+          <div className="pt-6 border-t border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">Weekly Operating Hours</h3>
             <div className="space-y-2">
               {operatingHours.map((oh, idx) => (
-                <div
-                  key={oh.day}
-                  className={`flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border p-3 transition-colors ${
-                    oh.isOpen ? 'border-gray-200 bg-white' : 'border-dashed border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <div className="w-28 text-sm font-semibold text-gray-700">{oh.day}</div>
+                <div key={oh.day} className={`flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border p-3 ${oh.isOpen ? 'bg-white' : 'bg-gray-50 border-dashed opacity-60'}`}>
+                  <div className="w-28 text-sm font-bold text-gray-700">{oh.day}</div>
                   <div className="flex items-center gap-2 flex-1">
                     <select
                       value={oh.open}
                       disabled={!oh.isOpen}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setOperatingHours((prev) => prev.map((d, i) => (i === idx ? { ...d, open: value } : d)));
-                      }}
-                      className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors disabled:!bg-gray-100"
+                      onChange={(e) => setOperatingHours(prev => prev.map((d, i) => i === idx ? { ...d, open: e.target.value } : d))}
+                      className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm disabled:!bg-gray-100"
                     >
-                      {TIME_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
+                      {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
-                    <span className="text-sm text-gray-400">to</span>
+                    <span className="text-gray-400 text-xs">to</span>
                     <select
                       value={oh.close}
                       disabled={!oh.isOpen}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setOperatingHours((prev) => prev.map((d, i) => (i === idx ? { ...d, close: value } : d)));
-                      }}
-                      className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors disabled:!bg-gray-100"
+                      onChange={(e) => setOperatingHours(prev => prev.map((d, i) => i === idx ? { ...d, close: e.target.value } : d))}
+                      className="!flex-1 !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm disabled:!bg-gray-100"
                     >
-                      {TIME_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
+                      {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                   </div>
-                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                  <label className="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={oh.isOpen}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setOperatingHours((prev) => prev.map((d, i) => (i === idx ? { ...d, isOpen: checked } : d)));
-                      }}
-                      className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60]"
+                      onChange={(e) => setOperatingHours(prev => prev.map((d, i) => i === idx ? { ...d, isOpen: e.target.checked } : d))}
+                      className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60]"
                     />
                     Open
                   </label>
                 </div>
               ))}
             </div>
-
-            {/* Slots Preview */}
-            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-[#1abc60]" />
-                  <h4 className="text-sm font-semibold text-gray-900">Auto-generated Time Slots</h4>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-600">Preview day</span>
-                  <select
-                    value={slotPreviewDay}
-                    onChange={(e) => setSlotPreviewDay(e.target.value)}
-                    className="!px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
-                  >
-                    {days.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {(() => {
-                const day = operatingHours.find((d) => d.day === slotPreviewDay);
-                if (!day || !day.isOpen) {
-                  return <p className="text-xs text-gray-500">This day is marked closed. No slots will be generated.</p>;
-                }
-
-                const dayRate = apiCarryForward.rates?.find((r: any) => r.day === slotPreviewDay)?.price;
-                const baseHourlyRate = Number(dayRate ?? form.pricePerHour ?? 0);
-
-                const slots = buildTimeSlots(day.open, day.close, slotDuration);
-                if (!slots.length) {
-                  return <p className="text-xs text-gray-500">No slots for this range. Check open/close times and slot duration.</p>;
-                }
-                return (
-                  <div className="flex flex-wrap gap-2">
-                    {slots.slice(0, 18).map((s) => {
-                      const cur = parseTimeToMinutes(s.startTime);
-                      const hike = form.priceHikes?.find((h: any) => {
-                        const hStart = parseTimeToMinutes(h.startTime);
-                        const hEnd = parseTimeToMinutes(h.endTime);
-                        return cur < hEnd && (cur + slotDuration) > hStart;
-                      });
-                      
-                      const extra = (hike && !isNaN(Number(hike.extraPrice))) ? Number(hike.extraPrice) : 0;
-                      const totalPrice = (baseHourlyRate * (slotDuration / 60)) + extra;
-
-                      return (
-                        <div
-                          key={`${s.startTime}-${s.endTime}`}
-                          className={`flex flex-col gap-0.5 bg-white border px-2.5 py-1.5 rounded-lg shadow-sm ${
-                            extra > 0 ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200'
-                          }`}
-                        >
-                          <span className="text-gray-700 text-[11px] font-bold">
-                            {to12h(s.startTime)} - {to12h(s.endTime)}
-                          </span>
-                          <div className="flex items-center justify-between gap-2 mt-0.5">
-                            <span className="text-[#1abc60] text-[10px] font-black">
-                              ₹{totalPrice.toLocaleString()}
-                            </span>
-                            {extra > 0 && (
-                              <div className="flex items-center gap-1">
-                                <span className="text-[9px] text-amber-600 font-black">
-                                  +₹{extra.toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {slots.length > 18 && (
-                      <span className="text-[11px] font-semibold text-gray-500 px-2 py-1 self-center">
-                        +{slots.length - 18} more
-                      </span>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Section 5: Photo Gallery */}
+      {/* Section 6: Photo Gallery */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">5</span>
-          <h2 className="text-base font-semibold text-gray-900">Photo Gallery</h2>
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">6</span>
+          <h2 className="text-base font-semibold text-gray-900">General Gallery</h2>
         </div>
         
         <div className="p-6 space-y-6">
           <div className="grid gap-6 md:grid-cols-3">
             <div className="md:col-span-2">
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Cover Image</label>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Cover Photo</label>
               <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={onHeroSelected} />
               <button 
                 type="button" 
                 onClick={() => heroRef.current?.click()} 
-                className="!flex !h-56 !w-full !flex-col !items-center !justify-center !rounded-lg !border-2 !border-dashed !border-gray-300 !bg-gray-50 !text-gray-500 hover:!border-[#1abc60] hover:!bg-green-50 !transition-colors !overflow-hidden !relative !cursor-pointer group"
+                className="!flex !h-56 !w-full !flex-col !items-center !justify-center !rounded-lg !border-2 !border-dashed !border-gray-300 !bg-gray-50 hover:!border-[#1abc60] hover:!bg-green-50 !transition-all !overflow-hidden !relative !cursor-pointer group"
               >
                 {heroImage ? (
                   <img src={URL.createObjectURL(heroImage)} alt="Hero" className="h-full w-full object-cover" />
                 ) : (
                   <>
-                    <Camera className="mb-2 h-8 w-8 text-gray-400 group-hover:text-[#1abc60] transition-colors" />
-                    <span className="text-sm font-medium group-hover:text-[#1abc60] transition-colors">Click to upload cover photo</span>
-                    <span className="text-xs mt-1 text-gray-400">Recommended size: 1920x1080px</span>
+                    <Camera className="mb-2 h-8 w-8 text-gray-400 group-hover:text-[#1abc60]" />
+                    <span className="text-sm font-medium text-gray-500 group-hover:text-[#1abc60]">Upload Cover Photo</span>
                   </>
                 )}
               </button>
             </div>
             
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700">Gallery Images</label>
-                {galleryImages.length > 0 && (
-                  <button 
-                    type="button" 
-                    onClick={() => setGalleryImages([])} 
-                    className="text-xs text-red-500 hover:text-red-600 font-medium cursor-pointer bg-transparent border-none p-0 m-0"
-                  >
-                    Clear All
-                  </button>
-                )}
-              </div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Gallery</label>
               <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={onGallerySelected} />
               <button 
                 type="button" 
                 onClick={() => galleryRef.current?.click()} 
-                className="!flex !h-56 !w-full !flex-col !items-center !justify-center !rounded-lg !border-2 !border-dashed !border-gray-300 !bg-gray-50 !text-gray-500 hover:!border-[#1abc60] hover:!bg-green-50 !transition-colors !overflow-hidden !cursor-pointer group relative"
+                className="!flex !h-56 !w-full !flex-col !items-center !justify-center !rounded-lg !border-2 !border-dashed !border-gray-300 !bg-gray-50 hover:!border-[#1abc60] hover:!bg-green-50 !transition-all !cursor-pointer group"
               >
                 {galleryImages.length > 0 ? (
                   <div className="grid grid-cols-2 gap-1 w-full h-full p-1">
                     {galleryImages.slice(0, 4).map((file, idx) => (
                       <img key={idx} src={URL.createObjectURL(file)} alt="Gallery" className="h-full w-full object-cover rounded-sm" />
                     ))}
-                    {galleryImages.length > 4 && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-sm font-medium">
-                        +{galleryImages.length - 4} more
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <>
-                    <ImagePlus className="mb-2 h-8 w-8 text-gray-400 group-hover:text-[#1abc60] transition-colors" />
-                    <span className="text-sm font-medium group-hover:text-[#1abc60] transition-colors">Add more photos</span>
-                    <span className="text-xs mt-1 text-gray-400">Up to 10 images</span>
+                    <ImagePlus className="mb-2 h-8 w-8 text-gray-400 group-hover:text-[#1abc60]" />
+                    <span className="text-sm font-medium text-gray-500 group-hover:text-[#1abc60]">Add Photos</span>
                   </>
                 )}
               </button>
             </div>
           </div>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg bg-blue-50 p-4 text-sm text-blue-700 border border-blue-100 gap-2">
-            <p>High-quality, well-lit photos can increase booking conversion rates significantly.</p>
-            {(existingImages.length > 0 || galleryImages.length > 0 || heroImage) && (
-              <span className="font-medium whitespace-nowrap bg-white px-2.5 py-1 rounded-md shadow-sm border border-blue-100 text-blue-800">
-                Selected: {(heroImage ? 1 : 0) + galleryImages.length}
-              </span>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Bottom Action Bar */}
+      {/* Action Bar */}
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-4 z-40">
         <label className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700 font-medium">
           <input 
             type="checkbox" 
             checked={form.termsAccepted} 
             onChange={(e) => setForm((prev) => ({ ...prev, termsAccepted: e.target.checked }))} 
-            className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] focus:!ring-[#1abc60] !cursor-pointer" 
+            className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] cursor-pointer" 
           />
-          I agree to the <span className="text-[#1abc60] hover:underline">Venue Partner Agreement</span>
+          I agree to the <span className="text-[#1abc60] hover:underline">Partner Terms</span>
         </label>
         
         <button
           disabled={saving || !form.termsAccepted}
           type="submit"
-          className="!flex !w-full sm:!w-auto !items-center !justify-center !gap-2 !rounded-lg !bg-[#1abc60] !px-8 !py-3 !text-sm !font-semibold !text-white !transition-colors hover:!bg-[#17a554] disabled:!opacity-50 disabled:!cursor-not-allowed !shadow-sm !border-none"
+          className="!flex !w-full sm:!w-auto !items-center !justify-center !gap-2 !rounded-lg !bg-[#1abc60] !px-10 !py-3 !text-sm !font-bold !text-white hover:!bg-[#17a554] disabled:!opacity-50 !transition-all !border-none !cursor-pointer shadow-lg shadow-green-100"
         >
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-4 w-4" />
-              {mode === 'edit' ? 'Update Venue Profile' : 'Publish Venue Profile'}
-            </>
-          )}
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+          {mode === 'edit' ? 'Save Changes' : 'Create Venue'}
         </button>
       </div>
     </form>

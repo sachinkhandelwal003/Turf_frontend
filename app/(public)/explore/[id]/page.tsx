@@ -43,6 +43,13 @@ interface Turf {
   }[];
   priceHikes?: { startTime: string; endTime: string; extraPrice: number }[];
   slotPricings?: { startTime: string; endTime: string; price: number }[];
+  sportConfigs?: {
+    sportName: string;
+    pricePerHour: number;
+    slotDuration: number;
+    courts: { name: string; isActive: boolean }[];
+    slotPricings: { startTime: string; endTime: string; price: number; isPeak: boolean }[];
+  }[];
 }
 
 export default function TurfDetailsPage() {
@@ -60,6 +67,15 @@ export default function TurfDetailsPage() {
   const [bookedSlots, setBookedSlots] = useState<any[]>([]);
   const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
+
+  const currentSportConfig = turf?.sportConfigs?.find(c => c.sportName === selectedSport);
+  const effectiveBasePrice = currentSportConfig?.pricePerHour ?? turf?.pricePerHour ?? 1000;
+  const effectiveCourts = (currentSportConfig?.courts && currentSportConfig.courts.length > 0) 
+    ? currentSportConfig.courts 
+    : (turf?.courts || []);
+  const effectiveImages = (currentSportConfig?.images && currentSportConfig.images.length > 0)
+    ? currentSportConfig.images
+    : (turf?.images || []);
 
   // Split Payment States
   const [isSplitEnabled, setIsSplitEnabled] = useState(false);
@@ -119,7 +135,7 @@ export default function TurfDetailsPage() {
   const getTimeSlots = () => {
     const [year, month, day] = selectedDate.split('-').map(Number);
     const date = new Date(year, month - 1, day);
-    const baseHourlyRate = Number(turf?.pricePerHour ?? 1000);
+    const baseHourlyRate = Number(effectiveBasePrice);
 
     if (turf?.availableSlots && turf.availableSlots.length > 0) {
       const groups: Record<string, { time: string; totalPrice: number }[]> = {};
@@ -137,6 +153,13 @@ export default function TurfDetailsPage() {
           return (cur < sEnd && (cur + d) > sStart);
         });
 
+        // Use sport-specific slot pricings if available
+        const sportSlotPricing = currentSportConfig?.slotPricings?.find((s: any) => {
+          const sStart = parseTimeToMinutes(s.startTime);
+          const sEnd = parseTimeToMinutes(s.endTime);
+          return (cur < sEnd && (cur + d) > sStart);
+        });
+
         const dynamicSlot = turf?.slotPricings?.find((s: any) => {
           const sStart = parseTimeToMinutes(s.startTime);
           const sEnd = parseTimeToMinutes(s.endTime);
@@ -144,7 +167,7 @@ export default function TurfDetailsPage() {
         });
 
         const basePriceForDuration = (baseHourlyRate * (d / 60));
-        const extra = Number(customSlot?.extraPrice || dynamicSlot?.price || 0);
+        const extra = Number(customSlot?.extraPrice || sportSlotPricing?.price || dynamicSlot?.price || 0);
         const slotPrice = basePriceForDuration + extra;
 
         groups[type].push({
@@ -171,7 +194,7 @@ export default function TurfDetailsPage() {
 
     let open = operatingDay.open || '06:00';
     let close = operatingDay.close || '23:00';
-    const d = Math.max(15, Number(turf.slotDuration || 60));
+    const d = Math.max(15, Number(currentSportConfig?.slotDuration || turf?.slotDuration || 60));
     let cur = parseTimeToMinutes(open);
     let end = parseTimeToMinutes(close);
 
@@ -195,8 +218,15 @@ export default function TurfDetailsPage() {
         return (cur < sEnd && (cur + d) > sStart);
       });
 
+      // Use sport-specific slot pricings if available
+      const sportSlotPricing = currentSportConfig?.slotPricings?.find((s: any) => {
+        const sStart = parseTimeToMinutes(s.startTime);
+        const sEnd = parseTimeToMinutes(s.endTime);
+        return (cur < sEnd && (cur + d) > sStart);
+      });
+
       const basePriceForDuration = (baseHourlyRate * (d / 60));
-      const extra = customSlot ? Number(customSlot.extraPrice || 0) : 0;
+      const extra = customSlot ? Number(customSlot.extraPrice || 0) : (sportSlotPricing ? Number(sportSlotPricing.price || 0) : 0);
       const slotPrice = basePriceForDuration + extra;
 
       groups[label].push({
@@ -238,7 +268,21 @@ export default function TurfDetailsPage() {
   const [year, month, day] = selectedDate.split('-').map(Number);
   const dateObj = new Date(year, month - 1, day);
   const dayNameForDisplay = dateObj.toLocaleDateString("en-US", { weekday: "long" });
-  const displayPrice = Number(turf?.pricePerHour ?? 1000);
+  
+  // Robust price calculation
+  const getDisplayPrice = () => {
+    if (currentSportConfig?.pricePerHour) return Number(currentSportConfig.pricePerHour);
+    if (turf?.pricePerHour) return Number(turf.pricePerHour);
+    
+    // Fallback to first available sport price if selectedSport is not yet set
+    if (turf?.sportConfigs && turf.sportConfigs.length > 0) {
+      return Number(turf.sportConfigs[0].pricePerHour);
+    }
+    
+    return 1000; // Default
+  };
+
+  const displayPrice = getDisplayPrice();
 
   const fetchTurfDetails = async () => {
     try {
@@ -246,7 +290,12 @@ export default function TurfDetailsPage() {
       if (res.data.success) {
         setTurf(res.data.turf);
         setSiblingTurfs(res.data.siblingTurfs || []);
-        setSelectedSport(res.data.turf.sports[0]);
+        
+        // Better initial sport selection
+        const initialSport = res.data.turf.sports?.[0] || 
+                            res.data.turf.sportConfigs?.[0]?.sportName || 
+                            "";
+        setSelectedSport(initialSport);
       }
     } catch (error) {
       toast.error("Failed to load turf details");
@@ -314,7 +363,7 @@ export default function TurfDetailsPage() {
       const date = new Date(year, month - 1, day);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
 
-      const effectiveHourlyRate = Number(turf?.pricePerHour ?? 1000);
+      const effectiveHourlyRate = Number(effectiveBasePrice);
       
       const finalPrice = selectedSlots.reduce((sum, timeVal) => {
         const [start, end] = timeVal.split(" - ");
@@ -328,6 +377,13 @@ export default function TurfDetailsPage() {
           return cur < sEnd && (cur + slotDuration) > sStart;
         });
 
+        // Use sport-specific slot pricings if available
+        const sportSlotPricing = currentSportConfig?.slotPricings?.find((s: any) => {
+          const sStart = parseTimeToMinutes(s.startTime);
+          const sEnd = parseTimeToMinutes(s.endTime);
+          return cur < sEnd && (cur + slotDuration) > sStart;
+        });
+
         const dynamicSlot = turf?.slotPricings?.find((s: any) => {
           const sStart = parseTimeToMinutes(s.startTime);
           const sEnd = parseTimeToMinutes(s.endTime);
@@ -335,7 +391,7 @@ export default function TurfDetailsPage() {
         });
 
         const basePrice = (effectiveHourlyRate * (slotDuration / 60));
-        const extraPrice = Number(customSlot?.extraPrice || dynamicSlot?.price || 0);
+        const extraPrice = Number(customSlot?.extraPrice || sportSlotPricing?.price || dynamicSlot?.price || 0);
         const slotPrice = basePrice + extraPrice;
           
         return sum + (slotPrice * selectedCourts.length);
@@ -411,17 +467,49 @@ export default function TurfDetailsPage() {
           </div>
         </div>
 
+        {/* --- SELECT SPORT SECTION (MOVED UP) --- */}
+        <section className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm mb-12 animate-in fade-in slide-in-from-top-4 duration-500">
+           <div className="flex items-center gap-3 mb-6">
+             <div className="p-2 bg-emerald-50 rounded-xl">
+               <Activity className="w-5 h-5 text-emerald-600" />
+             </div>
+             <h2 className="text-xl font-black text-gray-900 uppercase tracking-wider">Choose Your Sport</h2>
+           </div>
+           
+           <div className="flex flex-wrap gap-4">
+             {(turf.sports?.length ? turf.sports : (turf.sportConfigs?.map(c => c.sportName) || [])).map((sport) => (
+               <button
+                 key={sport}
+                 onClick={() => {
+                   setSelectedSport(sport);
+                   setSelectedSlots([]);
+                   setSelectedCourts([]);
+                 }}
+                 className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black transition-all shadow-md group ${
+                   selectedSport === sport
+                     ? "bg-emerald-600 text-white shadow-emerald-100 scale-105"
+                     : "bg-gray-50 text-gray-600 hover:bg-gray-100 shadow-none hover:scale-102"
+                 }`}
+               >
+                 <Activity className={`w-5 h-5 ${selectedSport === sport ? "text-white" : "text-emerald-500"}`} />
+                 <span className="uppercase tracking-widest text-sm">{sport}</span>
+                 {selectedSport === sport && <CheckCircle2 className="w-5 h-5" />}
+               </button>
+             ))}
+           </div>
+         </section>
+
         {/* --- IMAGE GALLERY --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 h-[300px] md:h-[500px]">
           <div className="md:col-span-2 rounded-3xl overflow-hidden shadow-sm group">
-            <img src={turf.images[0]} alt="Main" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+            <img src={effectiveImages[0]} alt="Main" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
           </div>
           <div className="hidden md:grid grid-rows-2 gap-4">
             <div className="rounded-3xl overflow-hidden shadow-sm group">
-              <img src={turf.images[1] || turf.images[0]} alt="Side 1" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+              <img src={effectiveImages[1] || effectiveImages[0]} alt="Side 1" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
             </div>
             <div className="rounded-3xl overflow-hidden shadow-sm group">
-              <img src={turf.images[2] || turf.images[0]} alt="Side 2" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+              <img src={effectiveImages[2] || effectiveImages[0]} alt="Side 2" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
             </div>
           </div>
         </div>
@@ -431,70 +519,36 @@ export default function TurfDetailsPage() {
           
           <div className="lg:col-span-2 space-y-12">
             
-            {/* Sports Available */}
-            <section className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm">
-               <div className="flex items-center gap-3 mb-6">
-                 <div className="p-2 bg-emerald-50 rounded-xl">
-                   <Activity className="w-5 h-5 text-emerald-600" />
-                 </div>
-                 <h2 className="text-xl font-black text-gray-900 uppercase tracking-wider">Sports at this Venue</h2>
-               </div>
-               
-               <div className="flex flex-wrap gap-4">
-                 {/* Current Venue Primary Sport (Active) */}
-                 <div className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-md shadow-emerald-100">
-                   {turf.sports?.[0] || "Sport"}
-                   <CheckCircle2 className="w-4 h-4" />
-                 </div>
-
-                 {/* Sibling Venues (Other sports by same owner) - Clickable */}
-                 {siblingTurfs.map((sibling: any) => (
-                    <Link
-                      key={sibling._id}
-                      href={`/explore/${sibling._id}`}
-                      className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-2xl font-bold transition-all no-underline shadow-md shadow-emerald-100"
-                    >
-                      {sibling.sports?.[0] || sibling.name}
-                      <Activity className="w-4 h-4" />
-                    </Link>
-                  ))}
-
-                  {/* Other secondary sports of current venue (if any and not in siblings) */}
-                  {turf.sports?.slice(1).map((sport) => {
-                    const hasSiblingForThisSport = siblingTurfs.some(s => s.sports?.includes(sport));
-                    if (hasSiblingForThisSport) return null;
-                    return (
-                      <div
-                        key={sport}
-                        className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-md shadow-emerald-100"
-                      >
-                        {sport}
-                        <CheckCircle2 className="w-4 h-4" />
-                      </div>
-                    );
-                  })}
-               </div>
-             </section>
-
             {/* Courts Available */}
-            {turf.courts && turf.courts.length > 0 && (
-              <section className="space-y-6">
-                <h2 className="text-xl font-black text-gray-900 uppercase tracking-wider">Courts Available</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {turf.courts.map((court, idx) => (
-                    <div key={idx} className="bg-white border border-gray-100 p-5 rounded-3xl flex items-center gap-4 shadow-sm hover:border-[#1abc60] transition-all group">
-                      <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-green-50 group-hover:text-[#1abc60] transition-all">
-                        <Activity className="w-6 h-6" />
+            {(() => {
+              const currentConfig = turf.sportConfigs?.find(c => c.sportName === selectedSport);
+              const displayCourts = (currentConfig?.courts && currentConfig.courts.length > 0) 
+                ? currentConfig.courts 
+                : turf.courts;
+
+              if (!displayCourts || displayCourts.length === 0) return null;
+
+              return (
+                <section className="space-y-6">
+                  <h2 className="text-xl font-black text-gray-900 uppercase tracking-wider">Courts for {selectedSport}</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {displayCourts.map((court, idx) => (
+                      <div key={idx} className="bg-white border border-gray-100 p-5 rounded-3xl flex items-center gap-4 shadow-sm hover:border-[#1abc60] transition-all group">
+                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-green-50 group-hover:text-[#1abc60] transition-all">
+                          <Activity className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h4 className="font-black text-gray-900 uppercase tracking-tight">{court.name}</h4>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            {"courtType" in court ? court.courtType : "Active"}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-black text-gray-900 uppercase tracking-tight">{court.name}</h4>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{court.courtType}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
 
             {/* Amenities */}
             <section className="space-y-6">
@@ -625,14 +679,14 @@ export default function TurfDetailsPage() {
                 </div>
 
                 {/* Court Selection */}
-                {turf.courts && turf.courts.length > 0 && (
+                {effectiveCourts && effectiveCourts.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Activity className="w-4 h-4 text-[#1abc60]" />
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Select Courts</label>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      {turf.courts.map((court) => (
+                      {effectiveCourts.map((court) => (
                         (() => {
                           const courtBookedForSelectedSlots = selectedSlots.some((slot) =>
                             getBookedCourtsForSlot(slot).has(court.name)
@@ -658,7 +712,7 @@ export default function TurfDetailsPage() {
                         >
                           <div className="flex flex-col">
                             <span className="text-sm font-black uppercase tracking-tight">{court.name}</span>
-                            <span className="text-[10px] font-bold opacity-60">{court.courtType}</span>
+                            <span className="text-[10px] font-bold opacity-60">{"courtType" in court ? court.courtType : "Active"}</span>
                           </div>
                           {selectedCourts.includes(court.name) && <CheckCircle2 className="w-4 h-4" />}
                         </button>
@@ -677,7 +731,7 @@ export default function TurfDetailsPage() {
                       {group.slots.map((slot: any) => {
                         const slotValue = slot.time;
                         const bookedCourts = getBookedCourtsForSlot(slotValue);
-                        const isFullyBooked = bookedCourts.size >= (turf.courts?.length || 1);
+                        const isFullyBooked = bookedCourts.size >= (effectiveCourts?.length || 1);
                         const clashesWithSelectedCourts =
                           selectedCourts.length > 0 &&
                           selectedCourts.some((courtName) => bookedCourts.has(courtName));
@@ -724,10 +778,38 @@ export default function TurfDetailsPage() {
                       const dayName = dateObj.toLocaleDateString("en-US", { weekday: "long" });
 
                       const dayRate = turf?.rates?.find((r: any) => r.day.toLowerCase() === dayName.toLowerCase())?.price;
-                      const effectiveHourlyRate = Number(dayRate ?? turf.pricePerHour ?? 0);
-                      const totalMinutes = selectedSlots.reduce((sum, slot) => sum + Math.max(0, getSlotMinutes(slot)), 0);
-                      const totalHours = totalMinutes / 60;
-                      return (effectiveHourlyRate * totalHours * selectedCourts.length).toFixed(2);
+                      const basePriceToUse = Number(dayRate ?? effectiveBasePrice ?? 0);
+                      
+                      const total = selectedSlots.reduce((sum, slot) => {
+                        const [start, end] = slot.split(" - ");
+                        const cur = parseTimeToMinutes(start);
+                        const endMins = parseTimeToMinutes(end);
+                        const slotDuration = endMins - cur;
+
+                        const customSlot = turf?.priceHikes?.find((s: any) => {
+                          const sStart = parseTimeToMinutes(s.startTime);
+                          const sEnd = parseTimeToMinutes(s.endTime);
+                          return cur < sEnd && (cur + slotDuration) > sStart;
+                        });
+
+                        const sportSlotPricing = currentSportConfig?.slotPricings?.find((s: any) => {
+                          const sStart = parseTimeToMinutes(s.startTime);
+                          const sEnd = parseTimeToMinutes(s.endTime);
+                          return cur < sEnd && (cur + slotDuration) > sStart;
+                        });
+
+                        const dynamicSlot = turf?.slotPricings?.find((s: any) => {
+                          const sStart = parseTimeToMinutes(s.startTime);
+                          const sEnd = parseTimeToMinutes(s.endTime);
+                          return cur < sEnd && (cur + slotDuration) > sStart;
+                        });
+
+                        const basePrice = (basePriceToUse * (slotDuration / 60));
+                        const extraPrice = Number(customSlot?.extraPrice || sportSlotPricing?.price || dynamicSlot?.price || 0);
+                        return sum + ((basePrice + extraPrice) * selectedCourts.length);
+                      }, 0);
+
+                      return total.toFixed(2);
                     })()}
                   </span>
                 </div>

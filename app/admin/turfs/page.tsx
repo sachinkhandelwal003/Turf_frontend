@@ -566,6 +566,17 @@ export default function AdminTurfPage() {
   const primaryCourtType = formData.courts?.[0]?.courtType || "";
   
   // Filtered turfs based on search
+  const getEffectivePrice = (turf: any) => {
+    if (turf.pricePerHour && turf.pricePerHour > 0) return turf.pricePerHour;
+    
+    // Fallback to first sport price if available
+    if (turf.sportConfigs && turf.sportConfigs.length > 0) {
+      return turf.sportConfigs[0].pricePerHour;
+    }
+    
+    return 0;
+  };
+
   const filteredTurfs = useMemo(() => {
     if (!debouncedSearch) return turfs;
     return turfs.filter(turf => 

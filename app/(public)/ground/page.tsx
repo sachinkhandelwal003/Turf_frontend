@@ -322,7 +322,33 @@ function GroundContent() {
               tour.status?.toLowerCase() !== 'cancelled'
             );
 
-            const currentPrice = t.pricePerHour || 0;
+            // Get minimum price from sportConfigs or use pricePerHour
+            let currentPrice = Number(t.pricePerHour || 0);
+            if (t.sportConfigs && t.sportConfigs.length > 0) {
+              const sportPrices = t.sportConfigs.map((sc: any) => Number(sc.pricePerHour || 0)).filter((p: number) => p > 0);
+              if (sportPrices.length > 0) {
+                currentPrice = Math.min(...sportPrices);
+              }
+            }
+
+            // Get images from sportConfigs if main images array is empty
+            let displayImage = '/Perreferred1.png';
+            let allImages = [...(t.images || [])];
+            
+            if (t.sportConfigs && t.sportConfigs.length > 0) {
+              t.sportConfigs.forEach((sc: any) => {
+                if (sc.images && sc.images.length > 0) {
+                  allImages = [...allImages, ...sc.images];
+                }
+              });
+            }
+
+            if (allImages.length > 0) {
+              const firstImg = allImages[0];
+              displayImage = firstImg.startsWith('http') 
+                ? firstImg 
+                : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${firstImg}`;
+            }
 
             return {
               id: t._id,
@@ -339,11 +365,7 @@ function GroundContent() {
                 return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
               }) || [],
               sportTypes: t.sports || [],
-              image: t.images && t.images.length > 0 
-                ? (t.images[0].startsWith('http') 
-                    ? t.images[0] 
-                    : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${t.images[0]}`)
-                : '/Perreferred1.png',
+              image: displayImage,
               featured: t.isFeatured || t.rating >= 4.5 || false,
               hasTournament
             };

@@ -47,6 +47,7 @@ interface Turf {
     sportName: string;
     pricePerHour: number;
     slotDuration: number;
+    images?: string[];
     courts: { name: string; isActive: boolean }[];
     slotPricings: { startTime: string; endTime: string; price: number; isPeak: boolean }[];
   }[];

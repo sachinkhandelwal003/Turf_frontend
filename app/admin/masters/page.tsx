@@ -219,17 +219,17 @@ export default function AdminMastersPage() {
                       setNewName("");
                       setSelectedFile(null);
                     }}
-                    className={`w-full group flex flex-col items-start gap-1 px-5 py-4 rounded-[24px] transition-all duration-300 ${
+                    className={`w-full group flex flex-col items-start gap-1 px-5 py-4 rounded-[24px] transition-all duration-300 bg-[#1abc60] text-white ${
                       activeCategory === cat.id 
-                        ? "bg-[#1abc60] text-white shadow-lg scale-[1.02]" 
-                        : "text-gray-500 hover:bg-gray-50 hover:text-[#1abc60]"
+                        ? "shadow-lg scale-[1.02]" 
+                        : "opacity-90 hover:opacity-100 hover:scale-[1.01]"
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <cat.icon className={`w-5 h-5 ${activeCategory === cat.id ? "text-white" : "text-gray-400 group-hover:text-[#1abc60]"}`} />
+                      <cat.icon className="w-5 h-5 text-white" />
                       <span className="font-black text-base uppercase tracking-tight">{cat.label}</span>
                     </div>
-                    <p className={`text-[11px] font-bold leading-relaxed text-left uppercase tracking-tighter ${activeCategory === cat.id ? "text-emerald-50" : "text-gray-400"}`}>
+                    <p className="text-[11px] font-bold leading-relaxed text-left uppercase tracking-tighter text-white">
                       {cat.description}
                     </p>
                   </button>

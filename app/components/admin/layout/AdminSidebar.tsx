@@ -77,7 +77,9 @@ const baseMenuItems: MenuItem[] = [
   { href: '/admin/venue-leads', label: 'Venue Leads', icon: Users, permission: 'superadmin_only' },
 ];
 
-const superadminMenuItems: MenuItem[] = [];
+const superadminMenuItems: MenuItem[] = [
+  { href: '/admin/admin-accounts', label: 'Admin Accounts', icon: Shield, permission: 'superadmin_only' },
+];
 
 interface AdminSidebarProps {
   sidebarOpen?: boolean;

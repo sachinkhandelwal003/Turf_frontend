@@ -105,10 +105,14 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
   const [newAmenity, setNewAmenity] = useState('');
 
   useEffect(() => {
-    if (form.sports.length > 0 && !activeSportTab) {
-      setActiveSportSportTab(form.sports[0]);
+    if (form.sports.length > 0) {
+      if (!activeSportTab || !form.sports.includes(activeSportTab)) {
+        setActiveSportSportTab(form.sports[0]);
+      }
+    } else {
+      setActiveSportSportTab(null);
     }
-  }, [form.sports]);
+  }, [form.sports, activeSportTab]);
   const [sportsOptions, setSportsOptions] = useState<string[]>(fallbackSports);
   const [surfaceOptions, setSurfaceOptions] = useState<string[]>(fallbackSurfaceOptions);
   const [amenitiesOptions, setAmenitiesOptions] = useState<string[]>(fallbackAmenities);
@@ -180,7 +184,31 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
 
         if (sports.length) {
           setSportsOptions(sports);
-          setForm((prev) => ({ ...prev, sports: prev.sports.length ? prev.sports : [sports[0]] }));
+          setForm((prev) => {
+            const defaultSport = sports[0];
+            const hasSports = prev.sports.length > 0;
+            const newSports = hasSports ? prev.sports : [defaultSport];
+            
+            // If we're setting a default sport, make sure it has a config
+            let newConfigs = [...prev.sportConfigs];
+            if (!hasSports && newConfigs.length === 0) {
+              newConfigs = [{
+                sportName: defaultSport,
+                pricePerHour: prev.pricePerHour || '0',
+                slotDuration: 60,
+                slotPricings: [],
+                courts: [{ name: 'Court 1', isActive: true }],
+                images: [],
+                newImages: []
+              }];
+            }
+            
+            return { 
+              ...prev, 
+              sports: newSports,
+              sportConfigs: newConfigs
+            };
+          });
         }
         if (amenities.length) {
           setAmenitiesOptions(amenities);
@@ -222,10 +250,37 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         const weekdayHours = target.operatingHours?.find((hour: any) => hour.day === 'Monday');
         const weekendHours = target.operatingHours?.find((hour: any) => hour.day === 'Saturday');
 
+        const finalSports = target.sports?.length ? target.sports : ['Cricket'];
+        const existingConfigs = Array.isArray(target.sportConfigs) ? target.sportConfigs : [];
+
+        // Backfill missing configs and format existing ones
+        const sportConfigs = finalSports.map((sportName: string) => {
+          const existing = existingConfigs.find((sc: any) => sc.sportName === sportName);
+          if (existing) {
+            return {
+              ...existing,
+              pricePerHour: String(existing.pricePerHour || ''),
+              slotDuration: Number(existing.slotDuration || 60),
+              images: existing.images || [],
+              newImages: []
+            };
+          }
+          // Default config for missing sport
+          return {
+            sportName,
+            pricePerHour: String(target.pricePerHour || '0'),
+            slotDuration: 60,
+            slotPricings: [],
+            courts: [{ name: 'Court 1', isActive: true }],
+            images: [],
+            newImages: []
+          };
+        });
+
         setForm({
           name: target.name || '',
           description: target.description || '',
-          sports: target.sports?.length ? target.sports : ['Cricket'],
+          sports: finalSports,
           surfaceType: target.surfaceType || 'Hybrid Grass',
           amenities: target.amenities?.length ? target.amenities : [],
           address: target.location?.address || '',
@@ -247,15 +302,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           weekendOpen: weekendHours?.open || '08:00',
           weekendClose: weekendHours?.close || '22:00',
           termsAccepted: true,
-          sportConfigs: Array.isArray(target.sportConfigs) 
-            ? target.sportConfigs.map((sc: any) => ({
-                ...sc,
-                pricePerHour: String(sc.pricePerHour || ''),
-                slotDuration: Number(sc.slotDuration || 60),
-                images: sc.images || [],
-                newImages: []
-              }))
-            : [],
+          sportConfigs: sportConfigs,
         });
         if (Array.isArray(target.operatingHours) && target.operatingHours.length) {
           setOperatingHours(
@@ -879,20 +926,20 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         <div className="p-6">
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700">Select Sports</label>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="!flex !items-center !gap-3 !overflow-x-auto !pb-4 !scrollbar-hide">
               {sportsOptions.map((sport) => (
                 <button
                   key={sport}
                   type="button"
                   onClick={() => toggleListValue('sports', sport)}
-                  className={`!flex !items-center !justify-between !rounded-lg !border !px-4 !py-2.5 !text-sm !font-medium !transition-colors !cursor-pointer ${
+                  className={`!flex !items-center !justify-between !rounded-lg !border !px-4 !py-2.5 !text-sm !font-medium !transition-colors !cursor-pointer !min-w-[140px] !flex-shrink-0 ${
                     form.sports.includes(sport)
                       ? '!border-[#1abc60] !bg-green-50 !text-[#1abc60]'
                       : '!border-gray-200 !bg-white !text-gray-600 hover:!border-gray-300 hover:!bg-gray-50'
                   }`}
                 >
-                  {sport}
-                  {form.sports.includes(sport) && <CheckCircle2 className="h-4 w-4" />}
+                  <span className="!whitespace-nowrap">{sport}</span>
+                  {form.sports.includes(sport) && <CheckCircle2 className="h-4 w-4 !flex-shrink-0" />}
                 </button>
               ))}
             </div>

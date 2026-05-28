@@ -34,9 +34,9 @@ export default function MessageList({
   return (
     <div 
       ref={scrollRef}
-      className="flex-1 p-4 overflow-y-auto scroll-smooth custom-scrollbar"
+      className="flex-1 p-2 md:p-4 overflow-y-auto scroll-smooth custom-scrollbar"
     >
-      <div className="flex flex-col gap-2 min-h-full justify-end">
+      <div className="flex flex-col gap-1.5 md:gap-2 min-h-full justify-end">
         {messages.map((message) => (
           <MessageBubble
             key={message._id}

@@ -50,11 +50,11 @@ export default function MessageBubble({
   }
 
   return (
-    <div className={`flex ${isSender ? "justify-end" : "justify-start"} mb-2 px-1`}>
-      <div className={`flex flex-col max-w-[88%] sm:max-w-[78%] ${isSender ? "items-end" : "items-start"}`}>
-        <div className="flex items-end gap-1.5">
+    <div className={`flex ${isSender ? "justify-end" : "justify-start"} mb-2 px-1 w-full`}>
+      <div className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${isSender ? "items-end" : "items-start"} min-w-0`}>
+        <div className="flex items-end gap-1.5 w-full">
           {!isSender && (
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-[13px] font-bold text-gray-500 shrink-0 border-2 border-white shadow-sm overflow-hidden relative">
+            <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-[12px] font-bold text-gray-500 shrink-0 border-2 border-white shadow-sm overflow-hidden relative mb-1">
               {message.senderId?.profilePhoto ? (
                 <img 
                   src={message.senderId.profilePhoto} 
@@ -72,16 +72,16 @@ export default function MessageBubble({
             </div>
           )}
 
-          <div className="relative group">
+          <div className="relative group min-w-0 flex-1">
             <div
-              className={`py-2 px-3.5 rounded-[18px] shadow-sm ${
+              className={`py-2 px-3 md:px-4 rounded-[18px] shadow-sm w-full ${
                 isSender
                   ? "bg-[#1abc60] text-white rounded-tr-none"
                   : "bg-white text-gray-800 rounded-tl-none border border-gray-100"
               }`}
             >
               {!isSender && (
-                <p className="text-[10px] font-bold mb-1 text-[#1abc60] uppercase tracking-wider">
+                <p className="text-[9px] md:text-[10px] font-bold mb-1 text-[#1abc60] uppercase tracking-wider truncate">
                   {message.senderId?.name || "User"}
                 </p>
               )}
@@ -106,7 +106,7 @@ export default function MessageBubble({
               )}
 
               {message.text && (
-                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.text}</p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap break-all md:break-words">{message.text}</p>
               )}
               
               <div className={`flex items-center gap-1 mt-1 ${isSender ? "justify-end" : "justify-start"}`}>

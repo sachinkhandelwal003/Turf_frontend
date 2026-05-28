@@ -27,6 +27,7 @@ interface Booking {
     location: { city: string };
     pricePerHour: number;
     images: string[];
+    rates?: Array<{ day: string, price: number, isPeak: boolean }>;
   };
   sport: string;
   date: string;
@@ -172,7 +173,10 @@ export default function CheckoutPage() {
   const calculateAutoPrice = () => {
     if (!booking) return 0;
     
-    const basePrice = booking.turf?.pricePerHour || 1000;
+    // Get the correct rate based on the date
+    const dayName = new Date(booking.date).toLocaleDateString("en-US", { weekday: "long" });
+    const dayRate = booking.turf?.rates?.find((r: any) => r.day === dayName)?.price;
+    const basePrice = Number((dayRate && dayRate > 0) ? dayRate : (booking.turf?.pricePerHour || 1000));
     const numCourts = booking.courts?.length || 1;
     
     if (booking.isMultiple && booking.slots) {
@@ -187,16 +191,16 @@ export default function CheckoutPage() {
     return Math.max(1, duration) * basePrice * numCourts;
   };
 
-  const totalAmount = booking?.totalAmount || booking?.price || calculateAutoPrice();
-  const convenienceFee = booking?.convenienceFee || (totalAmount > 0 ? 25 : 0); 
+  const venuePrice = booking?.price || calculateAutoPrice();
+  const convenienceFee = booking?.convenienceFee || (venuePrice > 0 ? 25 : 0); 
 
   const discountAmount = useCoins ? appliedCoins * coinValue : 0;
   const payableToday = strategy === 'partial' 
-    ? Math.round(totalAmount * 0.25) - discountAmount 
-    : totalAmount + convenienceFee - discountAmount;
-    
+    ? Math.round(venuePrice * 0.25) + convenienceFee - discountAmount 
+    : venuePrice + convenienceFee - discountAmount;
+
   const balanceDue = strategy === 'partial' 
-    ? Math.round(totalAmount * 0.75) 
+    ? venuePrice - Math.round(venuePrice * 0.25) 
     : 0;
 
   const handlePayment = async () => {
@@ -383,8 +387,8 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <h3 className="!text-base !font-bold !text-gray-900 !mb-1 !m-0">Pay 25% Advance</h3>
-                  <p className="!text-2xl !font-bold !text-gray-900 !mb-2 !m-0">₹{Math.round(totalAmount * 0.25).toLocaleString()}</p>
-                  <p className="!text-xs !text-gray-500 !font-medium !m-0">Balance <span className="!font-bold text-gray-700">₹{Math.round(totalAmount * 0.75).toLocaleString()}</span> due at ground.</p>
+                  <p className="!text-2xl !font-bold !text-gray-900 !mb-2 !m-0">₹{Math.round(venuePrice * 0.25).toLocaleString()}</p>
+                  <p className="!text-xs !text-gray-500 !font-medium !m-0">Balance <span className="!font-bold text-gray-700">₹{Math.round(venuePrice * 0.75).toLocaleString()}</span> due at ground.</p>
                 </div>
 
                 {/* Full Pay Option */}
@@ -403,7 +407,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <h3 className="!text-base !font-bold !text-gray-900 !mb-1 !m-0">Pay Full Amount</h3>
-                  <p className="!text-2xl !font-bold !text-gray-900 !mb-2 !m-0">₹{(totalAmount + convenienceFee).toLocaleString()}</p>
+                  <p className="!text-2xl !font-bold !text-gray-900 !mb-2 !m-0">₹{(venuePrice + convenienceFee).toLocaleString()}</p>
                   <p className="!text-xs !text-gray-500 !font-medium !m-0">Complete payment online. No dues at venue.</p>
                 </div>
 
@@ -431,7 +435,7 @@ export default function CheckoutPage() {
                       type="button"
                       onClick={() => {
                         if (!useCoins) {
-                          const maxCoinsNeeded = Math.ceil((totalAmount + convenienceFee) / coinValue);
+                          const maxCoinsNeeded = Math.ceil((venuePrice + convenienceFee) / coinValue);
                           setAppliedCoins(Math.min(user?.coins || 0, maxCoinsNeeded));
                         } else {
                           setAppliedCoins(0);

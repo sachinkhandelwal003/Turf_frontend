@@ -190,14 +190,14 @@ export default function FeaturedVenues() {
           
           <button 
             onClick={() => setIsFilterModalOpen(true)}
-            className="relative flex items-center gap-2 !text-[#1abc60] text-[14px] font-bold hover:!text-[#169c4e] transition-colors mt-2 !bg-white px-5 py-2.5 rounded-xl border !border-gray-200 shadow-sm hover:shadow-md hover:!border-[#1abc60]/30 cursor-pointer"
+            className="relative flex items-center gap-1.5 sm:gap-2 text-[#1abc60] text-[14px] font-extrabold hover:text-[#169c4e] transition-colors mt-2 bg-white p-2.5 sm:px-5 sm:py-2.5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-[#1abc60]/30 cursor-pointer"
           >
-            <Filter className="w-4 h-4" /> 
-            <span>Filter & Sort</span> 
-            <ChevronDown className="w-4 h-4 text-gray-400" />
+            <Filter className="w-5 h-5 sm:w-4 sm:h-4" strokeWidth={2.5} /> 
+            <span className="hidden sm:inline">Filter & Sort</span> 
+            <ChevronDown className="hidden sm:block w-4 h-4 text-gray-400" strokeWidth={2.5} />
             
             {activeFilterCount > 0 && (
-              <span className="absolute -top-2 -right-2 w-5 h-5 !bg-[#1abc60] !text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 !border-white shadow-sm">
+              <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#1abc60] text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm">
                 {activeFilterCount}
               </span>
             )}
@@ -244,7 +244,7 @@ export default function FeaturedVenues() {
                       <span className="text-[12px] font-medium text-gray-400 uppercase">/ hr</span>
                     </div>
                     
-                    <Link href={`/ground/${venue.id}`} className="!bg-[#1abc60] hover:!bg-[#169c4e] !text-white px-5 py-2 rounded-lg text-[13px] font-bold transition-colors no-underline">
+                    <Link href={`/ground/${venue.id}`} className="bg-[#1abc60] hover:bg-[#169c4e] text-white px-5 py-2 rounded-lg text-[13px] font-bold transition-colors no-underline">
                       Book Now
                     </Link>
                   </div>
@@ -261,7 +261,7 @@ export default function FeaturedVenues() {
             <p className="text-gray-500 text-sm mb-6">Try adjusting your filters or search terms to find what you're looking for.</p>
             <button 
               onClick={clearFilters}
-              className="!bg-[#1abc60] hover:!bg-[#169c4e] !text-white font-bold px-6 py-2.5 rounded-xl transition-colors cursor-pointer !border-none"
+              className="bg-[#1abc60] hover:bg-[#169c4e] text-white font-bold px-6 py-2.5 rounded-xl transition-colors cursor-pointer border-none"
             >
               Clear all filters
             </button>
@@ -282,13 +282,13 @@ export default function FeaturedVenues() {
             <div className="px-6 py-5 flex justify-between items-center border-b border-gray-100 bg-white sticky top-0 z-10">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Filter Venues</h2>
-                <p className="text-xs font-medium text-gray-500 mt-0.5">Find exactly what you need</p>
+                <p className="text-xs font-bold text-gray-500 mt-0.5">Find exactly what you need</p>
               </div>
               <button 
                 onClick={() => setIsFilterModalOpen(false)} 
-                className="p-2 !bg-gray-50 !text-gray-400 hover:!text-gray-800 hover:!bg-gray-100 rounded-full transition-colors !border-none cursor-pointer"
+                className="p-2 bg-gray-50 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors border-none cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" strokeWidth={2.5} />
               </button>
             </div>
             
@@ -296,43 +296,43 @@ export default function FeaturedVenues() {
               
               {/* Search Field */}
               <div className="space-y-3">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                  <Search className="w-3.5 h-3.5" /> Quick Search
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-widest flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5" strokeWidth={2.5} /> Quick Search
                 </label>
-                <div className="!flex !gap-2">
-                  <div className="!relative !flex-1">
-                    <Search className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-5 !h-5 !text-gray-400 !pointer-events-none" />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" strokeWidth={2.5} />
                     <input 
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search by venue name or landmark..."
-                      className="!w-full !pl-12 !pr-4 !py-3.5 !bg-gray-50 !border !border-gray-200 !rounded-xl !text-sm !font-medium !text-gray-900 !outline-none focus:!bg-white focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all placeholder:!font-normal placeholder:!text-gray-400"
+                      className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#1abc60]/20 focus:border-[#1abc60] transition-all placeholder:font-medium placeholder:text-gray-400"
                     />
                   </div>
                   <button
                     onClick={handleAutoDetect}
                     disabled={loading}
-                    className="!p-3.5 !bg-white !border !border-gray-200 !rounded-xl !text-[#1abc60] hover:!bg-[#e8f8ef] hover:!border-[#1abc60] !transition-all !flex !items-center !justify-center !shadow-sm !cursor-pointer !shrink-0"
+                    className="p-3.5 bg-white border border-gray-200 rounded-xl text-[#1abc60] hover:bg-[#e8f8ef] hover:border-[#1abc60] transition-all flex items-center justify-center shadow-sm cursor-pointer shrink-0"
                     title="Auto Detect Location"
                   >
-                    <Navigation className={`!w-5 !h-5 ${loading ? 'animate-spin' : ''}`} />
+                    <Navigation className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} strokeWidth={2.5} />
                   </button>
                 </div>
               </div>
 
               {/* City Selection (Chips Style) */}
               <div className="space-y-3">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5" /> Location
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-widest flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5" strokeWidth={2.5} /> Location
                 </label>
                 <div className="flex flex-wrap gap-2.5">
                   <button 
                     onClick={() => setSelectedCity("")}
                     className={`px-4 py-2 rounded-full text-[13px] font-bold border transition-all cursor-pointer ${
                       !selectedCity 
-                        ? '!bg-[#1abc60] !text-white !border-[#1abc60] shadow-sm' 
-                        : '!bg-white !text-gray-600 !border-gray-200 hover:!border-gray-300 hover:!bg-gray-50'
+                        ? 'bg-[#1abc60] text-white border-[#1abc60] shadow-sm' 
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     Anywhere
@@ -343,11 +343,11 @@ export default function FeaturedVenues() {
                       onClick={() => setSelectedCity(city)}
                       className={`px-4 py-2 rounded-full text-[13px] font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
                         selectedCity === city 
-                          ? '!bg-[#1abc60]/10 !text-[#1abc60] !border-[#1abc60]' 
-                          : '!bg-white !text-gray-600 !border-gray-200 hover:!border-gray-300 hover:!bg-gray-50'
+                          ? 'bg-[#1abc60]/10 text-[#1abc60] border-[#1abc60]' 
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                     >
-                      {selectedCity === city && <Check className="w-3.5 h-3.5" />}
+                      {selectedCity === city && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
                       {city}
                     </button>
                   ))}
@@ -356,7 +356,7 @@ export default function FeaturedVenues() {
 
               {/* Sports Categories (Chips Style) */}
               <div className="space-y-3">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Sports</label>
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-widest">Sports</label>
                 <div className="flex flex-wrap gap-2.5">
                   {availableSports.map(sport => {
                     const isSelected = selectedSports.includes(sport);
@@ -366,12 +366,12 @@ export default function FeaturedVenues() {
                         onClick={() => toggleSport(sport)}
                         className={`px-4 py-2 rounded-full text-[13px] font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
                           isSelected 
-                            ? '!bg-[#1abc60] !text-white !border-[#1abc60] shadow-sm' 
-                            : '!bg-white !text-gray-600 !border-gray-200 hover:!border-gray-300 hover:!bg-gray-50'
+                            ? 'bg-[#1abc60] text-white border-[#1abc60] shadow-sm' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
                         {sport}
-                        {isSelected && <Check className="w-3.5 h-3.5 !text-white" />}
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
                       </button>
                     );
                   })}
@@ -383,13 +383,13 @@ export default function FeaturedVenues() {
             <div className="p-5 border-t border-gray-100 bg-white flex gap-3 sticky bottom-0 z-10">
               <button 
                 onClick={clearFilters}
-                className="px-6 py-3.5 rounded-xl text-sm font-bold !text-gray-500 !bg-gray-50 hover:!bg-gray-100 transition-all border !border-gray-200 cursor-pointer"
+                className="px-6 py-3.5 rounded-xl text-sm font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200 cursor-pointer"
               >
                 Clear All
               </button>
               <button 
                 onClick={() => setIsFilterModalOpen(false)}
-                className="flex-1 px-6 py-3.5 rounded-xl text-sm font-bold !text-white !bg-[#1abc60] hover:!bg-[#169c4e] transition-all !border-none cursor-pointer shadow-lg shadow-[#1abc60]/20 flex justify-center items-center gap-2"
+                className="flex-1 px-6 py-3.5 rounded-xl text-sm font-bold text-white bg-[#1abc60] hover:bg-[#169c4e] transition-all border-none cursor-pointer shadow-lg shadow-[#1abc60]/20 flex justify-center items-center gap-2"
               >
                 Apply Filters
                 {activeFilterCount > 0 && (

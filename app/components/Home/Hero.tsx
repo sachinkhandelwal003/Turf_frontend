@@ -1,7 +1,7 @@
 "use client";
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Search, ChevronDown, X, Navigation } from 'lucide-react';
+import { MapPin, Search, ChevronDown, X, Navigation, Trophy } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/app/services/api';
@@ -231,17 +231,17 @@ export default function Hero() {
                   setIsSportOpen(false);
                 }}
               >
-                <MapPin className="text-[#2b7bf5] w-3.5 h-3.5 md:w-[18px] md:h-[18px] mr-1.5 md:mr-2 flex-shrink-0" strokeWidth={2} />
+                <MapPin className="text-[#1abc60] w-3.5 h-3.5 md:w-[18px] md:h-[18px] mr-1.5 md:mr-2 flex-shrink-0" strokeWidth={2.5} />
                 <input
                   type="text"
                   readOnly
                   value={selectedLocation}
                   placeholder="Location"
-                  className="w-full outline-none text-gray-800 bg-transparent text-[13px] md:text-[14px] font-medium placeholder:text-gray-500 cursor-pointer truncate"
+                  className="w-full outline-none text-gray-800 bg-transparent text-[13px] md:text-[14px] font-bold placeholder:text-gray-400 cursor-pointer truncate"
                 />
                 {selectedLocation && (
                   <X 
-                    className="w-3 h-3 md:w-[14px] md:h-[14px] text-gray-400 hover:text-gray-600 ml-1 cursor-pointer flex-shrink-0" 
+                    className="w-3 h-3 md:w-[14px] md:h-[14px] text-gray-400 hover:text-red-500 ml-1 cursor-pointer flex-shrink-0 transition-colors" 
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedLocation('');
@@ -303,7 +303,7 @@ export default function Hero() {
                 }}
               >
                 <div className="relative mr-1.5 md:mr-2 flex-shrink-0">
-                  <Search className="text-[#1abc60] w-3.5 h-3.5 md:w-[18px] md:h-[18px]" strokeWidth={2} />
+                  <Trophy className="text-[#1abc60] w-3.5 h-3.5 md:w-[18px] md:h-[18px]" strokeWidth={2.5} />
                   <div className="absolute -top-0.5 -right-0.5 w-1 h-1 md:w-1.5 md:h-1.5 bg-[#1abc60] rounded-full border border-white"></div>
                 </div>
                 <input
@@ -311,7 +311,7 @@ export default function Hero() {
                   readOnly
                   value={selectedSport}
                   placeholder="Sports"
-                  className="w-full outline-none text-gray-800 bg-transparent text-[13px] md:text-[14px] font-medium placeholder:text-gray-500 cursor-pointer truncate"
+                  className="w-full outline-none text-gray-800 bg-transparent text-[13px] md:text-[14px] font-bold placeholder:text-gray-500 cursor-pointer truncate"
                 />
                 <ChevronDown className={`w-3 h-3 md:w-[14px] md:h-[14px] text-gray-400 flex-shrink-0 transition-transform duration-300 ${isSportOpen ? 'rotate-180' : ''}`} />
               </div>
@@ -351,10 +351,10 @@ export default function Hero() {
             {/* SEARCH BUTTON */}
             <button
               onClick={handleSearch}
-              className="bg-[#1abc60] hover:bg-[#169c4e] !text-white font-bold p-2 sm:py-2 sm:px-4 md:py-2.5 md:px-6 rounded-[10px] md:rounded-xl transition-all flex items-center justify-center gap-1.5 text-[13px] md:text-[15px] flex-shrink-0 !border-none ml-1 md:ml-1.5 shadow-lg shadow-green-100 active:scale-95 cursor-pointer"
+              className="bg-[#1abc60] hover:bg-[#169c4e] text-white font-bold p-2 sm:py-2 sm:px-4 md:py-2.5 md:px-6 rounded-[10px] md:rounded-xl transition-all flex items-center justify-center gap-2 text-[13px] md:text-[15px] flex-shrink-0 border-none ml-1 md:ml-2 shadow-lg shadow-green-100 active:scale-95 cursor-pointer"
             >
+              <Search className="w-3.5 h-3.5 md:w-[18px] md:h-[18px] text-white flex-shrink-0" strokeWidth={3} />
               <span className="tracking-wide hidden sm:inline">Search</span>
-              <Search className="w-3.5 h-3.5 md:w-[18px] md:h-[18px] text-white flex-shrink-0" strokeWidth={2.5} />
             </button>
 
           </div>

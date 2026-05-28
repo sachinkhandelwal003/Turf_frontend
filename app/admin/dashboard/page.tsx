@@ -46,6 +46,11 @@ interface DashboardStats {
     total: number;
     bookings: number;
     tournaments: number;
+    matches?: {
+      total: number;
+      adminShare: number;
+      superAdminShare: number;
+    };
     wallet: number;
     offline: number;
   };
@@ -452,6 +457,31 @@ export default function AdminDashboard() {
               </motion.div>
             ))}
           </div>
+
+          {/* Match Revenue Breakdown (Conditional) */}
+          {stats.revenue?.matches && stats.revenue.matches.total > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="!bg-white !rounded-2xl !border !border-emerald-100 !shadow-sm !p-6 !grid !grid-cols-1 md:!grid-cols-3 !gap-6 !relative !overflow-hidden"
+            >
+              <div className="!absolute !top-0 !right-0 !p-2 !bg-emerald-500 !text-white !text-[10px] !font-bold !uppercase !rounded-bl-xl !tracking-widest">
+                Matches Revenue (80/20 Split)
+              </div>
+              <div className="!flex !flex-col !gap-1">
+                <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-widest !m-0">Total Match Earnings</p>
+                <h4 className="!text-xl !font-bold !text-gray-900 !m-0">₹{stats.revenue.matches.total.toLocaleString()}</h4>
+              </div>
+              <div className="!flex !flex-col !gap-1">
+                <p className="!text-[10px] !font-bold !text-emerald-500 !uppercase !tracking-widest !m-0">Venue Share (80%)</p>
+                <h4 className="!text-xl !font-bold !text-emerald-600 !m-0">₹{stats.revenue.matches.adminShare.toLocaleString()}</h4>
+              </div>
+              <div className="!flex !flex-col !gap-1">
+                <p className="!text-[10px] !font-bold !text-blue-500 !uppercase !tracking-widest !m-0">Platform Share (20%)</p>
+                <h4 className="!text-xl !font-bold !text-blue-600 !m-0">₹{stats.revenue.matches.superAdminShare.toLocaleString()}</h4>
+              </div>
+            </motion.div>
+          )}
 
           {/* Top KPIs (Bottom Row) */}
           <div className="!grid !grid-cols-2 sm:!grid-cols-3 lg:!grid-cols-5 !gap-4 md:!gap-5">

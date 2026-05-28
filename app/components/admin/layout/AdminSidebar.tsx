@@ -71,6 +71,7 @@ const baseMenuItems: MenuItem[] = [
     ],
   },
   { href: '/admin/chat', label: 'Chat', icon: MessageSquare, permission: 'view_chat' },
+  { href: '/admin/matches', label: 'Match History', icon: Trophy, permission: 'view_bookings' },
   { href: '/admin/billing', label: 'Billing', icon: CreditCard, permission: 'view_billing' },
   { href: '/admin/payment-settings', label: 'QR Settings', icon: QrCode, permission: 'manage_payment_settings' },
   { href: '/admin/settings', label: 'Settings', icon: Settings, permission: 'manage_settings' },

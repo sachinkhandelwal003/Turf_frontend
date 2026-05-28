@@ -1,8 +1,9 @@
 "use client";
 
 import Link from 'next/link';
-import { ArrowRight, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowRight, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/app/services/api';
 
 interface Sport {
@@ -14,6 +15,31 @@ interface Sport {
 export default function PopularSports() {
   const [sports, setSports] = useState<Sport[]>([]);
   const [loading, setLoading] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(true);
+
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setShowLeftArrow(scrollLeft > 10);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+      setScrollProgress(scrollLeft / (scrollWidth - clientWidth));
+    }
+  };
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const { clientWidth } = scrollRef.current;
+      const scrollAmount = clientWidth * 0.8;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchSports = async () => {
@@ -53,43 +79,77 @@ export default function PopularSports() {
             </p>
           </div>
           
-          <Link 
-            href="/categories" 
-            className="flex items-center gap-1.5 text-[#1abc60] font-bold text-[15px] hover:text-[#169c4e] transition-colors"
-          >
-            View All Categories <ArrowRight className="w-4 h-4" />
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link 
+              href="/categories" 
+              className="flex items-center gap-1.5 text-[#1abc60] font-bold text-[15px] hover:text-[#169c4e] transition-colors"
+            >
+              View All <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
 
-        {/* --- Sports Cards Grid --- */}
+        {/* --- Sports Cards Slider/Grid --- */}
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-5">
-            {sports.map((sport) => (
-              <Link 
-                href={`/ground?sport=${sport.name}`} 
-                key={sport._id} 
-                className="group relative h-[240px] rounded-[16px] overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all block"
+          <div className="relative group/slider">
+            {/* Left Navigation Button */}
+            <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 opacity-0 group-hover/slider:opacity-100 transition-opacity">
+              <button
+                onClick={() => scroll('left')}
+                className={`w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-xl transition-all ${
+                  showLeftArrow ? 'hover:scale-110 active:scale-95 cursor-pointer text-[#1abc60]' : 'opacity-30 cursor-not-allowed text-gray-300'
+                }`}
+                disabled={!showLeftArrow}
               >
-                {/* Local Image Render */}
-                <img 
-                  src={sport.image} 
-                  alt={sport.name} 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out" 
-                />
-                
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A]/90 via-[#0A0A0A]/20 to-transparent" />
-                
-                <div className="absolute bottom-5 left-0 w-full text-center px-2">
-                  <span className="text-white font-bold text-[15px] tracking-wide">
-                    {sport.name}
-                  </span>
-                </div>
-              </Link>
-            ))}
+                <ChevronLeft className="w-7 h-7" strokeWidth={3} />
+              </button>
+            </div>
+
+            {/* Right Navigation Button */}
+            <div className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-20 opacity-0 group-hover/slider:opacity-100 transition-opacity">
+              <button
+                onClick={() => scroll('right')}
+                className={`w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-xl transition-all ${
+                  showRightArrow ? 'hover:scale-110 active:scale-95 cursor-pointer text-[#1abc60]' : 'opacity-30 cursor-not-allowed text-gray-300'
+                }`}
+                disabled={!showRightArrow}
+              >
+                <ChevronRight className="w-7 h-7" strokeWidth={3} />
+              </button>
+            </div>
+
+            <div 
+              ref={scrollRef}
+              onScroll={handleScroll}
+              className="flex gap-4 md:gap-5 overflow-x-auto no-scrollbar scroll-smooth pb-4 -mx-1 px-1"
+            >
+              {sports.map((sport) => (
+                <Link 
+                  href={`/ground?sport=${sport.name}`} 
+                  key={sport._id} 
+                  className="flex-shrink-0 w-[160px] sm:w-[180px] md:w-[200px] lg:w-[185px] group relative h-[240px] rounded-[16px] overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all block"
+                >
+                  {/* Local Image Render */}
+                  <img 
+                    src={sport.image} 
+                    alt={sport.name} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out" 
+                  />
+                  
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A]/90 via-[#0A0A0A]/20 to-transparent" />
+                  
+                  <div className="absolute bottom-5 left-0 w-full text-center px-2">
+                    <span className="text-white font-bold text-[15px] tracking-wide">
+                      {sport.name}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         )}
 

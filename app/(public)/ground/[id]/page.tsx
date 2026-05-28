@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   MapPin, Star, ChevronDown, Calendar, Clock, ChevronLeft,
   Activity, CheckCircle2, Circle, X, Loader2 
@@ -380,14 +380,30 @@ export default function VenueDetailsPage() {
   };
 
   useEffect(() => {
-    if (!venue?.images || venue.images.length <= 1) return;
+    setActiveImage(0);
+  }, [selectedSport]);
+
+  const activeSportConfig = useMemo(() => {
+    return venue?.sportConfigs?.find((s: any) => s.sportName === selectedSport);
+  }, [venue, selectedSport]);
+
+  const displayPrice = activeSportConfig ? activeSportConfig.pricePerHour : Number(venue?.price ?? 1000);
+  const currentImages = useMemo(() => {
+    if (activeSportConfig?.images && activeSportConfig.images.length > 0) {
+      return activeSportConfig.images;
+    }
+    return (venue?.images && venue.images.length > 0) ? venue.images : [venue?.image];
+  }, [activeSportConfig, venue]);
+
+  useEffect(() => {
+    if (!currentImages || currentImages.length <= 1) return;
     
     const interval = setInterval(() => {
-      setActiveImage((prev) => (prev + 1) % venue.images.length);
+      setActiveImage((prev) => (prev + 1) % currentImages.length);
     }, 3000); // 3 seconds per slide
 
     return () => clearInterval(interval);
-  }, [venue?.images]);
+  }, [currentImages]);
 
   if (loading) {
     return (
@@ -431,9 +447,7 @@ export default function VenueDetailsPage() {
   const dateObj = new Date(year, month - 1, day);
   const dayNameForDisplay = dateObj.toLocaleDateString("en-US", { weekday: "long" });
 
-  const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName === selectedSport);
-  const displayPrice = activeSportConfig ? activeSportConfig.pricePerHour : Number(venue?.price ?? 1000);
-  const currentImages = (activeSportConfig?.images && activeSportConfig.images.length > 0) ? activeSportConfig.images : venue.images;
+
 
   return (
     <div className="!min-h-screen !bg-[#f8fafc] !pb-20 !pt-24 !font-sans">

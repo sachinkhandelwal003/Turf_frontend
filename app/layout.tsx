@@ -1,21 +1,23 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import './globals.css';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
 
-import { AuthProvider } from '@/app/context/AuthContext';
-import { ChatProvider } from '@/app/context/ChatContext';
+import { AuthProvider } from "@/app/context/AuthContext";
+import { ChatProvider } from "@/app/context/ChatContext";
 
-import { Toaster } from 'sonner';
-import dynamic from 'next/dynamic';
+import { Toaster } from "sonner";
+import { Suspense } from "react";
 
-const FloatingChatWrapper = dynamic(() => import('./components/chat/FloatingChatWrapper'));
+import FloatingChatWrapper from "./components/chat/FloatingChatWrapper";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Turf - Find Your Perfect Sports Ground',
-  description: 'Creating beautiful spaces that inspire and endure.',
+  title: "Turf - Find Your Perfect Sports Ground",
+  description: "Creating beautiful spaces that inspire and endure.",
 };
+
+export const dynamic = 'force-dynamic';
 
 export default function RootLayout({
   children,
@@ -23,16 +25,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.className} overflow-x-hidden`}
-        suppressHydrationWarning
-      >
+    <html lang="en">
+      <body className={`${inter.className} overflow-x-hidden`}>
         <AuthProvider>
           <ChatProvider>
-            {children}
+            <Suspense fallback={null}>
+              {children}
+            </Suspense>
 
-            <FloatingChatWrapper />
+            <Suspense fallback={null}>
+              <FloatingChatWrapper />
+            </Suspense>
 
             <Toaster position="top-right" richColors />
           </ChatProvider>

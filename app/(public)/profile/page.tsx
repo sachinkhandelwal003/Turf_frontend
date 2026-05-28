@@ -151,8 +151,13 @@ const parseSafeNumber = (val: any) => {
 };
 
 const getBookingTotal = (booking: Booking) => {
-  const directAmount = parseSafeNumber(booking.totalAmount || booking.price || booking.paidAmount);
+  const directAmount = parseSafeNumber(booking.totalAmount || booking.price);
   if (directAmount > 0) return directAmount;
+
+  // Fallback for older data or partial objects
+  if (parseSafeNumber(booking.paidAmount) > 0 && !booking.balanceAmount) {
+    return parseSafeNumber(booking.paidAmount);
+  }
 
   if (isTournamentBooking(booking)) {
     const tournFee = parseSafeNumber((booking as any).tournament?.entryFee);
@@ -917,16 +922,20 @@ export default function ProfilePage() {
                                   </div>
                                   <div className="!text-right !shrink-0">
                                     <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-wider !mb-0.5">
-                                      {parseSafeNumber(booking.balanceAmount) > 0 ? "Paid Today" : "Total Paid"}
+                                      Total Amount
                                     </p>
                                     <p className="!text-base !font-bold !text-gray-900">
-                                      ₹{parseSafeNumber(booking.paidAmount) || getBookingTotal(booking)}
+                                      ₹{getBookingTotal(booking).toLocaleString()}
                                     </p>
                                     {parseSafeNumber(booking.balanceAmount) > 0 ? (
                                       <p className="!text-[9px] !font-bold !text-red-500 !uppercase !mt-0.5">
-                                        ₹{booking.balanceAmount} Balance
+                                        ₹{parseSafeNumber(booking.balanceAmount).toLocaleString()} Balance
                                       </p>
-                                    ) : null}
+                                    ) : (
+                                      <p className="!text-[9px] !font-bold !text-[#1abc60] !uppercase !mt-0.5">
+                                        Fully Paid
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
 

@@ -252,6 +252,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
 
         const finalSports = target.sports?.length ? target.sports : ['Cricket'];
         const existingConfigs = Array.isArray(target.sportConfigs) ? target.sportConfigs : [];
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
 
         // Backfill missing configs and format existing ones
         const sportConfigs = finalSports.map((sportName: string) => {
@@ -261,7 +262,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
               ...existing,
               pricePerHour: String(existing.pricePerHour || ''),
               slotDuration: Number(existing.slotDuration || 60),
-              images: existing.images || [],
+              images: (existing.images || []).map((img: string) => img.startsWith('http') ? img : `${baseUrl}${img}`),
               newImages: []
             };
           }
@@ -325,7 +326,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         }
         setRating(target.rating || 0);
         setReviewsCount(target.reviewsCount || 0);
-        setExistingImages(Array.isArray(target.images) ? target.images : []);
+        setExistingImages(Array.isArray(target.images) ? target.images.map((img: string) => img.startsWith('http') ? img : `${baseUrl}${img}`) : []);
         setApiCarryForward({
           rates: Array.isArray(target.rates) ? target.rates : [],
           availableSlots: Array.isArray(target.availableSlots) ? target.availableSlots : [],
@@ -567,54 +568,101 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
 
       const payload = new FormData();
       payload.append('name', form.name);
-      payload.append('description', form.description);
-      payload.append('sports', JSON.stringify(form.sports));
-      payload.append('amenities', JSON.stringify(form.amenities));
+      if (form.description) payload.append('description', form.description);
+      if (form.sports && form.sports.length > 0) payload.append('sports', JSON.stringify(form.sports));
+      if (form.amenities && form.amenities.length > 0) payload.append('amenities', JSON.stringify(form.amenities));
+      
       payload.append('pricePerHour', String(finalBasePrice));
-      payload.append('upiId', form.upiId || '');
-      payload.append('peakHourSurcharge', String(Number(form.peakHourSurcharge || 0)));
-      payload.append('surfaceType', resolvedSurfaceType);
-      payload.append(
-        'location',
-        JSON.stringify({
-          address: form.address,
-          city: form.city,
-          landmark: form.landmark,
-          postcode: form.postcode,
-          mapUrl: form.mapUrl,
-        })
-      );
-      payload.append('slotDuration', String(slotDuration));
-      payload.append('operatingHours', JSON.stringify(effectiveOperatingHours()));
-      payload.append('availableSlots', JSON.stringify(apiCarryForward.availableSlots));
-      payload.append('rates', JSON.stringify(apiCarryForward.rates));
-      payload.append('priceHikes', JSON.stringify(form.priceHikes));
+      
+      if (form.upiId) payload.append('upiId', form.upiId);
+      if (form.peakHourSurcharge && Number(form.peakHourSurcharge) > 0) {
+        payload.append('peakHourSurcharge', String(Number(form.peakHourSurcharge)));
+      }
+      if (resolvedSurfaceType) payload.append('surfaceType', resolvedSurfaceType);
+      
+      const locationData: any = {
+        address: form.address,
+        city: form.city,
+      };
+      if (form.landmark) locationData.landmark = form.landmark;
+      if (form.postcode) locationData.postcode = form.postcode;
+      if (form.mapUrl) locationData.mapUrl = form.mapUrl;
+      
+      payload.append('location', JSON.stringify(locationData));
+      
+      // Only send slotDuration if it's not the default 60
+      if (slotDuration !== 60) {
+        payload.append('slotDuration', String(slotDuration));
+      }
+      
+      const opHours = effectiveOperatingHours();
+      // Only send operatingHours if they are not the default 6-23 for all days
+      const isDefaultOpHours = opHours.every(h => h.open === '06:00' && h.close === '23:00' && h.isOpen);
+      if (!isDefaultOpHours && opHours.length > 0) {
+        payload.append('operatingHours', JSON.stringify(opHours));
+      }
+      
+      if (apiCarryForward.availableSlots && apiCarryForward.availableSlots.length > 0) {
+        payload.append('availableSlots', JSON.stringify(apiCarryForward.availableSlots));
+      }
+      
+      // Ensure rates are always in sync with base price and surcharge
+      const finalRates = days.map((day) => {
+        const rate = apiCarryForward.rates.find(r => r.day === day) || { day, price: 0, isPeak: false };
+        const basePrice = Number(form.pricePerHour || 0);
+        const surcharge = Number(form.peakHourSurcharge || 0);
+        
+        // Final price is base + surcharge (if peak), otherwise just base.
+        const finalPrice = rate.isPeak ? basePrice + surcharge : basePrice;
+        
+        return { ...rate, price: finalPrice };
+      });
+
+      payload.append('rates', JSON.stringify(finalRates));
+      
+      if (form.priceHikes && form.priceHikes.length > 0) {
+        payload.append('priceHikes', JSON.stringify(form.priceHikes));
+      }
       
       // Handle sportConfigs and their images
-      const sportConfigsToSubmit = form.sportConfigs.map((config, idx) => {
-        // We will handle files separately
-        const { newImages, ...rest } = config;
-        return rest;
-      });
-      payload.append('sportConfigs', JSON.stringify(sportConfigsToSubmit));
+      if (form.sportConfigs && form.sportConfigs.length > 0) {
+        const sportConfigsToSubmit = form.sportConfigs.map((config) => {
+          const { newImages, ...rest } = config;
+          // Filter out default values within sport configs too
+          return {
+            ...rest,
+            slotPricings: (rest.slotPricings || []).filter(sp => sp.price > 0),
+            courts: (rest.courts || []).filter(c => c.name !== 'Court 1' || !c.isActive) // Keep if changed
+          };
+        });
+        payload.append('sportConfigs', JSON.stringify(sportConfigsToSubmit));
 
-      // Append sport-specific files
-      form.sportConfigs.forEach((config, idx) => {
-        if (config.newImages && config.newImages.length > 0) {
-          config.newImages.forEach(file => {
-            payload.append(`sportImages_${config.sportName}`, file);
-          });
-        }
-      });
+        // Append sport-specific files
+        form.sportConfigs.forEach((config) => {
+          if (config.newImages && config.newImages.length > 0) {
+            config.newImages.forEach(file => {
+              payload.append(`sportImages_${config.sportName}`, file);
+            });
+          }
+        });
+      }
 
-      payload.append(
-        'courts',
-        JSON.stringify(apiCarryForward.courts)
-      );
+      // Only send global courts if they differ from the single default "Court 1"
+      const hasMeaningfulGlobalCourts = apiCarryForward.courts?.length > 1 || 
+        (apiCarryForward.courts?.length === 1 && apiCarryForward.courts[0].name !== 'Court 1');
       
-      payload.append('existingImages', JSON.stringify(existingImages));
-      payload.append('rating', String(rating));
-      payload.append('reviewsCount', String(reviewsCount));
+      if (hasMeaningfulGlobalCourts) {
+        payload.append('courts', JSON.stringify(apiCarryForward.courts));
+      }
+      
+      if (existingImages && existingImages.length > 0) {
+        payload.append('existingImages', JSON.stringify(existingImages));
+      }
+      
+      if (mode === 'edit') {
+        payload.append('rating', String(rating));
+        payload.append('reviewsCount', String(reviewsCount));
+      }
 
       if (logoFile) {
         payload.append('logo', logoFile);
@@ -924,7 +972,40 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         </div>
         
         <div className="p-6">
-          <div className="space-y-3">
+          <div className="grid gap-6 md:grid-cols-2 mb-8">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <IndianRupee className="h-4 w-4 text-[#1abc60]" />
+                Base Price Per Hour (₹) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                value={form.pricePerHour}
+                onChange={(e) => setForm(prev => ({ ...prev, pricePerHour: e.target.value }))}
+                placeholder="e.g. 1000"
+                className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !font-bold focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
+                required
+              />
+              <p className="text-[10px] text-gray-500 italic">This will be the default price for all sports and days unless overridden.</p>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <PlusCircle className="h-4 w-4 text-[#1abc60]" />
+                Peak Hour Surcharge (₹)
+              </label>
+              <input
+                type="number"
+                value={form.peakHourSurcharge}
+                onChange={(e) => setForm(prev => ({ ...prev, peakHourSurcharge: e.target.value }))}
+                placeholder="e.g. 200"
+                className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !font-bold focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
+              />
+              <p className="text-[10px] text-gray-500 italic">Extra amount added during peak hours or peak days.</p>
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-6 border-t border-gray-100">
             <label className="text-sm font-medium text-gray-700">Select Sports</label>
             <div className="!flex !items-center !gap-3 !overflow-x-auto !pb-4 !scrollbar-hide">
               {sportsOptions.map((sport) => (
@@ -942,6 +1023,46 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                   {form.sports.includes(sport) && <CheckCircle2 className="h-4 w-4 !flex-shrink-0" />}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <IndianRupee className="h-4 w-4 text-[#1abc60]" />
+              Daily Pricing & Peak Days
+            </h3>
+            <p className="text-xs text-gray-500 mb-4">Select which days are considered "Peak Days" to apply the surcharge automatically.</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {days.map((day) => {
+                const rate = apiCarryForward.rates.find(r => r.day === day) || { day, price: 0, isPeak: false };
+                const basePrice = Number(form.pricePerHour || 0);
+                const surcharge = Number(form.peakHourSurcharge || 0);
+                const displayPrice = rate.isPeak ? basePrice + surcharge : basePrice;
+
+                return (
+                  <div key={day} className={`p-3 rounded-xl border transition-all ${rate.isPeak ? 'bg-green-50 border-[#1abc60]' : 'bg-white border-gray-200'}`}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-bold text-gray-700">{day}</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer"
+                          checked={rate.isPeak}
+                          onChange={(e) => updateDayRate(day, { isPeak: e.target.checked })}
+                        />
+                        <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#1abc60]"></div>
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase">Rate:</span>
+                      <span className={`text-sm font-black ${rate.isPeak ? 'text-[#1abc60]' : 'text-gray-900'}`}>
+                        ₹{displayPrice}
+                      </span>
+                    </div>
+                    {rate.isPeak && <span className="text-[9px] font-bold text-[#1abc60] uppercase mt-1 block">(Includes Surcharge)</span>}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

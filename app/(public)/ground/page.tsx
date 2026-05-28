@@ -459,7 +459,7 @@ function GroundContent() {
         className="lg:hidden fixed bottom-8 left-6 z-[40] bg-[#1abc60] text-white p-4 rounded-full shadow-[0_8px_30px_rgba(26,188,96,0.4)] border-none flex items-center justify-center active:scale-95 transition-transform cursor-pointer"
         aria-label="Open filters"
       >
-        <Filter className="w-6 h-6" />
+        <Filter className="w-6 h-6" strokeWidth={2.5} />
       </button>
 
       {/* Mobile Backdrop */}
@@ -497,22 +497,22 @@ function GroundContent() {
 
           {/* Search Bar */}
           <div className="mb-8">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Search Venue</h3>
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-3">Search Venue</h3>
             <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#1abc60] transition-colors z-10" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#1abc60] transition-colors z-10" strokeWidth={2.5} />
               <input 
                 type="text" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name, city, or landmark..."
-                className="!w-full !bg-white !border !border-gray-300 !text-gray-800 !text-sm !rounded-lg !pl-9 !pr-3 !py-2.5 !outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !transition-all !shadow-sm"
+                className="w-full bg-white border border-gray-300 text-gray-900 text-sm font-bold rounded-lg pl-9 pr-3 py-2.5 outline-none focus:border-[#1abc60] focus:ring-1 focus:ring-[#1abc60] transition-all shadow-sm"
               />
             </div>
           </div>
 
           {/* Price Range */}
           <div className="mb-8">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Max Price per Hour (₹)</h3>
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Max Price per Hour (₹)</h3>
             <div className="px-1">
               <div className="relative h-1.5 bg-gray-200 rounded-full mb-4">
                 <div 
@@ -533,7 +533,7 @@ function GroundContent() {
                   style={{ left: `calc(${(maxPrice / 5000) * 100}% - 8px)` }} 
                 />
               </div>
-              <div className="flex justify-between text-xs font-semibold text-gray-600">
+              <div className="flex justify-between text-xs font-bold text-gray-600">
                 <span>₹500</span>
                 <span>₹{maxPrice}</span>
               </div>
@@ -542,27 +542,27 @@ function GroundContent() {
 
           {/* Tournament Filter */}
           <div className="mb-8">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Tournaments</h3>
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Tournaments</h3>
             <label className="flex items-center gap-3 cursor-pointer group">
               <input type="checkbox" className="hidden" checked={showOnlyTournaments} onChange={() => setShowOnlyTournaments(!showOnlyTournaments)} />
-              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${showOnlyTournaments ? '!bg-[#1abc60] !border-[#1abc60]' : '!bg-white !border-gray-300'}`}>
+              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${showOnlyTournaments ? 'bg-[#1abc60] border-[#1abc60]' : 'bg-white border-gray-300'}`}>
                 {showOnlyTournaments && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
               </div>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">Tournament Available</span>
+              <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors">Tournament Available</span>
             </label>
           </div>
 
           {/* Sport Categories */}
           <div className="mb-8">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Sport Categories</h3>
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Sport Categories</h3>
             <div className="flex flex-col gap-3">
               {categoriesToShow.map((sport) => (
                 <label key={sport} className="flex items-center gap-3 cursor-pointer group">
                   <input type="checkbox" className="hidden" checked={selectedCategories.includes(sport)} onChange={() => toggleCategory(sport)} />
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedCategories.includes(sport) ? '!bg-[#1abc60] !border-[#1abc60]' : '!bg-white !border-gray-300'}`}>
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedCategories.includes(sport) ? 'bg-[#1abc60] border-[#1abc60]' : 'bg-white border-gray-300'}`}>
                     {selectedCategories.includes(sport) && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
                   </div>
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">{sport}</span>
+                  <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors">{sport}</span>
                 </label>
               ))}
             </div>
@@ -570,13 +570,13 @@ function GroundContent() {
 
           {/* Minimum Rating */}
           <div className="mb-8">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Minimum Rating</h3>
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Minimum Rating</h3>
             <div className="flex gap-2">
               {[3.5, 4.0, 4.5].map((rating) => (
                 <button 
                   key={rating}
                   onClick={() => setMinRating(minRating === rating ? 0 : rating)}
-                  className={`flex-1 py-2 text-sm font-semibold rounded-lg border transition-all cursor-pointer ${
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg border transition-all cursor-pointer ${
                     minRating === rating 
                       ? 'border-[#1abc60] text-[#1abc60] bg-[#e8f8ef]' 
                       : 'border-gray-200 text-gray-700 bg-white hover:border-gray-300 hover:bg-gray-50'
@@ -592,13 +592,13 @@ function GroundContent() {
           <div className="flex items-center justify-between pt-6 border-t border-gray-200">
             <button 
               onClick={clearFilters}
-              className="text-sm font-semibold !text-gray-500 hover:!text-gray-900 transition-colors !bg-transparent !border-none cursor-pointer !p-0"
+              className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors bg-transparent border-none cursor-pointer p-0"
             >
               Clear All
             </button>
             <button 
               onClick={() => setIsMobileFilterOpen(false)} 
-              className="!bg-[#1abc60] hover:!bg-[#169c4e] transition-colors !text-white text-sm font-semibold px-5 py-2.5 rounded-lg !border-none shadow-sm cursor-pointer"
+              className="bg-[#1abc60] hover:bg-[#169c4e] transition-colors text-white text-sm font-bold px-5 py-2.5 rounded-lg border-none shadow-sm cursor-pointer"
             >
               Apply
             </button>

@@ -91,8 +91,13 @@ export default function MyBookingsPage() {
 
   const getBookingTotal = (booking: Booking) => {
     // 1. Try direct amounts from booking object
-    const directAmount = parseSafeNumber(booking.totalAmount || booking.price || booking.paidAmount);
+    const directAmount = parseSafeNumber(booking.totalAmount || booking.price);
     if (directAmount > 0) return directAmount;
+
+    // Fallback for older data or partial objects
+    if (parseSafeNumber(booking.paidAmount) > 0 && !booking.balanceAmount) {
+      return parseSafeNumber(booking.paidAmount);
+    }
 
     // 2. Fallback conceptual calculation
     try {
@@ -275,18 +280,26 @@ export default function MyBookingsPage() {
                           <div className="flex flex-wrap items-center justify-between gap-6">
                             <div className="flex flex-col gap-1">
                               <div className="flex items-baseline gap-2">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total:</span>
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Amount:</span>
                                 <span className="text-xl font-black text-gray-900">₹ {getBookingTotal(booking).toLocaleString()}</span>
                               </div>
                               <div className="flex items-baseline gap-2">
-                                <span className="text-[10px] font-black text-[#1abc60] uppercase tracking-widest">Paid:</span>
+                                <span className="text-[10px] font-black text-[#1abc60] uppercase tracking-widest">Amount Paid:</span>
                                 <span className="text-2xl font-black text-[#1abc60]">₹ {parseSafeNumber(booking.paidAmount).toLocaleString()}</span>
                               </div>
                               {parseSafeNumber(booking.balanceAmount) > 0 ? (
-                                <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">
-                                  Balance: ₹{parseSafeNumber(booking.balanceAmount).toLocaleString()} due at ground
-                                </p>
-                              ) : null}
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                                  <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">
+                                    ₹{parseSafeNumber(booking.balanceAmount).toLocaleString()} Balance due at ground
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <CheckCircle2 className="w-3 h-3 text-[#1abc60]" />
+                                  <p className="text-[10px] font-black text-[#1abc60] uppercase tracking-widest">Fully Paid</p>
+                                </div>
+                              )}
                             </div>
                             <div className="flex gap-3">
                               {activeTab === 'completed' && (

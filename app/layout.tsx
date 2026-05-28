@@ -17,8 +17,6 @@ export const metadata: Metadata = {
   description: "Creating beautiful spaces that inspire and endure.",
 };
 
-export const dynamic = 'force-dynamic';
-
 export default function RootLayout({
   children,
 }: {
@@ -44,3 +42,4 @@ export default function RootLayout({
     </html>
   );
 }
+// klewhr[oqwhefoih]

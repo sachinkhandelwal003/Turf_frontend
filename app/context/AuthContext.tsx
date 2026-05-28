@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
 
 interface User {
   id: string;
@@ -32,7 +31,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
 
   const refreshUser = async () => {
     const token = localStorage.getItem('token');
@@ -151,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       localStorage.removeItem('adminUser');
       localStorage.removeItem('token');
-      router.push('/login');
+      window.location.href = '/login';
     }
   };
 

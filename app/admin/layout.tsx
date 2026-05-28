@@ -15,16 +15,27 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted state
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Check if current route is login page
   const isLoginPage = pathname === '/admin/login';
 
   useEffect(() => {
     // Only redirect if not on login page and not authenticated
-    if (!isLoading && !isAuthenticated && !isLoginPage) {
+    if (mounted && !isLoading && !isAuthenticated && !isLoginPage) {
       router.push('/admin/login');
     }
-  }, [isAuthenticated, isLoading, router, isLoginPage]);
+  }, [isAuthenticated, isLoading, router, isLoginPage, mounted]);
+
+  // Don't render anything until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return null;
+  }
 
   if (isLoading) {
     return (

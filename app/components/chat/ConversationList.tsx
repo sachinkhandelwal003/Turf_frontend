@@ -33,30 +33,30 @@ export default function ConversationList({
           <div
             key={conversation._id}
             onClick={() => onSelect(conversation)}
-            className={`p-4 cursor-pointer transition-all hover:bg-gray-50 flex items-center gap-3 border-l-4 ${
+            className={`p-3 md:p-4 cursor-pointer transition-all hover:bg-gray-50 flex items-center gap-2 md:gap-3 border-l-4 ${
               isActive ? "bg-[#1abc60]/5 border-l-[#1abc60]" : "border-l-transparent"
             }`}
           >
-            <div className="w-12 h-12 rounded-full bg-gray-50 flex-shrink-0 flex items-center justify-center font-bold text-gray-400 overflow-hidden ring-1 ring-gray-100">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-50 flex-shrink-0 flex items-center justify-center font-bold text-gray-400 overflow-hidden ring-1 ring-gray-100">
               {otherParticipant?.profilePhoto ? (
                 <img src={otherParticipant.profilePhoto} alt="" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-[#1abc60]/70">{otherParticipant?.name?.[0] || "?"}</span>
+                <span className="text-[#1abc60]/70 text-sm md:text-base">{otherParticipant?.name?.[0] || "?"}</span>
               )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-baseline mb-0.5">
-                <h3 className={`font-semibold text-sm truncate ${isActive ? "text-[#1abc60]" : "text-gray-900"}`}>
+                <h3 className={`font-semibold text-[13px] md:text-sm truncate ${isActive ? "text-[#1abc60]" : "text-gray-900"}`}>
                   {currentUserRole === 'admin' && conversation.type === 'superadmin_admin' 
                     ? "Backend Contact" 
                     : (otherParticipant?.name || "Support Chat")}
                 </h3>
-                <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">
+                <span className="text-[9px] md:text-[10px] text-gray-400 whitespace-nowrap ml-2">
                   {conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 truncate flex items-center gap-1">
-                <span className="font-medium text-[10px] uppercase px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 shrink-0">
+              <p className="text-[11px] md:text-xs text-gray-500 truncate flex items-center gap-1">
+                <span className="font-bold text-[8px] md:text-[10px] uppercase px-1 md:px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 shrink-0">
                   {otherParticipant?.role || "User"}
                 </span>
                 <span className="truncate">

@@ -87,20 +87,20 @@ export default function ChatLayout({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="!flex !h-full !w-full !bg-white !overflow-hidden !relative !rounded-[24px] !border !border-gray-200 !shadow-sm !flex-col md:!flex-row !font-sans">
+    <div className="!flex !h-full !w-full !bg-white !overflow-hidden !relative md:!rounded-[24px] md:!border !border-gray-200 !shadow-sm !flex-col md:!flex-row !font-sans">
       
       {/* ========================================== */}
       {/* LEFT SIDEBAR - Contacts List               */}
       {/* ========================================== */}
-      <div className={`${showSidebar ? '!flex' : '!hidden'} md:!flex !flex-col !w-full md:!w-[340px] lg:!w-[380px] !border-r !border-gray-100 !bg-white !shrink-0 !h-full`}>
+      <div className={`${showSidebar ? '!flex' : '!hidden'} md:!flex !flex-col !w-full md:!w-[320px] lg:!w-[380px] !border-r !border-gray-100 !bg-white !shrink-0 !h-full !z-20 !transition-all !duration-300`}>
         
         {/* Sidebar Header */}
-        <div className="!h-[76px] !px-5 !border-b !border-gray-100 !flex !items-center !justify-between !bg-white !shrink-0">
-          <h2 className="!font-black !text-xl !text-gray-900 !m-0 !tracking-tight">Messages</h2>
+        <div className="!h-[60px] md:!h-[76px] !px-4 md:!px-5 !border-b !border-gray-100 !flex !items-center !justify-between !bg-white !shrink-0">
+          <h2 className="!font-black !text-lg md:!text-xl !text-gray-900 !m-0 !tracking-tight">Messages</h2>
           {(currentUser?.role === 'superadmin' || currentUser?.role === 'admin') && (
             <button 
               onClick={() => setShowAdminList(true)}
-              className="!w-10 !h-10 !bg-[#1abc60] !text-white !rounded-xl !flex !items-center !justify-center hover:!bg-[#17a554] !transition-colors !border-none !cursor-pointer !shadow-sm"
+              className="!w-8 !h-8 md:!w-10 md:!h-10 !bg-[#1abc60] !text-white !rounded-xl !flex !items-center !justify-center hover:!bg-[#17a554] !transition-colors !border-none !cursor-pointer !shadow-sm"
               title={currentUser?.role === 'superadmin' ? "New Chat with Admin" : "New Chat with Super Admin"}
             >
               <Plus className="!w-5 !h-5 !block" />
@@ -109,30 +109,32 @@ export default function ChatLayout({ userId }: { userId: string }) {
         </div>
 
         {/* Search & Filter */}
-        <div className="!p-4 !space-y-3 !border-b !border-gray-100 !bg-gray-50/50 !shrink-0">
+        <div className="!p-3 md:!p-4 !space-y-2 md:!space-y-3 !border-b !border-gray-100 !bg-gray-50/50 !shrink-0">
           <div className="!relative !group">
-            <Search className="!absolute !left-3.5 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 group-focus-within:!text-[#1abc60] !transition-colors" />
+            <Search className="!absolute !left-3 !top-1/2 !-translate-y-1/2 !w-3.5 !h-3.5 !text-gray-400 group-focus-within:!text-[#1abc60] !transition-colors" />
             <input
               type="text"
-              placeholder="Search conversations..."
+              placeholder="Search chats..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="!w-full !pl-10 !pr-4 !py-3 !bg-white !border !border-gray-200 !rounded-xl !text-sm !font-medium focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !outline-none !transition-all placeholder:!text-gray-400"
+              className="!w-full !pl-9 !pr-3 !py-2 md:!py-3 !bg-white !border !border-gray-200 !rounded-xl !text-xs md:!text-sm !font-medium focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !outline-none !transition-all placeholder:!text-gray-400"
             />
           </div>
-          <select 
-            value={filter} 
-            onChange={(e) => setFilter(e.target.value)}
-            className="!w-full !px-4 !py-3 !bg-white !border !border-gray-200 !rounded-xl !text-sm !font-bold !text-gray-700 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !appearance-none !cursor-pointer !transition-all"
-          >
-            <option value="all">All Chats</option>
-            {currentUser?.role === 'superadmin' && (
-              <>
-                <option value="only_admins">Only Admins</option>
-                <option value="only_users">Only Users</option>
-              </>
-            )}
-          </select>
+          <div className="!flex !gap-2">
+            <select 
+              value={filter} 
+              onChange={(e) => setFilter(e.target.value)}
+              className="!flex-1 !px-3 !py-1.5 md:!py-2 !bg-white !border !border-gray-200 !rounded-xl !text-[11px] md:!text-sm !font-bold !text-gray-700 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !appearance-none !cursor-pointer !transition-all"
+            >
+              <option value="all">All Chats</option>
+              {currentUser?.role === 'superadmin' && (
+                <>
+                  <option value="only_admins">Only Admins</option>
+                  <option value="only_users">Only Users</option>
+                </>
+              )}
+            </select>
+          </div>
         </div>
 
         {/* Conversation List */}
@@ -163,35 +165,35 @@ export default function ChatLayout({ userId }: { userId: string }) {
       {/* ========================================== */}
       {/* RIGHT CHAT AREA                            */}
       {/* ========================================== */}
-      <div className={`${!showSidebar ? '!flex' : '!hidden'} md:!flex !flex-col !flex-1 !min-w-0 !bg-[#efeae2] !relative`}>
+      <div className={`${!showSidebar ? '!flex' : '!hidden'} md:!flex !flex-col !flex-1 !min-w-0 !bg-[#efeae2] !relative !h-full !transition-all !duration-300`}>
         {selectedConversation ? (
           <>
             {/* Active Chat Header */}
-            <div className="!h-[76px] !px-4 md:!px-6 !border-b !border-gray-200 !bg-white !flex !items-center !gap-3 md:!gap-4 !shadow-sm !shrink-0 !relative !z-10">
+            <div className="!h-[60px] md:!h-[76px] !px-3 md:!px-6 !border-b !border-gray-200 !bg-white !flex !items-center !gap-2 md:!gap-4 !shadow-sm !shrink-0 !relative !z-10">
               <button 
                 onClick={() => setShowSidebar(true)}
-                className="md:!hidden !p-2 hover:!bg-gray-100 !rounded-full !text-gray-600 !transition-colors !border-none !bg-transparent !cursor-pointer"
+                className="md:!hidden !p-1.5 hover:!bg-gray-100 !rounded-full !text-gray-600 !transition-colors !border-none !bg-transparent !cursor-pointer"
               >
-                <ChevronLeft className="!w-6 !h-6 !block" />
+                <ChevronLeft className="!w-5 !h-5 !block" />
               </button>
               
-              <div className="!w-11 !h-11 !rounded-full !bg-emerald-50 !flex !items-center !justify-center !text-[#1abc60] !font-bold !text-lg !shrink-0 !border !border-emerald-100">
+              <div className="!w-9 !h-9 md:!w-11 md:!h-11 !rounded-full !bg-emerald-50 !flex !items-center !justify-center !text-[#1abc60] !font-bold !text-sm md:!text-lg !shrink-0 !border !border-emerald-100">
                 {selectedConversation.participants.find(p => p._id !== userId)?.name?.[0] || "C"}
               </div>
               
               <div className="!min-w-0 !flex-1">
-                <h2 className="!text-base md:!text-lg !font-bold !text-gray-900 !truncate !m-0 !leading-tight">
+                <h2 className="!text-[13px] md:!text-lg !font-bold !text-gray-900 !truncate !m-0 !leading-tight">
                   {currentUser?.role === 'admin' && selectedConversation.type === 'superadmin_admin' 
                     ? "Backend Contact" 
                     : (selectedConversation.participants.find(p => p._id !== userId)?.name || "Chat")}
                 </h2>
-                <div className="!flex !items-center !gap-2 !mt-1">
+                <div className="!flex !items-center !gap-1.5 !mt-0.5 md:!mt-1">
                   {currentUser?.role === 'superadmin' && (
-                    <span className="!text-[9px] !font-black !text-[#1abc60] !bg-emerald-50 !border !border-emerald-200 !px-1.5 !py-0.5 !rounded-md !uppercase !tracking-wider">
+                    <span className="!text-[7px] md:!text-[9px] !font-black !text-[#1abc60] !bg-emerald-50 !border !border-emerald-200 !px-1 !py-0.5 !rounded-md !uppercase !tracking-wider">
                       {selectedConversation.participants.find(p => p._id !== userId)?.role || "User"}
                     </span>
                   )}
-                  <span className="!text-[10px] !font-semibold !text-gray-500 !bg-gray-100 !px-2 !py-0.5 !rounded-md !capitalize">
+                  <span className="!text-[8px] md:!text-[10px] !font-semibold !text-gray-500 !bg-gray-100 !px-1.5 !py-0.5 !rounded-md !capitalize">
                     {selectedConversation.type === 'superadmin_admin' && currentUser?.role === 'admin' 
                       ? "System Support" 
                       : selectedConversation.type.replace(/_/g, " ")}
@@ -215,18 +217,18 @@ export default function ChatLayout({ userId }: { userId: string }) {
           </>
         ) : (
           /* Empty State */
-          <div className="!flex-1 !flex !items-center !justify-center !text-center !p-8 !bg-[#f8fafc]">
-            <div className="!max-w-sm !bg-white !p-10 !rounded-[32px] !shadow-sm !border !border-gray-200">
-              <div className="!w-20 !h-20 !bg-emerald-50 !rounded-[24px] !flex !items-center !justify-center !mx-auto !mb-6 !border !border-emerald-100">
-                <MessageSquare className="!w-10 !h-10 !text-[#1abc60]" />
+          <div className="!flex-1 !flex !items-center !justify-center !text-center !p-4 md:!p-8 !bg-[#f8fafc]">
+            <div className="!max-w-sm !bg-white !p-6 md:!p-10 !rounded-[24px] md:!rounded-[32px] !shadow-sm !border !border-gray-200">
+              <div className="!w-16 !h-16 md:!w-20 md:!h-20 !bg-emerald-50 !rounded-[20px] md:!rounded-[24px] !flex !items-center !justify-center !mx-auto !mb-4 md:!mb-6 !border !border-emerald-100">
+                <MessageSquare className="!w-8 !h-8 md:!w-10 md:!h-10 !text-[#1abc60]" />
               </div>
-              <h3 className="!text-2xl !font-black !text-gray-900 !mb-2 !m-0 !tracking-tight">Your Messages</h3>
-              <p className="!text-sm !font-medium !text-gray-500 !mb-8 !m-0 !leading-relaxed">Select a conversation from the sidebar to start chatting or create a new one.</p>
+              <h3 className="!text-xl md:!text-2xl !font-black !text-gray-900 !mb-2 !m-0 !tracking-tight">Your Messages</h3>
+              <p className="!text-xs md:!text-sm !font-medium !text-gray-500 !mb-6 md:!mb-8 !m-0 !leading-relaxed">Select a conversation from the sidebar to start chatting or create a new one.</p>
               
               {currentUser?.role === 'admin' && conversations.length === 0 && (
                 <button 
                   onClick={() => startConversationWithSuperAdmin()}
-                  className="!w-full !py-3.5 !px-6 !bg-[#1abc60] !text-white !rounded-xl !text-sm !font-bold hover:!bg-[#17a554] !transition-all !shadow-md !shadow-green-100 !flex !items-center !justify-center !gap-2 !border-none !cursor-pointer"
+                  className="!w-full !py-3 md:!py-3.5 !px-4 md:!px-6 !bg-[#1abc60] !text-white !rounded-xl !text-xs md:!text-sm !font-bold hover:!bg-[#17a554] !transition-all !shadow-md !shadow-green-100 !flex !items-center !justify-center !gap-2 !border-none !cursor-pointer"
                 >
                   <MessageSquare className="!w-4 !h-4" />
                   Chat with Super Admin
@@ -234,7 +236,7 @@ export default function ChatLayout({ userId }: { userId: string }) {
               )}
               <button 
                 onClick={() => setShowSidebar(true)}
-                className="!mt-4 md:!hidden !w-full !py-3.5 !px-6 !bg-gray-900 !text-white !rounded-xl !text-sm !font-bold hover:!bg-gray-800 !transition-all !border-none !cursor-pointer"
+                className="!mt-3 md:!hidden !w-full !py-3 md:!py-3.5 !px-4 md:!px-6 !bg-gray-900 !text-white !rounded-xl !text-xs md:!text-sm !font-bold hover:!bg-gray-800 !transition-all !border-none !cursor-pointer"
               >
                 View Conversations
               </button>

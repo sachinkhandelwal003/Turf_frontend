@@ -102,7 +102,7 @@ export default function MessageInput({ isPublic = false }: { isPublic?: boolean 
           className="p-1.5 sm:p-2 text-gray-400 hover:text-[#1abc60] hover:bg-[#1abc60]/10 rounded-xl transition-all active:scale-90 flex-shrink-0"
           title="Send Image"
         >
-          <ImageIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+          <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
         <input 
           type="file" 
@@ -122,7 +122,7 @@ export default function MessageInput({ isPublic = false }: { isPublic?: boolean 
             }
           }}
           placeholder="Type a message..."
-          className="flex-1 bg-transparent border-none focus:ring-0 text-[13px] sm:text-[14px] text-gray-700 placeholder:text-gray-400 resize-none max-h-20 sm:max-h-24 py-1.5 outline-none min-h-[24px]"
+          className="flex-1 bg-transparent border-none focus:ring-0 text-[12px] sm:text-[14px] text-gray-700 placeholder:text-gray-400 resize-none max-h-20 sm:max-h-24 py-2 outline-none min-h-[20px]"
           rows={1}
           style={{ scrollbarWidth: 'none' }}
         />
@@ -132,19 +132,19 @@ export default function MessageInput({ isPublic = false }: { isPublic?: boolean 
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             className={`p-1.5 sm:p-2 rounded-xl transition-all active:scale-90 ${showEmojiPicker ? "text-[#1abc60] bg-[#1abc60]/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"}`}
           >
-            <Smile className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+            <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
           <button
             onClick={handleSend}
             disabled={!text.trim() && !file}
-            className={`p-2 sm:p-2.5 rounded-xl transition-all shadow-md ${
+            className={`p-1.5 sm:p-2.5 rounded-xl transition-all shadow-md ${
               text.trim() || file 
                 ? "bg-[#1abc60] text-white hover:bg-[#169c4e] active:scale-95 translate-x-0" 
                 : "bg-gray-200 text-gray-400 cursor-not-allowed opacity-50"
             }`}
           >
-            <Send className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+            <Send className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
       </div>

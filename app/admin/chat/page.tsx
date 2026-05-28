@@ -27,7 +27,7 @@ export default function AdminChatPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-140px)] lg:h-[calc(100vh-144px)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg flex flex-col mx-auto w-full max-w-[1400px]">
+    <div className="!h-[calc(100dvh-96px)] md:!h-[calc(100vh-140px)] lg:!h-[calc(100vh-144px)] !overflow-hidden md:!rounded-xl md:!border !border-gray-200 !bg-white md:!shadow-lg !flex !flex-col !mx-auto !w-full !max-w-[1400px] !-m-4 md:!m-0">
       <ChatLayout userId={user.id} />
     </div>
   );

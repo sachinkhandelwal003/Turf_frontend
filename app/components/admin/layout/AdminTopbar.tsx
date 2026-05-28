@@ -115,10 +115,10 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute top-full right-[-10px] sm:right-0 mt-4 w-[340px] !bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border !border-slate-100 z-50 flex flex-col"
+                      className="absolute top-full right-[-45px] sm:right-0 mt-4 w-[calc(100vw-32px)] sm:w-[380px] !bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border !border-slate-100 z-50 flex flex-col"
                     >
                       {/* Dropdown top pointer/triangle */}
-                      <div className="absolute -top-2 right-4 sm:right-3 w-4 h-4 !bg-white border-t border-l !border-slate-100 transform rotate-45"></div>
+                      <div className="absolute -top-2 right-[56px] sm:right-3 w-4 h-4 !bg-white border-t border-l !border-slate-100 transform rotate-45"></div>
 
                       <div className="relative z-10 px-5 py-4 border-b !border-slate-100 !bg-white rounded-t-2xl flex justify-between items-center">
                         <h3 className="text-sm font-black !text-slate-900 uppercase tracking-wider">Notifications</h3>

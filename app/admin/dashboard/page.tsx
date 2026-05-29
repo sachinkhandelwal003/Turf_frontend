@@ -53,6 +53,10 @@ interface DashboardStats {
     };
     wallet: number;
     offline: number;
+    pendingSettlements?: number;
+    settlementsPaid?: number;
+    platformShare?: number;
+    venueShare?: number;
   };
   roles: number;
 }
@@ -411,7 +415,7 @@ export default function AdminDashboard() {
               },
               { 
                 title: 'Pending Amount', 
-                value: isSuperadmin ? (stats.revenue?.total || 0) * 0.8 : pendingPayout, 
+                value: isSuperadmin ? (stats.revenue?.pendingSettlements || 0) : pendingPayout, 
                 sub: isSuperadmin ? 'Awaiting Settlements' : 'Awaiting Payment', 
                 icon: Clock, 
                 color: '!text-orange-600', 
@@ -479,6 +483,32 @@ export default function AdminDashboard() {
               <div className="!flex !flex-col !gap-1">
                 <p className="!text-[10px] !font-bold !text-blue-500 !uppercase !tracking-widest !m-0">Platform Share (20%)</p>
                 <h4 className="!text-xl !font-bold !text-blue-600 !m-0">₹{stats.revenue.matches.superAdminShare.toLocaleString()}</h4>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Platform Revenue Summary (For Superadmin) */}
+          {isSuperadmin && stats.revenue?.platformShare !== undefined && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="!bg-gradient-to-br !from-gray-900 !to-gray-800 !rounded-2xl !p-6 !text-white !shadow-lg !grid !grid-cols-1 md:!grid-cols-4 !gap-6 !border !border-gray-700"
+            >
+              <div className="!flex !flex-col !gap-1">
+                <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-widest !m-0">Platform Earnings (20%)</p>
+                <h4 className="!text-xl !font-bold !text-emerald-400 !m-0">₹{stats.revenue.platformShare.toLocaleString()}</h4>
+              </div>
+              <div className="!flex !flex-col !gap-1">
+                <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-widest !m-0">Total Venue Share (80%)</p>
+                <h4 className="!text-xl !font-bold !text-white !m-0">₹{stats.revenue.venueShare?.toLocaleString()}</h4>
+              </div>
+              <div className="!flex !flex-col !gap-1">
+                <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-widest !m-0">Settlements Paid</p>
+                <h4 className="!text-xl !font-bold !text-blue-400 !m-0">₹{stats.revenue.settlementsPaid?.toLocaleString()}</h4>
+              </div>
+              <div className="!flex !flex-col !gap-1">
+                <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-widest !m-0">Pending Settlements</p>
+                <h4 className="!text-xl !font-bold !text-orange-400 !m-0">₹{stats.revenue.pendingSettlements?.toLocaleString()}</h4>
               </div>
             </motion.div>
           )}

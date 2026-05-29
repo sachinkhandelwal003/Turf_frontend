@@ -262,7 +262,7 @@ export default function Navbar() {
                           Dashboard
                         </Link>
                       )}
-                      <div onClick={() => { logout(); setIsOpen(false); window.location.href = '/'; }} className="flex items-center gap-3 text-[18px] font-bold !text-red-500 cursor-pointer">
+                      <div onClick={() => { logout(); setIsOpen(false); }} className="flex items-center gap-3 text-[18px] font-bold !text-red-500 cursor-pointer">
                         <LogOut className="!w-5 !h-5 !block !shrink-0" /> Sign Out
                       </div>
                     </>

@@ -21,19 +21,33 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   
+  // Prevent hydration mismatch
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient && !authLoading && isAuthenticated) {
       router.push('/');
     }
-  }, [isAuthenticated, authLoading, router]);
+  }, [isAuthenticated, authLoading, router, isClient]);
 
-  if (authLoading || isAuthenticated) {
+  if (isClient && authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
+      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
+        <div className="bg-white w-full max-w-[420px] p-6 sm:p-10 rounded-2xl shadow-sm relative">
+          <div className="flex justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
+          </div>
+        </div>
       </div>
     );
+  }
+
+  if (isClient && isAuthenticated) {
+    return null;
   }
 
   const handleLogin = async (e: React.FormEvent) => {

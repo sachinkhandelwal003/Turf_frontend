@@ -146,10 +146,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Logout API Error:", error);
     } finally {
+      const wasAdminUser = user?.role === 'admin' || user?.role === 'superadmin';
       setUser(null);
       localStorage.removeItem('adminUser');
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Redirect to appropriate login page
+      window.location.href = wasAdminUser ? '/admin/login' : '/login';
     }
   };
 

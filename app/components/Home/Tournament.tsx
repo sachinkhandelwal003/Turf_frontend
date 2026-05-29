@@ -35,8 +35,11 @@ export default function Tournaments() {
       try {
         const res = await api.get('tournaments');
         if (res.data.success) {
-          // Show only first 4 for home page
-          setTournaments(res.data.tournaments.slice(0, 4));
+          // Sort tournaments by entry fee (descending) and show only first 2 for home page
+          const sortedTournaments = [...res.data.tournaments].sort((a, b) => 
+            (Number(b.entryFee) || 0) - (Number(a.entryFee) || 0)
+          );
+          setTournaments(sortedTournaments.slice(0, 2));
         }
       } catch (error) {
         console.error('Failed to fetch tournaments:', error);

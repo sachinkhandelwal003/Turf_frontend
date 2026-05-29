@@ -256,10 +256,12 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
 
         // Backfill missing configs and format existing ones
         const sportConfigs = finalSports.map((sportName: string) => {
-          const existing = existingConfigs.find((sc: any) => sc.sportName === sportName);
+          const trimmedSportName = sportName.trim();
+          const existing = existingConfigs.find((sc: any) => sc.sportName.trim() === trimmedSportName);
           if (existing) {
             return {
               ...existing,
+              sportName: trimmedSportName, // Normalize name
               pricePerHour: String(existing.pricePerHour || ''),
               slotDuration: Number(existing.slotDuration || 60),
               images: (existing.images || []).map((img: string) => img.startsWith('http') ? img : `${baseUrl}${img}`),
@@ -268,7 +270,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           }
           // Default config for missing sport
           return {
-            sportName,
+            sportName: trimmedSportName,
             pricePerHour: String(target.pricePerHour || '0'),
             slotDuration: 60,
             slotPricings: [],
@@ -376,11 +378,12 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       
       let nextSportConfigs = [...prev.sportConfigs];
       if (field === 'sports') {
+        const trimmedValue = value.trim();
         if (exists) {
-          nextSportConfigs = nextSportConfigs.filter(c => c.sportName !== value);
+          nextSportConfigs = nextSportConfigs.filter(c => c.sportName.trim() !== trimmedValue);
         } else {
           nextSportConfigs.push({
-            sportName: value,
+            sportName: trimmedValue,
             pricePerHour: prev.pricePerHour || '0',
             slotDuration: 60,
             slotPricings: [],
@@ -626,11 +629,22 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       
       // Handle sportConfigs and their images
       if (form.sportConfigs && form.sportConfigs.length > 0) {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
         const sportConfigsToSubmit = form.sportConfigs.map((config) => {
           const { newImages, ...rest } = config;
+          const sportName = String(config.sportName || "").trim();
+          // Strip baseUrl from existing images to send only relative paths to backend
+          const strippedImages = (rest.images || []).map(img => {
+            if (img.startsWith('http')) {
+              return img.replace(baseUrl, '');
+            }
+            return img;
+          });
           // Filter out default values within sport configs too
           return {
             ...rest,
+            images: strippedImages,
+            sportName, // Normalize name
             slotPricings: (rest.slotPricings || []).filter(sp => sp.price > 0),
             courts: (rest.courts || []).filter(c => c.name !== 'Court 1' || !c.isActive) // Keep if changed
           };
@@ -639,9 +653,10 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
 
         // Append sport-specific files
         form.sportConfigs.forEach((config) => {
+          const sportName = String(config.sportName || "").trim();
           if (config.newImages && config.newImages.length > 0) {
             config.newImages.forEach(file => {
-              payload.append(`sportImages_${config.sportName}`, file);
+              payload.append(`sportImages_${sportName}`, file);
             });
           }
         });
@@ -656,7 +671,14 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       }
       
       if (existingImages && existingImages.length > 0) {
-        payload.append('existingImages', JSON.stringify(existingImages));
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
+        const strippedExistingImages = existingImages.map(img => {
+          if (img.startsWith('http')) {
+            return img.replace(baseUrl, '');
+          }
+          return img;
+        });
+        payload.append('existingImages', JSON.stringify(strippedExistingImages));
       }
       
       if (mode === 'edit') {
@@ -1147,9 +1169,15 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                             <button
                               type="button"
                               onClick={() => {
-                                const next = [...form.sportConfigs];
-                                next[actualIdx].courts.push({ name: `Court ${next[actualIdx].courts.length + 1}`, isActive: true });
-                                setForm(prev => ({ ...prev, sportConfigs: next }));
+                                setForm(prev => {
+                                  const nextConfigs = [...prev.sportConfigs];
+                                  const idx = nextConfigs.findIndex(c => c.sportName === config.sportName);
+                                  if (idx !== -1) {
+                                    const nextCourts = [...nextConfigs[idx].courts, { name: `Court ${nextConfigs[idx].courts.length + 1}`, isActive: true }];
+                                    nextConfigs[idx] = { ...nextConfigs[idx], courts: nextCourts };
+                                  }
+                                  return { ...prev, sportConfigs: nextConfigs };
+                                });
                               }}
                               className="text-[10px] font-bold text-[#1abc60] hover:underline cursor-pointer"
                             >
@@ -1193,9 +1221,17 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const next = [...form.sportConfigs];
-                                    next[actualIdx].images = next[actualIdx].images.filter((_, i) => i !== iIdx);
-                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                    setForm(prev => {
+                                      const nextConfigs = [...prev.sportConfigs];
+                                      const idx = nextConfigs.findIndex(c => c.sportName === config.sportName);
+                                      if (idx !== -1) {
+                                        nextConfigs[idx] = {
+                                          ...nextConfigs[idx],
+                                          images: nextConfigs[idx].images.filter((_, i) => i !== iIdx)
+                                        };
+                                      }
+                                      return { ...prev, sportConfigs: nextConfigs };
+                                    });
                                   }}
                                   className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
                                 >
@@ -1209,9 +1245,17 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const next = [...form.sportConfigs];
-                                    next[actualIdx].newImages = next[actualIdx].newImages?.filter((_, i) => i !== iIdx);
-                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                    setForm(prev => {
+                                      const nextConfigs = [...prev.sportConfigs];
+                                      const idx = nextConfigs.findIndex(c => c.sportName === config.sportName);
+                                      if (idx !== -1) {
+                                        nextConfigs[idx] = {
+                                          ...nextConfigs[idx],
+                                          newImages: nextConfigs[idx].newImages?.filter((_, i) => i !== iIdx)
+                                        };
+                                      }
+                                      return { ...prev, sportConfigs: nextConfigs };
+                                    });
                                   }}
                                   className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
                                 >
@@ -1229,9 +1273,17 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                                 input.onchange = (e) => {
                                   const files = Array.from((e.target as HTMLInputElement).files || []);
                                   if (files.length) {
-                                    const next = [...form.sportConfigs];
-                                    next[actualIdx].newImages = [...(next[actualIdx].newImages || []), ...files];
-                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                    setForm(prev => {
+                                      const nextConfigs = [...prev.sportConfigs];
+                                      const idx = nextConfigs.findIndex(c => c.sportName === config.sportName);
+                                      if (idx !== -1) {
+                                        nextConfigs[idx] = {
+                                          ...nextConfigs[idx],
+                                          newImages: [...(nextConfigs[idx].newImages || []), ...files]
+                                        };
+                                      }
+                                      return { ...prev, sportConfigs: nextConfigs };
+                                    });
                                   }
                                 };
                                 input.click();
@@ -1250,10 +1302,16 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
                             <button
                               type="button"
                               onClick={() => {
-                                const next = [...form.sportConfigs];
-                                next[actualIdx].slotPricings.push({ startTime: '18:00', endTime: '22:00', price: Number(config.pricePerHour) + 200, isPeak: true });
-                                setForm(prev => ({ ...prev, sportConfigs: next }));
-                              }}
+                              setForm(prev => {
+                                const nextConfigs = [...prev.sportConfigs];
+                                const idx = nextConfigs.findIndex(c => c.sportName === config.sportName);
+                                if (idx !== -1) {
+                                  const nextSlots = [...nextConfigs[idx].slotPricings, { startTime: '18:00', endTime: '22:00', price: Number(config.pricePerHour) + 200, isPeak: true }];
+                                  nextConfigs[idx] = { ...nextConfigs[idx], slotPricings: nextSlots };
+                                }
+                                return { ...prev, sportConfigs: nextConfigs };
+                              });
+                            }}
                               className="text-[10px] font-bold text-[#1abc60] hover:underline cursor-pointer"
                             >
                               + Add Peak Slot

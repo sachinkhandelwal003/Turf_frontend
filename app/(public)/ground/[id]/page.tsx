@@ -195,7 +195,8 @@ export default function VenueDetailsPage() {
       return groups;
     }
 
-    const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName === selectedSport);
+    const trimmedSelectedSport = selectedSport?.trim().toLowerCase();
+    const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName.trim().toLowerCase() === trimmedSelectedSport);
     const baseHourlyRate = activeSportConfig ? activeSportConfig.pricePerHour : Number(venue?.price ?? 1000);
     const activeSlotDuration = activeSportConfig?.slotDuration || Number(venue?.slotDuration || 60);
     const activeSlotPricings = (activeSportConfig?.slotPricings?.length > 0) ? activeSportConfig.slotPricings : (venue?.slotPricings || []);
@@ -270,7 +271,8 @@ export default function VenueDetailsPage() {
   const currentSlots = getTimeSlots();
 
   const getCourts = () => {
-    const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName === selectedSport);
+    const trimmedSelectedSport = selectedSport?.trim().toLowerCase();
+    const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName.trim().toLowerCase() === trimmedSelectedSport);
     const targetCourts = (activeSportConfig?.courts && activeSportConfig.courts.length > 0) 
       ? activeSportConfig.courts 
       : venue?.courts;
@@ -327,7 +329,10 @@ export default function VenueDetailsPage() {
       const date = new Date(year, month - 1, day);
       const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
 
-      const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName === (selectedSport || venue?.sports?.[0]));
+      const targetSport = selectedSport || venue?.sports?.[0];
+      const trimmedTargetSport = targetSport?.trim().toLowerCase();
+      const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName.trim().toLowerCase() === trimmedTargetSport);
+      
       const effectiveHourlyRate = activeSportConfig ? activeSportConfig.pricePerHour : Number(venue?.price ?? 1000);
       const activeSlotPricings = (activeSportConfig?.slotPricings?.length > 0) ? activeSportConfig.slotPricings : (venue?.slotPricings || []);
       
@@ -384,7 +389,9 @@ export default function VenueDetailsPage() {
   }, [selectedSport]);
 
   const activeSportConfig = useMemo(() => {
-    return venue?.sportConfigs?.find((s: any) => s.sportName === selectedSport);
+    if (!selectedSport) return null;
+    const trimmedSelectedSport = selectedSport.trim().toLowerCase();
+    return venue?.sportConfigs?.find((s: any) => s.sportName.trim().toLowerCase() === trimmedSelectedSport);
   }, [venue, selectedSport]);
 
   const displayPrice = activeSportConfig ? activeSportConfig.pricePerHour : Number(venue?.price ?? 1000);

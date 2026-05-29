@@ -53,10 +53,13 @@ interface DashboardStats {
     };
     wallet: number;
     offline: number;
-    pendingSettlements?: number;
-    settlementsPaid?: number;
     platformShare?: number;
     venueShare?: number;
+    settlements?: {
+      paid: number;
+      pending: number;
+      pendingToSettle: number;
+    };
   };
   roles: number;
 }
@@ -415,7 +418,7 @@ export default function AdminDashboard() {
               },
               { 
                 title: 'Pending Amount', 
-                value: isSuperadmin ? (stats.revenue?.pendingSettlements || 0) : pendingPayout, 
+                value: isSuperadmin ? (stats.revenue?.settlements?.pendingToSettle || 0) : pendingPayout, 
                 sub: isSuperadmin ? 'Awaiting Settlements' : 'Awaiting Payment', 
                 icon: Clock, 
                 color: '!text-orange-600', 
@@ -504,11 +507,11 @@ export default function AdminDashboard() {
               </div>
               <div className="!flex !flex-col !gap-1">
                 <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-widest !m-0">Settlements Paid</p>
-                <h4 className="!text-xl !font-bold !text-blue-400 !m-0">₹{stats.revenue.settlementsPaid?.toLocaleString()}</h4>
+                <h4 className="!text-xl !font-bold !text-blue-400 !m-0">₹{stats.revenue.settlements?.paid?.toLocaleString()}</h4>
               </div>
               <div className="!flex !flex-col !gap-1">
                 <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-widest !m-0">Pending Settlements</p>
-                <h4 className="!text-xl !font-bold !text-orange-400 !m-0">₹{stats.revenue.pendingSettlements?.toLocaleString()}</h4>
+                <h4 className="!text-xl !font-bold !text-orange-400 !m-0">₹{stats.revenue.settlements?.pendingToSettle?.toLocaleString()}</h4>
               </div>
             </motion.div>
           )}

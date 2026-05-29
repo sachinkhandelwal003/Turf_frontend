@@ -17,6 +17,12 @@ export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Set mounted state
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // === UI STATES ===
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -48,6 +54,33 @@ export default function Navbar() {
     }
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Felix'}`;
   };
+
+  if (!isMounted) {
+    return (
+      <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white border-b border-gray-100 py-4 lg:py-5">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12">
+          <div className="flex items-center justify-between h-[40px]">
+            {/* --- LEFT: LOGO --- */}
+            <div className="flex-1 flex justify-start">
+              <div className="flex-shrink-0 flex items-center">
+                <img 
+                  src="/mainlogo.png" 
+                  alt="GameOn Logo" 
+                  className="h-10 md:h-14 object-contain"
+                />
+              </div>
+            </div>
+            {/* --- RIGHT: PLACEHOLDERS --- */}
+            <div className="hidden lg:flex flex-1 items-center justify-end gap-5">
+              <div className="w-16 h-8 bg-gray-100 rounded-full" />
+              <div className="w-10 h-10 rounded-full bg-gray-100" />
+              <div className="w-10 h-10 rounded-full bg-gray-100" />
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <>

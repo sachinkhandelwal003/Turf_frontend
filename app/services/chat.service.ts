@@ -60,3 +60,14 @@ export const reactToMessage = async (messageId: string, reaction: { userId: stri
   const res = await api.post(`${API}/message/${messageId}/react`, reaction);
   return res.data;
 };
+
+// MARK MESSAGES AS SEEN
+export const markMessagesAsSeen = async (conversationId: string, userId: string) => {
+  try {
+    const res = await api.post(`${API}/messages/${conversationId}/seen`, { userId });
+    return res.data;
+  } catch (error) {
+    console.warn("Failed to mark messages as seen:", error);
+    return null;
+  }
+};

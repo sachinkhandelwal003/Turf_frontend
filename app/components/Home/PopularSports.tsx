@@ -91,7 +91,7 @@ export default function PopularSports() {
 
         {/* --- Sports Cards Slider/Grid --- */}
         {loading ? (
-          <div className="flex justify-center py-20">
+          <div className="flex justify-center py-20 min-h-[300px] items-center">
             <Loader2 className="w-10 h-10 animate-spin text-[#1abc60]" />
           </div>
         ) : (

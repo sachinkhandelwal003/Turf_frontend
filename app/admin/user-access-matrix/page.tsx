@@ -54,8 +54,9 @@ export default function UserAccessMatrixPage() {
         api.get('/auth/permissions')
       ]);
       if (usersRes.data.success) {
-        setUsers(usersRes.data.users);
-        setModifiedUsers(usersRes.data.users);
+        const adminUsers = usersRes.data.users.filter((u: User) => u.role === 'admin' || u.role === 'superadmin');
+        setUsers(adminUsers);
+        setModifiedUsers(adminUsers);
       }
       if (permsRes.data.success) {
         setPermissions(permsRes.data.permissions);

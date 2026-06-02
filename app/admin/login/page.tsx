@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
       
       <div className="bg-white w-full max-w-[420px] p-6 sm:p-10 rounded-2xl shadow-sm relative pt-12 sm:pt-14">
         

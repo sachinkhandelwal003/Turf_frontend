@@ -1,18 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
     ignoreBuildErrors: true,
   },
   images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60,
     remotePatterns: [
       {
         protocol: 'http',
@@ -24,8 +20,21 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'api.rkinteriorstudio.in',
         pathname: '/uploads/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        pathname: '/**',
       }
     ],
+  },
+  compress: true,
+  poweredByHeader: false,
+  productionBrowserSourceMaps: false,
+  optimizeFonts: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'framer-motion', 'recharts'],
+    scrollRestoration: true,
   },
 };
 

@@ -174,7 +174,7 @@ export default function AdminDashboard() {
           try {
             const [billingRes, turfsRes] = await Promise.all([
               api.get('/billing/stats'),
-              api.get('/turfs/my-turfs').catch(() => api.get('/turfs'))
+              api.get('/turfs/my/all').catch(() => ({ data: { success: false, turfs: [] } }))
             ]);
 
             if (billingRes.data.success) {
@@ -405,6 +405,7 @@ export default function AdminDashboard() {
         <div className="!p-6 md:!p-8 !space-y-8 !bg-gray-50/30">
           
           {/* Revenue KPIs (Top Row) */}
+          {isSuperadmin && (
           <div className="!grid !grid-cols-1 sm:!grid-cols-2 lg:!grid-cols-4 !gap-5 md:!gap-6">
             {[
               { 
@@ -464,9 +465,10 @@ export default function AdminDashboard() {
               </motion.div>
             ))}
           </div>
+          )}
 
           {/* Match Revenue Breakdown (Conditional) */}
-          {stats.revenue?.matches && stats.revenue.matches.total > 0 && (
+          {isSuperadmin && stats.revenue?.matches && stats.revenue.matches.total > 0 && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

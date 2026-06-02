@@ -54,6 +54,18 @@ export default function FeaturedVenues() {
     fetchData();
   }, [fetchData]);
 
+  // Disable body scroll when modal is open
+  useEffect(() => {
+    if (isFilterModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isFilterModalOpen]);
+
   const filteredVenues = useMemo(() => {
     let filtered = allTurfs.filter((t: any) => t.isActive);
 
@@ -128,6 +140,7 @@ export default function FeaturedVenues() {
     setSearchQuery("");
     setSelectedSports([]);
     setSelectedCity("");
+    setIsFilterModalOpen(false);
   };
 
   const handleAutoDetect = async () => {
@@ -171,7 +184,7 @@ export default function FeaturedVenues() {
 
   if (loading && allTurfs.length === 0) {
     return (
-      <div className="py-16 flex items-center justify-center">
+      <div className="py-16 flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
       </div>
     );

@@ -112,7 +112,7 @@ export default function MessageBubble({
               <div className={`flex items-center gap-1 mt-1 ${isSender ? "justify-end" : "justify-start"}`}>
                 <span className="text-[10px] opacity-70">{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 {isSender && (
-                  <CheckCheck className="w-3 h-3 opacity-70" />
+                  <CheckCheck className={`w-3 h-3 ${message.isSeen ? "text-blue-500 opacity-100" : "opacity-70"}`} />
                 )}
               </div>
             </div>

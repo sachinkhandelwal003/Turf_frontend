@@ -213,9 +213,19 @@ export default function ProfilePage() {
   const [rewardAmount, setRewardAmount] = useState(0);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  // Refs for file inputs
+  // Refs for file inputs and scrolling
   const profileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const mainContentRef = useRef<HTMLDivElement>(null);
+
+  const handleTabChange = (tab: 'bookings' | 'settings' | 'activity') => {
+    setActiveTab(tab);
+    if (window.innerWidth < 1024 && mainContentRef.current) {
+      setTimeout(() => {
+        mainContentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  };
 
   // Profile Update States
   const [name, setName] = useState('');
@@ -708,7 +718,7 @@ export default function ProfilePage() {
             {/* Custom Tabs */}
             <div className="!bg-white !p-2 !rounded-xl !shadow-sm !border !border-gray-200 !space-y-1">
               <button 
-                onClick={() => setActiveTab('bookings')}
+                onClick={() => handleTabChange('bookings')}
                 className={`!w-full !flex !items-center !justify-between !px-4 !py-3 !rounded-lg !transition-all !group !cursor-pointer !border-none ${activeTab === 'bookings' ? '!bg-[#1abc60] !text-white !shadow-sm' : 'hover:!bg-gray-50 !text-gray-600 !bg-transparent'}`}
               >
                 <div className="!flex !items-center !gap-3">
@@ -719,7 +729,7 @@ export default function ProfilePage() {
               </button>
               
               <button 
-                onClick={() => setActiveTab('activity')}
+                onClick={() => handleTabChange('activity')}
                 className={`!w-full !flex !items-center !justify-between !px-4 !py-3 !rounded-lg !transition-all !group !cursor-pointer !border-none ${activeTab === 'activity' ? '!bg-[#1abc60] !text-white !shadow-sm' : 'hover:!bg-gray-50 !text-gray-600 !bg-transparent'}`}
               >
                 <div className="!flex !items-center !gap-3">
@@ -730,7 +740,7 @@ export default function ProfilePage() {
               </button>
 
               <button 
-                onClick={() => setActiveTab('settings')}
+                onClick={() => handleTabChange('settings')}
                 className={`!w-full !flex !items-center !justify-between !px-4 !py-3 !rounded-lg !transition-all !group !cursor-pointer !border-none ${activeTab === 'settings' ? '!bg-[#1abc60] !text-white !shadow-sm' : 'hover:!bg-gray-50 !text-gray-600 !bg-transparent'}`}
               >
                 <div className="!flex !items-center !gap-3">
@@ -769,7 +779,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Main Content Area */}
-          <div className="lg:!col-span-8">
+          <div ref={mainContentRef} className="lg:!col-span-8">
             <AnimatePresence mode="wait">
               {activeTab === 'bookings' && (
                 <motion.div

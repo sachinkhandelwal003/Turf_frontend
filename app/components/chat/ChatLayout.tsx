@@ -68,7 +68,9 @@ export default function ChatLayout({ userId }: { userId: string }) {
       if (filter === 'only_users' && otherParticipant?.role !== 'user') return false;
     }
 
-    const matchesFilter = filter === "all" || 
+    if (filter === 'unread' && (!conv.unreadCount || conv.unreadCount === 0)) return false;
+
+    const matchesFilter = filter === "all" || filter === 'unread' || 
       (filter !== 'only_admins' && filter !== 'only_users' && conv.type === filter);
     
     const matchesSearch = !searchQuery || 
@@ -127,6 +129,7 @@ export default function ChatLayout({ userId }: { userId: string }) {
               className="!flex-1 !px-3 !py-1.5 md:!py-2 !bg-white !border !border-gray-200 !rounded-xl !text-[11px] md:!text-sm !font-bold !text-gray-700 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !appearance-none !cursor-pointer !transition-all"
             >
               <option value="all">All Chats</option>
+              <option value="unread">Unread</option>
               {currentUser?.role === 'superadmin' && (
                 <>
                   <option value="only_admins">Only Admins</option>

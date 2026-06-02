@@ -106,6 +106,18 @@ export default function VenueDetailsPage() {
     setSelectedCourts([]);
   }, [selectedDate]);
 
+  // Disable body scroll when modal is open
+  useEffect(() => {
+    if (isTimeModalOpen || isCourtModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isTimeModalOpen, isCourtModalOpen]);
+
   useEffect(() => {
     const fetchAvailability = async () => {
       if (!id || id === 'undefined' || id.startsWith('dummy-') || id.length < 10) return;

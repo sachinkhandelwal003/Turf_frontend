@@ -10,7 +10,8 @@ import {
   getSuperAdmin, 
   createConversation,
   deleteMessage as deleteMessageApi,
-  reactToMessage as reactToMessageApi
+  reactToMessage as reactToMessageApi,
+  markMessagesAsSeen as markMessagesAsSeenApi
 } from "@/app/services/chat.service";
 import { useAuth } from "@/app/context/AuthContext";
 import { toast } from "sonner";
@@ -97,14 +98,24 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   }, [userId, selectedConversation]);
 
   const fetchMessages = useCallback(async () => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || !userId) return;
     try {
       const data = await getMessages(selectedConversation._id);
       setMessages(data.messages || []);
+      
+      // Mark messages as seen
+      await markMessagesAsSeenApi(selectedConversation._id, userId);
+      
+      // Update local conversation state to clear unread count
+      setConversations(prev => prev.map(c => 
+        c._id === selectedConversation._id 
+          ? { ...c, unreadCount: 0 } 
+          : c
+      ));
     } catch (error) {
       console.error("Failed to fetch messages:", error);
     }
-  }, [selectedConversation]);
+  }, [selectedConversation, userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -137,11 +148,17 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       setConversations((prev) => {
         const exists = prev.some(c => c._id === newMessage.conversationId);
         if (exists) {
-          return prev.map((conv) => 
-            conv._id === newMessage.conversationId 
-              ? { ...conv, lastMessage: newMessage.text, updatedAt: new Date().toISOString() } 
-              : conv
-          ).sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+          return prev.map((conv) => {
+            if (conv._id === newMessage.conversationId) {
+              return { 
+                ...conv, 
+                lastMessage: newMessage.text, 
+                updatedAt: new Date().toISOString(),
+                unreadCount: isForCurrent ? 0 : (conv.unreadCount || 0) + 1
+              };
+            }
+            return conv;
+          }).sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
         } else {
           // If it's a new conversation, fetch the list again
           fetchConversations();

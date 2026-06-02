@@ -45,24 +45,38 @@ export default function ConversationList({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-baseline mb-0.5">
-                <h3 className={`font-semibold text-[13px] md:text-sm truncate ${isActive ? "text-[#1abc60]" : "text-gray-900"}`}>
-                  {currentUserRole === 'admin' && conversation.type === 'superadmin_admin' 
-                    ? "Backend Contact" 
-                    : (otherParticipant?.name || "Support Chat")}
-                </h3>
-                <span className="text-[9px] md:text-[10px] text-gray-400 whitespace-nowrap ml-2">
-                  {conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
-                </span>
+              <div className="flex justify-between items-start">
+                <div className="flex-1 min-w-0 pr-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className={`font-semibold text-[13px] md:text-sm truncate ${isActive ? "text-[#1abc60]" : "text-gray-900"}`}>
+                      {currentUserRole === 'admin' && conversation.type === 'superadmin_admin' 
+                        ? "Backend Contact" 
+                        : (otherParticipant?.name || "Support Chat")}
+                    </h3>
+                    <span className="font-bold text-[8px] md:text-[9px] uppercase px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 shrink-0">
+                      {otherParticipant?.role || "User"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] md:text-xs text-gray-500 truncate w-full">
+                    {conversation.lastMessage || "No messages yet"}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end shrink-0 gap-1 mt-0.5">
+                  <span className="text-[9px] md:text-[10px] text-gray-400 whitespace-nowrap font-medium">
+                    {conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {conversation.unreadCount && conversation.unreadCount > 0 ? (
+                      <span className="bg-[#1abc60] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                        {conversation.unreadCount}
+                      </span>
+                    ) : null}
+                    <span className="text-[8px] md:text-[9px] text-gray-400 whitespace-nowrap">
+                      {conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : ""}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <p className="text-[11px] md:text-xs text-gray-500 truncate flex items-center gap-1">
-                <span className="font-bold text-[8px] md:text-[10px] uppercase px-1 md:px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 shrink-0">
-                  {otherParticipant?.role || "User"}
-                </span>
-                <span className="truncate">
-                  {conversation.lastMessage || "No messages yet"}
-                </span>
-              </p>
             </div>
           </div>
         );

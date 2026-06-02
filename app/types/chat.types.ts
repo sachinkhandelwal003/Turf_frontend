@@ -38,4 +38,6 @@ export interface Conversation {
   createdAt: string;
 
   updatedAt?: string;
+
+  unreadCount?: number;
 }

@@ -8,6 +8,21 @@ interface Props {
   isPublic?: boolean;
 }
 
+function formatDateLabel(dateString: string) {
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) {
+    return "Today";
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return "Yesterday";
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+}
+
 export default function MessageList({
   messages,
   currentUserId,
@@ -37,14 +52,28 @@ export default function MessageList({
       className="flex-1 p-2 md:p-4 overflow-y-auto scroll-smooth custom-scrollbar"
     >
       <div className="flex flex-col gap-1.5 md:gap-2 min-h-full justify-end">
-        {messages.map((message) => (
-          <MessageBubble
-            key={message._id}
-            message={message}
-            currentUserId={currentUserId}
-            isPublic={isPublic}
-          />
-        ))}
+        {messages.map((message, index) => {
+          const currentDate = new Date(message.createdAt).toDateString();
+          const previousDate = index > 0 ? new Date(messages[index - 1].createdAt).toDateString() : null;
+          const showDateHeader = currentDate !== previousDate;
+
+          return (
+            <div key={message._id} className="w-full flex flex-col">
+              {showDateHeader && (
+                <div className="w-full flex justify-center my-3 md:my-4">
+                  <div className="bg-gray-100 border border-gray-200 text-gray-500 text-[10px] md:text-xs px-3 py-1 rounded-full font-medium shadow-sm">
+                    {formatDateLabel(message.createdAt)}
+                  </div>
+                </div>
+              )}
+              <MessageBubble
+                message={message}
+                currentUserId={currentUserId}
+                isPublic={isPublic}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

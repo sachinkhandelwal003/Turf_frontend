@@ -19,6 +19,11 @@ interface VenueItem {
   location?: {
     city?: string;
   };
+  owner?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
 }
 
 export default function VenueListPage() {
@@ -26,7 +31,11 @@ export default function VenueListPage() {
   const [venues, setVenues] = useState<VenueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedOwner, setSelectedOwner] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const uniqueOwners = Array.from(new Set(venues.map(v => v.owner?.name).filter(Boolean)));
+             
 
   const getImageUrl = (path: string) => {
     if (!path) return '';
@@ -98,10 +107,12 @@ export default function VenueListPage() {
     }
   };
 
-  const filteredVenues = venues.filter(v => 
-    v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (v.location?.city || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredVenues = venues.filter(v => {
+    const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (v.location?.city || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesOwner = selectedOwner ? v.owner?.name === selectedOwner : true;
+    return matchesSearch && matchesOwner;
+  });
 
   return (
     <div className="!max-w-7xl !mx-auto !px-4 sm:!px-6 lg:!px-8 !py-8 !space-y-6 !font-sans">
@@ -121,8 +132,8 @@ export default function VenueListPage() {
       </div>
 
       {/* Search Filter */}
-      <div className="!bg-white !p-4 !rounded-xl !shadow-sm !border !border-gray-200">
-        <div className="!relative !group !flex !items-center !bg-gray-50 !border !border-gray-300 !rounded-lg focus-within:!bg-white focus-within:!ring-2 focus-within:!ring-[#1abc60]/20 focus-within:!border-[#1abc60] !transition-all">
+      <div className="!bg-white !p-4 !rounded-xl !shadow-sm !border !border-gray-200 !flex !flex-col sm:!flex-row !gap-4">
+        <div className="!relative !group !flex !items-center !bg-gray-50 !border !border-gray-300 !rounded-lg focus-within:!bg-white focus-within:!ring-2 focus-within:!ring-[#1abc60]/20 focus-within:!border-[#1abc60] !transition-all !w-full">
           <div className="!pl-4 !pr-2 !text-gray-400 group-focus-within:!text-[#1abc60]">
             <Search className="!w-4 !h-4 !block !shrink-0" />
           </div>
@@ -134,6 +145,20 @@ export default function VenueListPage() {
             className="!w-full !px-3 !py-2.5 !bg-transparent !outline-none !transition-all !text-sm !font-medium !text-gray-900 placeholder:!text-gray-400 !border-none focus:!ring-0"
           />
         </div>
+        
+        {/* Admin Filter Dropdown (Superadmin only) */}
+        {user?.role === 'superadmin' && uniqueOwners.length > 0 && (
+          <select
+            value={selectedOwner}
+            onChange={(e) => setSelectedOwner(e.target.value)}
+            className="!w-full sm:!w-64 !px-4 !py-2.5 !bg-gray-50 !border !border-gray-300 !text-gray-700 !rounded-lg hover:!bg-white !text-sm !font-semibold !transition-colors !outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !cursor-pointer"
+          >
+            <option value="">All Venue Owners</option>
+            {uniqueOwners.map((ownerName) => (
+              <option key={ownerName as string} value={ownerName as string}>{ownerName as string}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Venue List */}
@@ -170,7 +195,12 @@ export default function VenueListPage() {
                             </div>
                           )}
                         </div>
-                        <span className="!truncate !max-w-[180px] !font-bold !text-sm !text-gray-900">{venue.name}</span>
+                        <div className="!flex !flex-col !min-w-0">
+                          <span className="!truncate !max-w-[180px] !font-bold !text-sm !text-gray-900">{venue.name}</span>
+                          {user?.role === 'superadmin' && venue.owner?.name && (
+                            <span className="!text-[10px] !text-gray-400 !font-medium !truncate">Owner: {venue.owner.name}</span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="!px-6 !py-4 !text-sm !font-medium !text-gray-600">{venue.location?.city || '-'}</td>
@@ -261,6 +291,9 @@ export default function VenueListPage() {
                           <MapPin className="!w-3 !h-3 !shrink-0" />
                           <span className="!truncate">{venue.location?.city || '-'}</span>
                         </div>
+                        {user?.role === 'superadmin' && venue.owner?.name && (
+                          <p className="!text-[10px] !text-gray-400 !mt-0.5 !truncate !m-0">Owner: {venue.owner.name}</p>
+                        )}
                       </div>
                     </div>
                     <span className={`!shrink-0 !rounded-md !px-2 !py-1 !text-[10px] !font-bold !uppercase !tracking-wider !border ${

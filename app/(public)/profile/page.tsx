@@ -213,6 +213,11 @@ export default function ProfilePage() {
   const [rewardAmount, setRewardAmount] = useState(0);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Refs for file inputs and scrolling
   const profileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -608,7 +613,7 @@ export default function ProfilePage() {
     return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 10);
   }, [bookings, user?.createdAt]);
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return (
       <div className="!min-h-screen !flex !items-center !justify-center !bg-gray-50">
         <div className="!flex !flex-col !items-center !gap-4">

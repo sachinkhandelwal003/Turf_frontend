@@ -1,21 +1,33 @@
+"use client";
+
 import { Suspense } from 'react';
 import Navbar from '@/app/components/layout/Navbar';
 import Footer from '@/app/components/layout/Footer';
+import { usePathname } from 'next/navigation';
 
 export default function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname() || "";
+  const hideNavbarFooter = ['/login', '/Signup', '/ForgotPassword', '/ResetPassword'].some(path => 
+    pathname.startsWith(path)
+  );
+
   return (
     <>
-      <Suspense fallback={<div className="min-h-[80px]" />}>
-        <Navbar />
-      </Suspense>
+      {!hideNavbarFooter && (
+        <Suspense fallback={<div className="min-h-[80px]" />}>
+          <Navbar />
+        </Suspense>
+      )}
       <main className="min-h-screen">{children}</main>
-      <Suspense fallback={<div className="min-h-[200px]" />}>
-        <Footer />
-      </Suspense>
+      {!hideNavbarFooter && (
+        <Suspense fallback={<div className="min-h-[200px]" />}>
+          <Footer />
+        </Suspense>
+      )}
     </>
   );
 }

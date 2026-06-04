@@ -6,10 +6,146 @@ import { MapPin, Star, ChevronDown, Loader2, Filter, X, Search, Check, Navigatio
 import api from '@/app/services/api';
 import { toast } from 'sonner';
 
+const CITY_COORDS_FALLBACK: Record<string, { lat: number; lng: number }> = {
+  'bangalore': { lat: 12.9716, lng: 77.5946 },
+  'bengaluru': { lat: 12.9716, lng: 77.5946 },
+  'mumbai': { lat: 19.0760, lng: 72.8777 },
+  'delhi': { lat: 28.6139, lng: 77.2090 },
+  'new delhi': { lat: 28.6139, lng: 77.2090 },
+  'kolkata': { lat: 22.5726, lng: 88.3639 },
+  'chennai': { lat: 13.0827, lng: 80.2707 },
+  'hyderabad': { lat: 17.3850, lng: 78.4867 },
+  'pune': { lat: 18.5204, lng: 73.8567 },
+  'ahmedabad': { lat: 23.0225, lng: 72.5714 },
+  'jaipur': { lat: 26.9124, lng: 75.7873 },
+  'surat': { lat: 21.1702, lng: 72.8311 },
+  'lucknow': { lat: 26.8467, lng: 80.9462 },
+  'kanpur': { lat: 26.4499, lng: 80.3319 },
+  'ghaziabad': { lat: 28.6692, lng: 77.4538 },
+  'noida': { lat: 28.5355, lng: 77.3910 },
+  'greater noida': { lat: 28.4744, lng: 77.5040 },
+  'gurgaon': { lat: 28.4595, lng: 77.0266 },
+  'gurugram': { lat: 28.4595, lng: 77.0266 },
+  'faridabad': { lat: 28.4089, lng: 77.3178 },
+  'varanasi': { lat: 25.3176, lng: 82.9739 },
+  'patna': { lat: 25.5941, lng: 85.1376 },
+  'indore': { lat: 22.7196, lng: 75.8577 },
+  'bhopal': { lat: 23.2599, lng: 77.4126 },
+  'ludhiana': { lat: 30.9010, lng: 75.8573 },
+  'agra': { lat: 27.1767, lng: 78.0081 },
+  'vadodara': { lat: 22.3072, lng: 73.1812 },
+  'nashik': { lat: 19.9975, lng: 73.7898 },
+  'jamshedpur': { lat: 22.8046, lng: 86.2029 },
+  'asansol': { lat: 23.6740, lng: 86.9520 },
+  'dhanbad': { lat: 23.7957, lng: 86.4304 },
+  'howrah': { lat: 22.5958, lng: 88.2636 },
+  'ranipet': { lat: 12.9270, lng: 79.3328 },
+  'vellore': { lat: 12.9165, lng: 79.1325 },
+  'coimbatore': { lat: 11.0168, lng: 76.9558 },
+  'madurai': { lat: 9.9252, lng: 78.1198 },
+  'tiruchirappalli': { lat: 10.7905, lng: 78.7047 },
+  'trichy': { lat: 10.7905, lng: 78.7047 },
+  'salem': { lat: 11.6643, lng: 78.1460 },
+  'tiruppur': { lat: 11.1085, lng: 77.3411 },
+  'erode': { lat: 11.3410, lng: 77.7172 },
+  'tirunelveli': { lat: 8.7139, lng: 77.7567 },
+  'thiruvananthapuram': { lat: 8.5241, lng: 76.9366 },
+  'trivandrum': { lat: 8.5241, lng: 76.9366 },
+  'kochi': { lat: 9.9312, lng: 76.2673 },
+  'kozhikode': { lat: 11.2588, lng: 75.7804 },
+  'calicut': { lat: 11.2588, lng: 75.7804 },
+  'thrissur': { lat: 10.5276, lng: 76.2144 },
+  'kollam': { lat: 8.8932, lng: 76.6141 },
+  'visakhapatnam': { lat: 17.6868, lng: 83.2185 },
+  'vizag': { lat: 17.6868, lng: 83.2185 },
+  'vijayawada': { lat: 16.5062, lng: 80.6480 },
+  'guntur': { lat: 16.3067, lng: 80.4365 },
+  'nellore': { lat: 14.4426, lng: 79.9865 },
+  'kurnool': { lat: 15.8281, lng: 78.0373 },
+  'kakinada': { lat: 16.9891, lng: 82.2475 },
+  'rajahmundry': { lat: 17.0005, lng: 81.8040 },
+  'tirupati': { lat: 13.6288, lng: 79.4192 },
+  'kadapa': { lat: 14.4673, lng: 78.8242 },
+  'anantapur': { lat: 14.6819, lng: 77.6006 },
+  'warangal': { lat: 17.9689, lng: 79.5941 },
+  'nizamabad': { lat: 18.6725, lng: 78.0941 },
+  'khammam': { lat: 17.2473, lng: 80.1514 },
+  'karimnagar': { lat: 18.4386, lng: 79.1288 },
+  'ramagundam': { lat: 18.8021, lng: 79.4449 },
+  'raipur': { lat: 21.2514, lng: 81.6296 },
+  'durg': { lat: 21.1904, lng: 81.2849 },
+  'bhilai': { lat: 21.1938, lng: 81.3509 },
+  'bilaspur': { lat: 22.0790, lng: 82.1391 },
+  'korba': { lat: 22.3523, lng: 82.7291 },
+  'raigarh': { lat: 21.8974, lng: 83.3932 },
+  'ranchi': { lat: 23.3441, lng: 85.3096 },
+  'bokaro': { lat: 23.6693, lng: 86.1511 },
+  'deoghar': { lat: 24.4819, lng: 86.7025 },
+  'hazaribagh': { lat: 23.9926, lng: 85.3637 },
+  'bhubaneswar': { lat: 20.2961, lng: 85.8245 },
+  'cuttack': { lat: 20.4625, lng: 85.8830 },
+  'rourkela': { lat: 22.2604, lng: 84.8536 },
+  'puri': { lat: 19.8134, lng: 85.8315 },
+  'sambalpur': { lat: 21.4669, lng: 83.9812 },
+  'jabalpur': { lat: 23.1815, lng: 79.9864 },
+  'gwalior': { lat: 26.2183, lng: 78.1828 },
+  'ujjain': { lat: 23.1760, lng: 75.7885 },
+  'sagar': { lat: 23.8388, lng: 78.7378 },
+  'dewas': { lat: 22.9623, lng: 76.0508 },
+  'satna': { lat: 24.6005, lng: 80.8322 },
+  'ratlam': { lat: 23.3315, lng: 75.0367 },
+  'singrauli': { lat: 24.1957, lng: 82.6683 },
+  'rewa': { lat: 24.5362, lng: 81.3037 },
+  'murwara': { lat: 23.8343, lng: 80.3993 },
+  'katni': { lat: 23.8343, lng: 80.3993 },
+  'chhindwara': { lat: 22.0574, lng: 78.9382 },
+  'jodhpur': { lat: 26.2389, lng: 73.0243 },
+  'kota': { lat: 25.2138, lng: 75.8648 },
+  'bikaner': { lat: 28.0229, lng: 73.3119 },
+  'ajmer': { lat: 26.4498, lng: 74.6399 },
+  'udaipur': { lat: 24.5854, lng: 73.7125 },
+  'bhilwara': { lat: 25.3478, lng: 74.6408 },
+  'alwar': { lat: 27.5530, lng: 76.6346 },
+  'srinagar': { lat: 34.0837, lng: 74.7973 },
+  'jammu': { lat: 32.7266, lng: 74.8570 },
+  'shimla': { lat: 31.1048, lng: 77.1734 },
+  'dehradun': { lat: 30.3165, lng: 78.0322 },
+  'haridwar': { lat: 29.9457, lng: 78.1642 },
+  'haldwani': { lat: 29.2183, lng: 79.5131 },
+  'roorkee': { lat: 29.8543, lng: 77.8880 },
+  'guwahati': { lat: 26.1445, lng: 91.7362 },
+  'silchar': { lat: 24.8333, lng: 92.7789 },
+  'dibrugarh': { lat: 27.4728, lng: 94.9120 },
+  'jorhat': { lat: 26.7509, lng: 94.2037 },
+  'nagaon': { lat: 26.3483, lng: 92.6838 },
+  'imphal': { lat: 24.8170, lng: 93.9368 },
+  'shillong': { lat: 25.5788, lng: 91.8831 },
+  'aizawl': { lat: 23.7307, lng: 92.7173 },
+  'kohima': { lat: 25.6751, lng: 94.1086 },
+  'gangtok': { lat: 27.3314, lng: 88.6138 },
+  'itanagar': { lat: 27.0844, lng: 93.6053 },
+  'panaji': { lat: 15.4909, lng: 73.8278 },
+  'margao': { lat: 15.2736, lng: 73.9580 },
+  'vasco da gama': { lat: 15.3959, lng: 73.8143 }
+};
+
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in km
+};
+
 export default function FeaturedVenues() {
   const [allTurfs, setAllTurfs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>({ lat: 26.9124, lng: 75.7873 });
   
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,6 +187,38 @@ export default function FeaturedVenues() {
   }, []);
 
   useEffect(() => {
+    // 1. Try browser Geolocation first
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        async (error) => {
+          console.warn("Browser geolocation failed/denied, trying IP location...", error);
+          // 2. Fallback to IP geolocation
+          try {
+            const ipRes = await fetch('https://ipapi.co/json/');
+            const ipData = await ipRes.json();
+            if (ipData.latitude && ipData.longitude) {
+              setUserCoords({
+                lat: ipData.latitude,
+                lng: ipData.longitude
+              });
+              console.log("IP-based location detected:", ipData.city);
+            }
+          } catch (ipErr) {
+            console.error("IP geolocation failed:", ipErr);
+          }
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+      );
+    }
+  }, []);
+
+  useEffect(() => {
     fetchData();
   }, [fetchData]);
 
@@ -88,8 +256,26 @@ export default function FeaturedVenues() {
       filtered = filtered.filter((t: any) => t.location?.city === selectedCity);
     }
 
-    // Map to UI format
-    return filtered.slice(0, 3).map((t: any) => {
+    // Map & calculate distances
+    const venuesWithDistance = filtered.map((t: any) => {
+      let lat = t.location?.coordinates?.lat;
+      let lng = t.location?.coordinates?.lng;
+
+      // Fallback to city coordinates if venue coordinates are missing
+      if ((!lat || !lng) && t.location?.city) {
+        const cityKey = t.location.city.toLowerCase().trim();
+        const fallback = CITY_COORDS_FALLBACK[cityKey];
+        if (fallback) {
+          lat = fallback.lat;
+          lng = fallback.lng;
+        }
+      }
+
+      let distance: number | null = null;
+      if (userCoords && lat && lng) {
+        distance = calculateDistance(userCoords.lat, userCoords.lng, lat, lng);
+      }
+
       // Get minimum price from sportConfigs or use pricePerHour
       let currentPriceValue = Number(t.pricePerHour || 0);
       if (t.sportConfigs && t.sportConfigs.length > 0) {
@@ -126,9 +312,21 @@ export default function FeaturedVenues() {
         rating: t.rating || 0,
         reviewsCount: t.reviewsCount || 0,
         img: displayImage,
+        distance
       };
     });
-  }, [allTurfs, searchQuery, selectedSports, selectedCity]);
+
+    // Sort by proximity if user coordinates are available
+    if (userCoords) {
+      venuesWithDistance.sort((a, b) => {
+        if (a.distance === null) return 1;
+        if (b.distance === null) return -1;
+        return a.distance - b.distance;
+      });
+    }
+
+    return venuesWithDistance.slice(0, 3);
+  }, [allTurfs, searchQuery, selectedSports, selectedCity, userCoords]);
 
   const toggleSport = (sport: string) => {
     setSelectedSports(prev => 
@@ -246,9 +444,17 @@ export default function FeaturedVenues() {
                     <h3 className="font-bold text-[17px] text-gray-900 mb-1.5 line-clamp-1">{venue.name}</h3>
                   </Link>
                   
-                  <p className="text-gray-500 text-[13px] flex items-center gap-1.5 mb-6">
-                    <MapPin className="w-3.5 h-3.5 text-gray-400" /> 
-                    <span className="line-clamp-1">{venue.location}</span>
+                  <p className="text-gray-500 text-[13px] flex items-center justify-between mb-6">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" /> 
+                      <span className="line-clamp-1">{venue.location}</span>
+                    </span>
+                    {venue.distance !== null && (
+                      <span className="text-[#1abc60] font-extrabold shrink-0 bg-green-50 px-2 py-0.5 rounded-md text-[11px] border border-green-100 flex items-center gap-0.5">
+                        <Navigation className="w-2.5 h-2.5 fill-current" />
+                        {venue.distance.toFixed(1)} km
+                      </span>
+                    )}
                   </p>
                   
                   <div className="flex items-center justify-between mt-auto">

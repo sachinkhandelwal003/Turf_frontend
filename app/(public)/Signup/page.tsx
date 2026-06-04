@@ -96,7 +96,7 @@ export default function SignUp() {
   return (
     <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
       
-      <div className="bg-white w-full max-w-[420px] p-6 sm:p-10 rounded-2xl shadow-sm relative">
+      <div className="bg-white w-full max-w-[420px] pt-14 pb-6 px-6 sm:p-10 rounded-2xl shadow-sm relative">
         
         {/* Back Button */}
         <button 
@@ -227,7 +227,7 @@ export default function SignUp() {
           {/* Checkbox Terms */}
           <div className="flex items-start sm:items-center justify-between gap-3 mb-8">
             <p className="text-[12px] text-gray-500 leading-tight">
-              I agree to the <span className="text-[#1abc60] font-bold cursor-pointer hover:underline">Terms of Service</span> and <span className="text-[#1abc60] font-bold cursor-pointer hover:underline">Privacy Policy</span>.
+              I agree to the <Link href="/terms-of-service" target="_blank" className="text-[#1abc60] font-bold hover:underline">Terms of Service</Link> and <Link href="/privacy-policy" target="_blank" className="text-[#1abc60] font-bold hover:underline">Privacy Policy</Link>.
             </p>
             <input type="checkbox" required className="w-4 h-4 mt-0.5 sm:mt-0 accent-[#1abc60] cursor-pointer rounded border-gray-300 shrink-0" />
           </div>

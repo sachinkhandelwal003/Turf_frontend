@@ -18,10 +18,10 @@ export default function FloatingChatWrapper() {
 
   if (!mounted) return null;
 
-  // Don't show on admin routes
-  const isAdminRoute = pathname?.startsWith('/admin');
+  // Don't show on admin routes or partner terms page
+  const isExcludedRoute = pathname?.startsWith('/admin') || pathname === '/partner-terms';
 
-  if (isAdminRoute) return null;
+  if (isExcludedRoute) return null;
   
   // Show chat for all authenticated users
   if (!isAuthenticated) return null;

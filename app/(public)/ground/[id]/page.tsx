@@ -162,20 +162,38 @@ export default function VenueDetailsPage() {
   const getTimeSlots = () => {
     if (!venue) return { "MORNING": [], "AFTERNOON": [], "EVENING": [] };
 
+    const trimmedSelectedSport = selectedSport?.trim().toLowerCase();
+    const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName.trim().toLowerCase() === trimmedSelectedSport);
+    const activeCourts = (activeSportConfig?.courts?.length > 0) ? activeSportConfig.courts : (venue?.courts || []);
+    const activeCourtNames = activeCourts.length > 0
+      ? activeCourts.map((c: any) => typeof c === 'string' ? c : (c.name || 'Court'))
+      : ["Court 1"];
+
     const checkIsBooked = (timeVal: string) => {
       const [start, end] = timeVal.split(" - ");
       const bookedCourts = new Set<string>();
       
       bookedSlots.forEach(b => {
+        // If booking is for a different sport, ignore it
+        if (b.sport && selectedSport && b.sport.trim().toLowerCase() !== selectedSport.trim().toLowerCase()) {
+          return;
+        }
+
         // More robust overlap check
         const isOverlap = (start < b.endTime && end > b.startTime);
         
         if (isOverlap) {
           if (b.courts && Array.isArray(b.courts)) {
-            b.courts.forEach((c: string) => bookedCourts.add(c));
+            b.courts.forEach((c: string) => {
+              if (activeCourtNames.includes(c)) {
+                bookedCourts.add(c);
+              }
+            });
           } else if (b.slots && b.slots.includes(timeVal)) {
             // Fallback: if courts missing but slot matches exactly
-            bookedCourts.add("Default Court");
+            if (activeCourtNames.includes("Default Court") || activeCourtNames.includes("Court 1")) {
+              bookedCourts.add(activeCourtNames[0]);
+            }
           }
         }
       });
@@ -207,12 +225,9 @@ export default function VenueDetailsPage() {
       return groups;
     }
 
-    const trimmedSelectedSport = selectedSport?.trim().toLowerCase();
-    const activeSportConfig = venue?.sportConfigs?.find((s: any) => s.sportName.trim().toLowerCase() === trimmedSelectedSport);
     const baseHourlyRate = activeSportConfig ? activeSportConfig.pricePerHour : Number(venue?.price ?? 1000);
     const activeSlotDuration = activeSportConfig?.slotDuration || Number(venue?.slotDuration || 60);
     const activeSlotPricings = (activeSportConfig?.slotPricings?.length > 0) ? activeSportConfig.slotPricings : (venue?.slotPricings || []);
-    const activeCourts = (activeSportConfig?.courts?.length > 0) ? activeSportConfig.courts : (venue?.courts || []);
 
     let open = operatingDay.open || "06:00";
     let close = operatingDay.close || "23:00";
@@ -268,7 +283,7 @@ export default function VenueDetailsPage() {
 
       groups[type].push({
         time: label,
-        status: (isPast || bookedCourts.length >= (activeCourts.length || 1)) ? "disabled" : "available",
+        status: (isPast || bookedCourts.length >= activeCourtNames.length) ? "disabled" : "available",
         value: timeVal,
         bookedCourts,
         isPast,
@@ -308,6 +323,10 @@ export default function VenueDetailsPage() {
     const [start, end] = slotValue.split(" - ");
     const booked = new Set<string>();
     bookedSlots.forEach((b) => {
+      // If booking is for a different sport, ignore it
+      if (b.sport && selectedSport && b.sport.trim().toLowerCase() !== selectedSport.trim().toLowerCase()) {
+        return;
+      }
       if (start < b.endTime && end > b.startTime) {
         if (b.courts && Array.isArray(b.courts)) {
           b.courts.forEach((c: string) => booked.add(c));
@@ -397,6 +416,9 @@ export default function VenueDetailsPage() {
   };
 
   useEffect(() => {
+    setSelectedTimes([]);
+    setSelectedCourts([]);
+    setSelectedDate(todayDateStr);
     setActiveImage(0);
   }, [selectedSport]);
 

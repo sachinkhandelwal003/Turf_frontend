@@ -131,7 +131,7 @@ export default function PopularSports() {
                 <Link 
                   href={`/ground?sport=${sport.name}`} 
                   key={sport._id} 
-                  className="flex-shrink-0 w-[160px] sm:w-[180px] md:w-[200px] lg:w-[185px] group relative h-[240px] rounded-[16px] overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all block"
+                  className="flex-shrink-0 w-[110px] sm:w-[150px] md:w-[180px] lg:w-[185px] group relative h-[150px] sm:h-[200px] md:h-[230px] lg:h-[240px] rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all block"
                 >
                   {/* Local Image Render */}
                   <img 
@@ -142,8 +142,8 @@ export default function PopularSports() {
                   
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A]/90 via-[#0A0A0A]/20 to-transparent" />
                   
-                  <div className="absolute bottom-5 left-0 w-full text-center px-2">
-                    <span className="text-white font-bold text-[15px] tracking-wide">
+                  <div className="absolute bottom-3 sm:bottom-5 left-0 w-full text-center px-1.5 sm:px-2">
+                    <span className="text-white font-bold text-[13px] sm:text-[15px] tracking-wide">
                       {sport.name}
                     </span>
                   </div>

@@ -56,6 +56,8 @@ interface FormShape {
   weekendClose: string;
   termsAccepted: boolean;
   sportConfigs: SportConfig[];
+  interestToHost: boolean;
+  coordinates?: { lat: number; lng: number };
 }
 
 interface ApiCarryForwardShape {
@@ -86,6 +88,8 @@ const defaultForm: FormShape = {
   weekendClose: '22:00',
   termsAccepted: false,
   sportConfigs: [],
+  interestToHost: false,
+  coordinates: undefined,
 };
 
 const fallbackSports = ['Football', 'Cricket', 'Tennis', 'Basketball'];
@@ -306,6 +310,8 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           weekendClose: weekendHours?.close || '22:00',
           termsAccepted: true,
           sportConfigs: sportConfigs,
+          interestToHost: !!target.interestToHost,
+          coordinates: target.location?.coordinates,
         });
         if (Array.isArray(target.operatingHours) && target.operatingHours.length) {
           setOperatingHours(
@@ -459,6 +465,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
             city: city,
             postcode: postcode,
             mapUrl,
+            coordinates: { lat, lng: lon }
           }));
           toast.success('Current location applied.');
         } catch (error) {
@@ -467,6 +474,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
             ...prev,
             address: `Lat ${lat.toFixed(5)}, Lng ${lon.toFixed(5)}`,
             mapUrl,
+            coordinates: { lat, lng: lon }
           }));
           toast.success('Location coordinates applied (address fetch failed).');
         }
@@ -571,6 +579,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
 
       const payload = new FormData();
       payload.append('name', form.name);
+      payload.append('interestToHost', String(form.interestToHost));
       if (form.description) payload.append('description', form.description);
       if (form.sports && form.sports.length > 0) payload.append('sports', JSON.stringify(form.sports));
       if (form.amenities && form.amenities.length > 0) payload.append('amenities', JSON.stringify(form.amenities));
@@ -590,6 +599,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       if (form.landmark) locationData.landmark = form.landmark;
       if (form.postcode) locationData.postcode = form.postcode;
       if (form.mapUrl) locationData.mapUrl = form.mapUrl;
+      if (form.coordinates) locationData.coordinates = form.coordinates;
       
       payload.append('location', JSON.stringify(locationData));
       
@@ -789,6 +799,27 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
               placeholder="Tell customers about your facility's history, vibe, and unique features..."
               className="!h-32 !w-full !rounded-lg !border !border-gray-300 !bg-white !p-3 !text-sm !text-gray-900 !outline-none focus:!border-[#1abc60] focus:!ring-2 focus:!ring-[#1abc60]/20 !transition-colors !resize-none placeholder:!text-gray-400"
             />
+          </div>
+
+          <div className="mt-6 p-4 rounded-lg bg-green-50/50 border border-green-100 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <label htmlFor="interestToHost" className="text-sm font-semibold text-gray-950 cursor-pointer">
+                Interest to Host Matches
+              </label>
+              <p className="text-xs text-gray-500">
+                Allow players and match organizers to create public or private hosted matches at this venue.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                id="interestToHost"
+                checked={form.interestToHost}
+                onChange={(e) => setForm((prev) => ({ ...prev, interestToHost: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#1abc60]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1abc60]"></div>
+            </label>
           </div>
         </div>
       </div>
@@ -1526,7 +1557,7 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
             onChange={(e) => setForm((prev) => ({ ...prev, termsAccepted: e.target.checked }))} 
             className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] cursor-pointer" 
           />
-          I agree to the <span className="text-[#1abc60] hover:underline">Partner Terms</span>
+          I agree to the <a href="/partner-terms" target="_blank" rel="noopener noreferrer" className="text-[#1abc60] hover:underline">Partner Terms</a>
         </label>
         
         <button

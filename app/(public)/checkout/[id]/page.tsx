@@ -23,6 +23,7 @@ interface Booking {
   _id: string;
   bookingId: string;
   turf: {
+    _id: string;
     name: string;
     location: { city: string };
     pricePerHour: number;
@@ -344,11 +345,18 @@ export default function CheckoutPage() {
         {/* --- HEADER --- */}
         <div className="!mb-8 md:!mb-10">
           <button 
-            onClick={() => router.push('/bookings')}
+            onClick={() => {
+              if (booking?.turf?._id) {
+                router.push(`/ground/${booking.turf._id}`);
+              } else {
+                router.push('/ground');
+              }
+              window.scrollTo({ top: 0, behavior: 'instant' });
+            }}
             className="!flex !items-center !gap-1.5 !text-sm !font-bold !text-gray-500 hover:!text-gray-900 !mb-4 !transition-colors !bg-transparent !border-none !cursor-pointer !p-0"
           >
             <ChevronRight className="!w-4 !h-4 !rotate-180" />
-            Back to Bookings
+            Back to Slot Selection
           </button>
           <h1 className="!text-3xl md:!text-4xl !font-bold !tracking-tight !text-gray-900 !mb-2 !m-0">
             Secure Checkout

@@ -21,7 +21,7 @@ interface Match {
   endTime: string;
   totalPlayersNeeded: number;
   pricePerPlayer: number;
-  status: 'open' | 'full' | 'cancelled' | 'completed';
+  status: 'open' | 'full' | 'cancelled' | 'completed' | 'cancelled hosting';
   isPrivate: boolean;
   host: {
     name: string;
@@ -76,6 +76,20 @@ export default function AdminMatchesPage() {
       toast.error(error.response?.data?.message || "Failed to fetch matches");
     } finally {
       setLoading(false);
+    }
+  };
+  const handleCancelHosting = async (matchId: string) => {
+    try {
+      const confirm = window.confirm("Are you sure you want to cancel the hosting for this match? This action cannot be undone.");
+      if (!confirm) return;
+
+      const res = await api.patch(`/matches/${matchId}/cancel`);
+      if (res.data.success) {
+        toast.success("Match hosting cancelled successfully");
+        fetchMatches();
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to cancel match hosting");
     }
   };
 
@@ -160,6 +174,7 @@ export default function AdminMatchesPage() {
               <option value="full">Full</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
+              <option value="cancelled hosting">Cancelled Hosting</option>
             </select>
           </div>
         </div>
@@ -186,9 +201,10 @@ export default function AdminMatchesPage() {
                         match.status === 'open' ? '!bg-green-100 !text-green-700' :
                         match.status === 'full' ? '!bg-blue-100 !text-blue-700' :
                         match.status === 'completed' ? '!bg-gray-100 !text-gray-700' :
+                        match.status === 'cancelled hosting' ? '!bg-rose-100 !text-rose-700' :
                         '!bg-red-100 !text-red-700'
                       }`}>
-                        {match.status}
+                        {match.status === 'cancelled hosting' ? 'cancelled hosting' : match.status}
                       </span>
                       {match.isPrivate && (
                         <span className="!px-3 !py-1 !bg-amber-100 !text-amber-700 !rounded-full !text-xs !font-bold !uppercase !tracking-wider">
@@ -285,6 +301,14 @@ export default function AdminMatchesPage() {
                     <ShieldCheck className="!w-4 !h-4 !text-[#1abc60]" />
                     Confirmed Players ({match.revenue.confirmedPlayers} / {match.totalPlayersNeeded})
                   </h4>
+                  {(match.status === 'open' || match.status === 'full') && (
+                    <button
+                      onClick={() => handleCancelHosting(match._id)}
+                      className="!px-3 !py-1 !text-xs !font-bold !text-red-600 hover:!bg-red-50 !rounded-lg !border !border-red-200 !transition-all !cursor-pointer"
+                    >
+                      Cancel Hosting
+                    </button>
+                  )}
                 </div>
                 
                 <div className="!flex !flex-wrap !gap-3">

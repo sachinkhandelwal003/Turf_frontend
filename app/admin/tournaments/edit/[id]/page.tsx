@@ -187,6 +187,10 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    let finalValue = value;
+    if (name === 'contact.phone') {
+      finalValue = value.replace(/\D/g, '').slice(0, 10);
+    }
     if (name.includes('.')) {
       const parts = name.split('.');
       if (parts.length === 2) {
@@ -195,12 +199,12 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
           ...prev,
           [parent]: {
             ...(prev[parent as keyof typeof prev] as any),
-            [child]: value
+            [child]: finalValue
           }
         }));
       }
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData(prev => ({ ...prev, [name]: finalValue }));
     }
   };
 

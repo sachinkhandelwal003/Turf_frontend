@@ -161,7 +161,10 @@ export default function SignUp() {
                 type="tel" 
                 name="phone"
                 value={formData.phone}
-                onChange={handleChange}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setFormData({ ...formData, phone: val });
+                }}
                 placeholder="9876543210" 
                 className="w-full py-3.5 px-4 bg-transparent text-[14px] text-gray-800 outline-none" 
               />

@@ -216,7 +216,10 @@ export default function GroundOwnerModal({ isOpen, onClose }: GroundOwnerModalPr
                       type="tel"
                       name="contactNumber"
                       value={formData.contactNumber}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setFormData({ ...formData, contactNumber: val });
+                      }}
                       placeholder="9876543210"
                       className="w-full px-4 py-3 bg-transparent text-sm border-none outline-none"
                       required

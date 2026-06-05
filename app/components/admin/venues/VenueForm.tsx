@@ -16,6 +16,8 @@ type VenueFormMode = 'add' | 'edit';
 interface VenueFormProps {
   mode: VenueFormMode;
   turfId?: string;
+  onSuccess?: (createdTurf: any) => void;
+  onCancel?: () => void;
 }
 
 interface PriceHike {
@@ -100,7 +102,7 @@ const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 
 type OperatingHour = { day: string; open: string; close: string; isOpen: boolean };
 
-export default function VenueForm({ mode, turfId }: VenueFormProps) {
+export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFormProps) {
   const router = useRouter();
   const [form, setForm] = useState<FormShape>(defaultForm);
   const [loading, setLoading] = useState(mode === 'edit');
@@ -704,10 +706,11 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
       }
       galleryImages.forEach((file) => payload.append('images', file));
 
+      let res;
       if (mode === 'edit' && turfId) {
-        await api.put(`/turfs/${turfId}`, payload, { headers: { 'Content-Type': 'multipart/form-data' } });
+        res = await api.put(`/turfs/${turfId}`, payload, { headers: { 'Content-Type': 'multipart/form-data' } });
       } else {
-        await api.post('/turfs', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
+        res = await api.post('/turfs', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
       }
       await Swal.fire({
         title: mode === 'edit' ? 'Venue Updated' : 'Venue Submitted',
@@ -716,7 +719,11 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
         confirmButtonColor: '#1abc60',
       });
       toast.success(mode === 'edit' ? 'Venue updated successfully.' : 'Venue submitted for review.');
-      router.push('/admin/venues/list');
+      if (onSuccess) {
+        onSuccess(res.data?.turf || { _id: turfId });
+      } else {
+        router.push('/admin/venues/list');
+      }
     } catch (error: any) {
       const errorMessage = error?.response?.data?.msg || error?.response?.data?.error || 'Failed to save venue.';
       await Swal.fire({
@@ -1560,14 +1567,25 @@ export default function VenueForm({ mode, turfId }: VenueFormProps) {
           I agree to the <a href="/partner-terms" target="_blank" rel="noopener noreferrer" className="text-[#1abc60] hover:underline">Partner Terms</a>
         </label>
         
-        <button
-          disabled={saving || !form.termsAccepted}
-          type="submit"
-          className="!flex !w-full sm:!w-auto !items-center !justify-center !gap-2 !rounded-lg !bg-[#1abc60] !px-10 !py-3 !text-sm !font-bold !text-white hover:!bg-[#17a554] disabled:!opacity-50 !transition-all !border-none !cursor-pointer shadow-lg shadow-green-100"
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-          {mode === 'edit' ? 'Save Changes' : 'Create Venue'}
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="!inline-flex !w-full sm:!w-auto !items-center !justify-center !rounded-lg !border !border-gray-300 !bg-white !px-6 !py-3 !text-sm !font-bold !text-gray-700 hover:!bg-gray-50 !transition-all !cursor-pointer"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            disabled={saving || !form.termsAccepted}
+            type="submit"
+            className="!flex !w-full sm:!w-auto !items-center !justify-center !gap-2 !rounded-lg !bg-[#1abc60] !px-10 !py-3 !text-sm !font-bold !text-white hover:!bg-[#17a554] disabled:!opacity-50 !transition-all !border-none !cursor-pointer shadow-lg shadow-green-100"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+            {mode === 'edit' ? 'Save Changes' : 'Create Venue'}
+          </button>
+        </div>
       </div>
     </form>
   );

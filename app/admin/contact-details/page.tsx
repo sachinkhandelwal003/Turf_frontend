@@ -130,7 +130,10 @@ export default function ContactDetailsPage() {
     field: string,
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const value = event.target.value;
+    let value = event.target.value;
+    if (field === 'phone') {
+      value = value.replace(/\D/g, '').slice(0, 10);
+    }
     setContactDetails(prev => ({ ...prev, [field]: value }));
   };
 

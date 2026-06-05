@@ -34,7 +34,6 @@ const nextConfig = {
   optimizeFonts: true,
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', 'recharts'],
-    scrollRestoration: true,
   },
 };
 

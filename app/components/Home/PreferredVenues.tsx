@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { MapPin, Star, ChevronDown, Loader2, Filter, X, Search, Check, Navigation } from 'lucide-react';
+import { MapPin, Star, ChevronDown, Loader2, Filter, X, Search, Check, Navigation, ArrowRight } from 'lucide-react';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
 
@@ -312,20 +312,19 @@ export default function FeaturedVenues() {
         rating: t.rating || 0,
         reviewsCount: t.reviewsCount || 0,
         img: displayImage,
-        distance
+        distance,
+        createdAt: t.createdAt
       };
     });
 
-    // Sort by proximity if user coordinates are available
-    if (userCoords) {
-      venuesWithDistance.sort((a, b) => {
-        if (a.distance === null) return 1;
-        if (b.distance === null) return -1;
-        return a.distance - b.distance;
-      });
-    }
+    // Sort by createdAt descending (newest first)
+    venuesWithDistance.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
 
-    return venuesWithDistance.slice(0, 3);
+    return venuesWithDistance.slice(0, 6);
   }, [allTurfs, searchQuery, selectedSports, selectedCity, userCoords]);
 
   const toggleSport = (sport: string) => {
@@ -417,60 +416,71 @@ export default function FeaturedVenues() {
 
         {/* --- Cards Grid --- */}
         {filteredVenues.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVenues.map((venue) => (
-              <div 
-                key={venue.id} 
-                className="bg-white rounded-[16px] overflow-hidden border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-lg transition-all duration-300 flex flex-col"
-              >
-                {/* Image Container with Rating Badge */}
-                <Link href={`/ground/${venue.id}`} className="relative h-[200px] w-full p-2.5 block">
-                  <div className="w-full h-full rounded-[12px] overflow-hidden relative">
-                     <img 
-                       src={venue.img} 
-                       alt={venue.name} 
-                       className="w-full h-full object-cover" 
-                     />
-                  </div>
-                  
-                  <div className="absolute top-5 right-5 bg-white px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                    <span className="text-[12px] font-bold text-gray-800">{venue.rating}</span>
-                    <Star className="w-3 h-3 text-[#FFB800] fill-[#FFB800]" />
-                  </div>
-                </Link>
-
-                <div className="p-5 pt-3 flex flex-col flex-1">
-                  <Link href={`/ground/${venue.id}`} className="block hover:text-[#1abc60] transition-colors">
-                    <h3 className="font-bold text-[17px] text-gray-900 mb-1.5 line-clamp-1">{venue.name}</h3>
-                  </Link>
-                  
-                  <p className="text-gray-500 text-[13px] flex items-center justify-between mb-6">
-                    <span className="flex items-center gap-1.5 min-w-0">
-                      <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" /> 
-                      <span className="line-clamp-1">{venue.location}</span>
-                    </span>
-                    {venue.distance !== null && (
-                      <span className="text-[#1abc60] font-extrabold shrink-0 bg-green-50 px-2 py-0.5 rounded-md text-[11px] border border-green-100 flex items-center gap-0.5">
-                        <Navigation className="w-2.5 h-2.5 fill-current" />
-                        {venue.distance.toFixed(1)} km
-                      </span>
-                    )}
-                  </p>
-                  
-                  <div className="flex items-center justify-between mt-auto">
-                    <div className="text-gray-900 font-bold text-xl flex items-baseline gap-1">
-                      {venue.price}
-                      <span className="text-[12px] font-medium text-gray-400 uppercase">/ hr</span>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredVenues.map((venue) => (
+                <div 
+                  key={venue.id} 
+                  className="bg-white rounded-[16px] overflow-hidden border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-lg transition-all duration-300 flex flex-col"
+                >
+                  {/* Image Container with Rating Badge */}
+                  <Link href={`/ground/${venue.id}`} className="relative h-[200px] w-full p-2.5 block">
+                    <div className="w-full h-full rounded-[12px] overflow-hidden relative">
+                       <img 
+                         src={venue.img} 
+                         alt={venue.name} 
+                         className="w-full h-full object-cover" 
+                       />
                     </div>
                     
-                    <Link href={`/ground/${venue.id}`} className="bg-[#1abc60] hover:bg-[#169c4e] text-white px-5 py-2 rounded-lg text-[13px] font-bold transition-colors no-underline">
-                      Book Now
+                    <div className="absolute top-5 right-5 bg-white px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                      <span className="text-[12px] font-bold text-gray-800">{venue.rating}</span>
+                      <Star className="w-3 h-3 text-[#FFB800] fill-[#FFB800]" />
+                    </div>
+                  </Link>
+
+                  <div className="p-5 pt-3 flex flex-col flex-1">
+                    <Link href={`/ground/${venue.id}`} className="block hover:text-[#1abc60] transition-colors">
+                      <h3 className="font-bold text-[17px] text-gray-900 mb-1.5 line-clamp-1">{venue.name}</h3>
                     </Link>
+                    
+                    <p className="text-gray-500 text-[13px] flex items-center justify-between mb-6">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" /> 
+                        <span className="line-clamp-1">{venue.location}</span>
+                      </span>
+                      {venue.distance !== null && (
+                        <span className="text-[#1abc60] font-extrabold shrink-0 bg-green-50 px-2 py-0.5 rounded-md text-[11px] border border-green-100 flex items-center gap-0.5">
+                          <Navigation className="w-2.5 h-2.5 fill-current" />
+                          {venue.distance.toFixed(1)} km
+                        </span>
+                      )}
+                    </p>
+                    
+                    <div className="flex items-center justify-between mt-auto">
+                      <div className="text-gray-900 font-bold text-xl flex items-baseline gap-1">
+                        {venue.price}
+                        <span className="text-[12px] font-medium text-gray-400 uppercase">/ hr</span>
+                      </div>
+                      
+                      <Link href={`/ground/${venue.id}`} className="bg-[#1abc60] hover:bg-[#169c4e] text-white px-5 py-2 rounded-lg text-[13px] font-bold transition-colors no-underline">
+                        Book Now
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            <div className="flex justify-center mt-12">
+              <Link 
+                href="/ground" 
+                className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#1abc60] hover:bg-[#169c4e] text-white rounded-xl text-[15px] font-extrabold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer no-underline"
+              >
+                View All Venues <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </>
         ) : (
           <div className="py-20 text-center bg-white rounded-2xl border border-gray-100 shadow-sm">
             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">

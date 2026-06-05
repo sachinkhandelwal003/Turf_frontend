@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
-import { Search, Shield, ShieldCheck, Users, User as UserIcon, Loader2, Check, AlertCircle, Save, X, Plus, Trash2, Mail, Phone, Lock, UserPlus, Edit2, ChevronLeft, ChevronRight, Camera, Award } from 'lucide-react';
+import { Search, Shield, ShieldCheck, Users, User as UserIcon, Loader2, Check, AlertCircle, Save, X, Plus, Trash2, Mail, Phone, Lock, UserPlus, Edit2, ChevronLeft, ChevronRight, Camera, Award, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
+import VenueForm from '@/app/components/admin/venues/VenueForm';
 
 interface User {
   _id: string;
@@ -41,25 +42,28 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
+  const [turfs, setTurfs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   
   // New User Form State
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddTurfModal, setShowAddTurfModal] = useState(false);
   const [newUser, setNewUser] = useState({ 
     name: '', 
     email: '', 
     phone: '', 
     password: '', 
     confirmPassword: '',
-    role: 'user',
-    profilePhoto: ''
+    role: 'admin',
+    profilePhoto: '',
+    turfId: ''
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCreating, setIsCreating] = useState(false);
-
+ 
   // Edit User Form State
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editData, setEditData] = useState({
@@ -72,7 +76,8 @@ export default function AdminUsersPage() {
     profilePhoto: '',
     photoFile: null as File | null,
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    turfId: ''
   });
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,15 +91,17 @@ export default function AdminUsersPage() {
 
   const fetchData = async () => {
     try {
-      const [usersRes, rolesRes, permsRes] = await Promise.all([
+      const [usersRes, rolesRes, permsRes, turfsRes] = await Promise.all([
         api.get('/auth/users'),
         api.get('/auth/roles'),
-        api.get('/auth/permissions')
+        api.get('/auth/permissions'),
+        api.get('/turfs/my/all')
       ]);
 
       if (usersRes.data.success) setUsers(usersRes.data.users);
       if (rolesRes.data.success) setRoles(rolesRes.data.roles);
       if (permsRes.data.success) setAvailablePermissions(permsRes.data.permissions);
+      if (turfsRes.data?.success) setTurfs(turfsRes.data.turfs || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load user management data');
@@ -115,10 +122,10 @@ export default function AdminUsersPage() {
       return toast.error("Please enter a valid email address.");
     }
 
-    // Phone validation (10 digits Indian)
-    const phoneRegex = /^[6-9]\d{9}$/;
-    if (!phoneRegex.test(newUser.phone)) {
-      return toast.error("Please enter a valid 10-digit Indian phone number.");
+    // Phone validation (minimum 10 digits)
+    const digitsOnly = newUser.phone.replace(/\D/g, '');
+    if (digitsOnly.length < 10) {
+      return toast.error("Please enter a valid phone number (minimum 10 digits).");
     }
 
     setIsCreating(true);
@@ -133,6 +140,9 @@ export default function AdminUsersPage() {
       formData.append('password', newUser.password);
       formData.append('role', newUser.role);
       formData.append('permissions', JSON.stringify(permissions));
+      if (newUser.role === 'admin' && newUser.turfId) {
+        formData.append('turfId', newUser.turfId);
+      }
       
       if (photoFile) {
         formData.append('profilePhoto', photoFile);
@@ -145,7 +155,8 @@ export default function AdminUsersPage() {
       });
 
       if (res.data.success) {
-        setUsers([...users, res.data.user]);
+        toast.success('Admin created successfully');
+        fetchData();
         setShowAddModal(false);
         setNewUser({ 
           name: '', 
@@ -153,11 +164,11 @@ export default function AdminUsersPage() {
           phone: '', 
           password: '', 
           confirmPassword: '', 
-          role: 'user',
-          profilePhoto: ''
+          role: 'admin',
+          profilePhoto: '',
+          turfId: ''
         });
         setPhotoFile(null);
-        toast.success('User created successfully');
       }
     } catch (error: any) {
       toast.error(error.response?.data?.msg || 'Failed to create user');
@@ -201,6 +212,7 @@ export default function AdminUsersPage() {
   };
 
   const handleEditClick = (user: User) => {
+    const userTurf = turfs.find(t => t.owner?._id === user._id || t.owner === user._id);
     setEditingUser(user);
     setEditData({
       name: user.name,
@@ -212,7 +224,8 @@ export default function AdminUsersPage() {
       profilePhoto: user.profilePhoto || '',
       photoFile: null,
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      turfId: userTurf ? userTurf._id : ''
     });
   };
 
@@ -253,8 +266,8 @@ export default function AdminUsersPage() {
        });
       
       if (res.data.success) {
-        setUsers(users.map(u => u._id === editingUser._id ? res.data.user : u));
         toast.success('User updated successfully');
+        fetchData();
         setEditingUser(null);
       }
     } catch (error: any) {
@@ -296,6 +309,9 @@ export default function AdminUsersPage() {
     return `${baseUrl}${path}`;
   };
 
+  const editingUserTurf = turfs.find(t => t.owner?._id === editingUser?._id || t.owner === editingUser?._id);
+  const editingUserTurfId = editingUserTurf ? editingUserTurf._id : '';
+
   const editHasChanged = editingUser ? (
     JSON.stringify({
       name: editData.name,
@@ -304,7 +320,8 @@ export default function AdminUsersPage() {
       role: editData.role,
       permissions: editData.permissions,
       isActive: editData.isActive,
-      profilePhoto: editData.profilePhoto
+      profilePhoto: editData.profilePhoto,
+      turfId: editData.turfId
     }) !== JSON.stringify({
       name: editingUser.name,
       email: editingUser.email,
@@ -312,7 +329,8 @@ export default function AdminUsersPage() {
       role: editingUser.role,
       permissions: editingUser.permissions || [],
       isActive: editingUser.isActive,
-      profilePhoto: editingUser.profilePhoto || ''
+      profilePhoto: editingUser.profilePhoto || '',
+      turfId: editingUserTurfId
     }) || (editData.password !== '') || (editData.photoFile !== null)
   ) : false;
 
@@ -337,7 +355,7 @@ export default function AdminUsersPage() {
           onClick={() => setShowAddModal(true)}
           className="!inline-flex !items-center !justify-center !gap-2 !rounded-xl !bg-[#1abc60] !px-6 !py-3.5 !text-sm !font-bold !text-white hover:!bg-[#169c4e] !transition-all !shadow-md hover:!shadow-lg hover:!shadow-[#1abc60]/20 !cursor-pointer !border-none !outline-none"
         >
-          <UserPlus className="!w-4 !h-4 !shrink-0 !block" /> Add New User
+          <UserPlus className="!w-4 !h-4 !shrink-0 !block" /> Add New Admin
         </button>
       </div>
 
@@ -498,8 +516,8 @@ export default function AdminUsersPage() {
                     <UserPlus className="!w-5 !h-5" />
                   </div>
                   <div>
-                    <h3 className="!text-xl !font-bold !text-slate-900 !leading-tight !m-0">Create New User</h3>
-                    <p className="!text-xs !text-slate-500 !font-medium !mt-0.5 !m-0">Add a new member to your platform</p>
+                    <h3 className="!text-xl !font-bold !text-slate-900 !leading-tight !m-0">Create New Admin</h3>
+                    <p className="!text-xs !text-slate-500 !font-medium !mt-0.5 !m-0">Add a new admin to your platform</p>
                   </div>
                 </div>
                 <div 
@@ -566,7 +584,10 @@ export default function AdminUsersPage() {
                           <input 
                             required 
                             value={newUser.phone} 
-                            onChange={e => setNewUser({...newUser, phone: e.target.value})} 
+                            onChange={e => {
+                              const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setNewUser({...newUser, phone: val});
+                            }} 
                             className="!w-full !pl-11 !pr-4 !py-3.5 !bg-slate-50 hover:!bg-slate-100 !border !border-transparent focus:!bg-white focus:!outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !text-sm !font-bold !text-slate-900 !rounded-xl !transition-all placeholder:!text-slate-400 placeholder:!font-medium" 
                             placeholder="9876543210" 
                           />
@@ -630,11 +651,42 @@ export default function AdminUsersPage() {
                           onChange={e => setNewUser({...newUser, role: e.target.value})} 
                           className="!w-full !pl-11 !pr-4 !py-3.5 !bg-slate-50 hover:!bg-slate-100 !border !border-transparent focus:!bg-white focus:!outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !text-sm !font-bold !text-slate-900 !appearance-none !cursor-pointer !rounded-xl !transition-all"
                         >
-                          {roles.map(r => <option key={r._id} value={r.name} className="capitalize">{r.name}</option>)}
+                          <option value="admin">Admin</option>
                         </select>
                         <ChevronDownIcon className="!absolute !right-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-slate-400 !pointer-events-none" />
                       </div>
                     </div>
+
+                    {newUser.role === 'admin' && (
+                      <div className="!space-y-2 !pt-4 !border-t !border-slate-200">
+                        <label className="!block !text-[11px] !font-bold !text-slate-500 !uppercase !tracking-wider">Assign Turf / Venue</label>
+                        {newUser.turfId ? (
+                          <div className="!flex !items-center !justify-between !p-4 !bg-emerald-50 !border !border-emerald-200 !rounded-xl">
+                            <div className="!flex !items-center !gap-2">
+                              <Check className="!w-4 !h-4 !text-[#1abc60]" />
+                              <span className="!text-sm !font-bold !text-slate-900">
+                                {turfs.find(t => t._id === newUser.turfId)?.name || 'New Turf'} Assigned
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setNewUser(prev => ({ ...prev, turfId: '' }))}
+                              className="!text-xs !font-bold !text-red-500 hover:!underline !bg-transparent !border-none !cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setShowAddTurfModal(true)}
+                            className="!w-full !flex !items-center !justify-center !gap-2 !rounded-xl !border-2 !border-dashed !border-slate-300 !bg-slate-50 hover:!border-[#1abc60] hover:!bg-emerald-50 hover:!text-[#1abc60] !px-4 !py-3 !text-sm !font-bold !text-slate-600 !transition-all !cursor-pointer"
+                          >
+                            <Plus className="!w-4 !h-4" /> Create & Assign New Turf
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -748,7 +800,10 @@ export default function AdminUsersPage() {
                           <Phone className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-slate-400 !z-10" />
                           <input 
                             value={editData.phone} 
-                            onChange={e => setEditData({...editData, phone: e.target.value})} 
+                            onChange={e => {
+                              const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setEditData({...editData, phone: val});
+                            }} 
                             className="!w-full !pl-11 !pr-4 !py-3.5 !bg-slate-50 hover:!bg-slate-100 !border !border-transparent focus:!bg-white focus:!outline-none focus:!border-[#1abc60] focus:!ring-1 focus:!ring-[#1abc60] !text-sm !font-bold !text-slate-900 !rounded-xl !transition-all" 
                           />
                         </div>
@@ -811,6 +866,37 @@ export default function AdminUsersPage() {
                         </div>
                       </div>
                     </div>
+
+                    {editData.role === 'admin' && (
+                      <div className="!space-y-2 !pt-4 !border-t !border-slate-200">
+                        <label className="!block !text-[11px] !font-bold !text-slate-500 !uppercase !tracking-wider">Assign Turf / Venue</label>
+                        {editData.turfId ? (
+                          <div className="!flex !items-center !justify-between !p-4 !bg-emerald-50 !border !border-emerald-200 !rounded-xl">
+                            <div className="!flex !items-center !gap-2">
+                              <Check className="!w-4 !h-4 !text-[#1abc60]" />
+                              <span className="!text-sm !font-bold !text-slate-900">
+                                {turfs.find(t => t._id === editData.turfId)?.name || 'New Turf'} Assigned
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setEditData(prev => ({ ...prev, turfId: '' }))}
+                              className="!text-xs !font-bold !text-red-500 hover:!underline !bg-transparent !border-none !cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setShowAddTurfModal(true)}
+                            className="!w-full !flex !items-center !justify-center !gap-2 !rounded-xl !border-2 !border-dashed !border-slate-300 !bg-slate-50 hover:!border-[#1abc60] hover:!bg-emerald-50 hover:!text-[#1abc60] !px-4 !py-3 !text-sm !font-bold !text-slate-600 !transition-all !cursor-pointer"
+                          >
+                            <Plus className="!w-4 !h-4" /> Create & Assign New Turf
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Specific Permissions (Tiles UI) */}
@@ -902,6 +988,44 @@ export default function AdminUsersPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showAddTurfModal && (
+          <div className="!fixed !inset-0 !bg-slate-900/60 !z-[110] !flex !items-center !justify-center !p-4 !backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="!bg-white !rounded-[28px] !w-full !max-w-5xl !max-h-[90vh] !shadow-2xl !flex !flex-col !overflow-hidden !border !border-slate-200"
+            >
+              <div className="!px-6 !py-4 !border-b !border-slate-200 !flex !justify-between !items-center !bg-white">
+                <h3 className="!text-lg !font-bold !text-slate-900 !m-0">Create New Turf / Venue</h3>
+                <div 
+                  onClick={() => setShowAddTurfModal(false)}
+                  className="!p-2 !text-slate-400 hover:!text-slate-600 !rounded-full !cursor-pointer"
+                >
+                  <X className="!w-5 !h-5" />
+                </div>
+              </div>
+              <div className="!flex-1 !overflow-y-auto !custom-scrollbar">
+                <VenueForm 
+                  mode="add" 
+                  onSuccess={(createdTurf) => {
+                    fetchData();
+                    if (editingUser) {
+                      setEditData(prev => ({ ...prev, turfId: createdTurf._id }));
+                    } else {
+                      setNewUser(prev => ({ ...prev, turfId: createdTurf._id }));
+                    }
+                    setShowAddTurfModal(false);
+                  }} 
+                  onCancel={() => setShowAddTurfModal(false)}
+                />
+              </div>
             </motion.div>
           </div>
         )}

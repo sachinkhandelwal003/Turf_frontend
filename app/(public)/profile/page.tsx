@@ -1057,7 +1057,10 @@ export default function ProfilePage() {
                         <input 
                           type="tel" 
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setPhone(val);
+                          }}
                           className="!w-full !px-4 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !font-medium !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all" 
                         />
                       </div>

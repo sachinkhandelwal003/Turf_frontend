@@ -2,9 +2,54 @@
 
 import { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
 import Link from 'next/link'; 
-import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X, Loader2, Search, Trophy } from 'lucide-react';
+import { MapPin, Star, ChevronLeft, ChevronRight, Check, Filter, X, Loader2, Search, Trophy, Navigation } from 'lucide-react';
 import api from '@/app/services/api';
 import { useSearchParams } from 'next/navigation';
+
+// ============= Fallback Coordinates and Distance Helper =============
+const CITY_COORDS_FALLBACK: Record<string, { lat: number; lng: number }> = {
+  'bangalore': { lat: 12.9716, lng: 77.5946 },
+  'bengaluru': { lat: 12.9716, lng: 77.5946 },
+  'mumbai': { lat: 19.0760, lng: 72.8777 },
+  'delhi': { lat: 28.6139, lng: 77.2090 },
+  'new delhi': { lat: 28.6139, lng: 77.2090 },
+  'kolkata': { lat: 22.5726, lng: 88.3639 },
+  'chennai': { lat: 13.0827, lng: 80.2707 },
+  'hyderabad': { lat: 17.3850, lng: 78.4867 },
+  'pune': { lat: 18.5204, lng: 73.8567 },
+  'ahmedabad': { lat: 23.0225, lng: 72.5714 },
+  'jaipur': { lat: 26.9124, lng: 75.7873 },
+  'surat': { lat: 21.1702, lng: 72.8311 },
+  'lucknow': { lat: 26.8467, lng: 80.9462 },
+  'kanpur': { lat: 26.4499, lng: 80.3319 },
+  'ghaziabad': { lat: 28.6692, lng: 77.4538 },
+  'noida': { lat: 28.5355, lng: 77.3910 },
+  'greater noida': { lat: 28.4744, lng: 77.5040 },
+  'gurgaon': { lat: 28.4595, lng: 77.0266 },
+  'gurugram': { lat: 28.4595, lng: 77.0266 },
+  'faridabad': { lat: 28.4089, lng: 77.3178 },
+  'varanasi': { lat: 25.3176, lng: 82.9739 },
+  'patna': { lat: 25.5941, lng: 85.1376 },
+  'indore': { lat: 22.7196, lng: 75.8577 },
+  'bhopal': { lat: 23.2599, lng: 77.4126 },
+  'ludhiana': { lat: 30.9010, lng: 75.8573 },
+  'agra': { lat: 27.1767, lng: 78.0081 },
+  'vadodara': { lat: 22.3072, lng: 73.1812 },
+  'nashik': { lat: 19.9975, lng: 73.7898 },
+  'jamshedpur': { lat: 22.8046, lng: 86.2029 }
+};
+
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in km
+};
 
 // ============= Types =============
 interface Amenity {
@@ -27,6 +72,10 @@ interface Venue {
   reviewsCount?: number;
   sportTypes?: string[];
   hasTournament?: boolean;
+  coordinates?: {
+    lat?: number;
+    lng?: number;
+  };
 }
 
 // ============= Subcomponents =============
@@ -58,8 +107,29 @@ const RatingStars = ({ rating }: { rating: number }) => {
   );
 };
 
-const VenueCard = ({ venue }: { venue: Venue }) => {
+const VenueCard = ({ venue, userCoords }: { venue: Venue; userCoords: { lat: number; lng: number } | null }) => {
   const [imgError, setImgError] = useState(false);
+  
+  const distance = useMemo(() => {
+    let lat = venue.coordinates?.lat;
+    let lng = venue.coordinates?.lng;
+
+    // Fallback to city coordinates if venue coordinates are missing
+    if ((!lat || !lng) && venue.location) {
+      const parts = venue.location.split(',');
+      const city = parts[parts.length - 1].trim().toLowerCase();
+      const fallback = CITY_COORDS_FALLBACK[city];
+      if (fallback) {
+        lat = fallback.lat;
+        lng = fallback.lng;
+      }
+    }
+
+    if (userCoords && lat && lng) {
+      return calculateDistance(userCoords.lat, userCoords.lng, lat, lng);
+    }
+    return null;
+  }, [venue.coordinates, venue.location, userCoords]);
   
   return (
     <Link href={`/ground/${venue.id}`} className="block group">
@@ -119,9 +189,17 @@ const VenueCard = ({ venue }: { venue: Venue }) => {
             {venue.title}
           </h3>
           
-          <div className="flex items-center text-gray-500 text-[12px] mb-3">
-            <MapPin className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
-            <span className="line-clamp-1">{venue.location}</span>
+          <div className="flex items-center text-gray-500 text-[12px] mb-3 justify-between">
+            <div className="flex items-center min-w-0">
+              <MapPin className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+              <span className="line-clamp-1">{venue.location}</span>
+            </div>
+            {distance !== null && (
+              <span className="text-[#1abc60] font-extrabold shrink-0 bg-green-50 px-2 py-0.5 rounded-md text-[11px] border border-green-100 flex items-center gap-0.5 ml-2">
+                <Navigation className="w-2.5 h-2.5 fill-current" />
+                {distance.toFixed(1)} km
+              </span>
+            )}
           </div>
           
           {/* Sport Categories */}
@@ -276,9 +354,56 @@ function GroundContent() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [showOnlyTournaments, setShowOnlyTournaments] = useState(false);
   
+  // User Coordinates and Detected Location Name
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLocationName, setUserLocationName] = useState<string>("");
+  
   // Available sports and tournaments
   const [availableSports, setAvailableSports] = useState<string[]>([]);
   const [tournaments, setTournaments] = useState<any[]>([]);
+
+  // Fetch User Geolocation
+  useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setUserCoords({ lat, lng });
+          
+          // Reverse geocoding to get city name
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+            .then(res => res.json())
+            .then(data => {
+              const city = data.address?.city || data.address?.town || data.address?.village || data.address?.state_district || "";
+              if (city) {
+                setUserLocationName(city);
+              }
+            })
+            .catch(err => console.error("Reverse geocoding error:", err));
+        },
+        async (error) => {
+          console.warn("Browser geolocation failed/denied, trying IP location...", error);
+          try {
+            const ipRes = await fetch('https://ipapi.co/json/');
+            const ipData = await ipRes.json();
+            if (ipData.latitude && ipData.longitude) {
+              setUserCoords({
+                lat: ipData.latitude,
+                lng: ipData.longitude
+              });
+              if (ipData.city) {
+                setUserLocationName(ipData.city);
+              }
+            }
+          } catch (ipErr) {
+            console.error("IP geolocation failed:", ipErr);
+          }
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+      );
+    }
+  }, []);
 
   // Handle sport and location query params
   useEffect(() => {
@@ -367,7 +492,8 @@ function GroundContent() {
               sportTypes: t.sports || [],
               image: displayImage,
               featured: t.isFeatured || t.rating >= 4.5 || false,
-              hasTournament
+              hasTournament,
+              coordinates: t.location?.coordinates
             };
           });
         
@@ -613,8 +739,14 @@ function GroundContent() {
               <h1 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">
                 Available Venues
               </h1>
-              <p className="text-gray-500 text-sm mt-1">
+              <p className="text-gray-500 text-sm mt-1 flex items-center gap-1.5 flex-wrap">
                 Book the best sports facilities in your city
+                {userLocationName && (
+                  <span className="inline-flex items-center gap-1 text-[#1abc60] bg-green-50 border border-green-100 px-2 py-0.5 rounded-full text-[11px] font-bold">
+                    <Navigation className="w-2.5 h-2.5 fill-current animate-pulse" />
+                    Near {userLocationName}
+                  </span>
+                )}
               </p>
             </div>
             <div className="bg-white border border-gray-200 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg shadow-sm">
@@ -633,7 +765,7 @@ function GroundContent() {
               {/* Venues Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {paginatedVenues.map((venue) => (
-                  <VenueCard key={venue.id} venue={venue} />
+                  <VenueCard key={venue.id} venue={venue} userCoords={userCoords} />
                 ))}
               </div>
               

@@ -6,10 +6,54 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   MapPin, Star, ChevronDown, Calendar, Clock, ChevronLeft,
-  Activity, CheckCircle2, Circle, X, Loader2 
+  Activity, CheckCircle2, Circle, X, Loader2, Navigation 
 } from 'lucide-react';
 import api from '@/app/services/api';
 import { toast } from 'sonner';
+
+const CITY_COORDS_FALLBACK: Record<string, { lat: number; lng: number }> = {
+  'bangalore': { lat: 12.9716, lng: 77.5946 },
+  'bengaluru': { lat: 12.9716, lng: 77.5946 },
+  'mumbai': { lat: 19.0760, lng: 72.8777 },
+  'delhi': { lat: 28.6139, lng: 77.2090 },
+  'new delhi': { lat: 28.6139, lng: 77.2090 },
+  'kolkata': { lat: 22.5726, lng: 88.3639 },
+  'chennai': { lat: 13.0827, lng: 80.2707 },
+  'hyderabad': { lat: 17.3850, lng: 78.4867 },
+  'pune': { lat: 18.5204, lng: 73.8567 },
+  'ahmedabad': { lat: 23.0225, lng: 72.5714 },
+  'jaipur': { lat: 26.9124, lng: 75.7873 },
+  'surat': { lat: 21.1702, lng: 72.8311 },
+  'lucknow': { lat: 26.8467, lng: 80.9462 },
+  'kanpur': { lat: 26.4499, lng: 80.3319 },
+  'ghaziabad': { lat: 28.6692, lng: 77.4538 },
+  'noida': { lat: 28.5355, lng: 77.3910 },
+  'greater noida': { lat: 28.4744, lng: 77.5040 },
+  'gurgaon': { lat: 28.4595, lng: 77.0266 },
+  'gurugram': { lat: 28.4595, lng: 77.0266 },
+  'faridabad': { lat: 28.4089, lng: 77.3178 },
+  'varanasi': { lat: 25.3176, lng: 82.9739 },
+  'patna': { lat: 25.5941, lng: 85.1376 },
+  'indore': { lat: 22.7196, lng: 75.8577 },
+  'bhopal': { lat: 23.2599, lng: 77.4126 },
+  'ludhiana': { lat: 30.9010, lng: 75.8573 },
+  'agra': { lat: 27.1767, lng: 78.0081 },
+  'vadodara': { lat: 22.3072, lng: 73.1812 },
+  'nashik': { lat: 19.9975, lng: 73.7898 },
+  'jamshedpur': { lat: 22.8046, lng: 86.2029 }
+};
+
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in km
+};
 
 export default function VenueDetailsPage() {
   const params = useParams();
@@ -32,6 +76,37 @@ export default function VenueDetailsPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [isBooking, setIsBooking] = useState(false);
   const [bookedSlots, setBookedSlots] = useState<any[]>([]);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Fetch User Geolocation
+  useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        async (error) => {
+          console.warn("Browser geolocation failed/denied, trying IP location...", error);
+          try {
+            const ipRes = await fetch('https://ipapi.co/json/');
+            const ipData = await ipRes.json();
+            if (ipData.latitude && ipData.longitude) {
+              setUserCoords({
+                lat: ipData.latitude,
+                lng: ipData.longitude
+              });
+            }
+          } catch (ipErr) {
+            console.error("IP geolocation failed:", ipErr);
+          }
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+      );
+    }
+  }, []);
 
   useEffect(() => {
     const fetchVenue = async () => {
@@ -488,7 +563,26 @@ export default function VenueDetailsPage() {
   const dateObj = new Date(year, month - 1, day);
   const dayNameForDisplay = dateObj.toLocaleDateString("en-US", { weekday: "long" });
 
+  const distance = useMemo(() => {
+    if (!venue) return null;
+    let lat = venue.coordinates?.lat;
+    let lng = venue.coordinates?.lng;
 
+    // Fallback to city coordinates if venue coordinates are missing
+    if ((!lat || !lng) && venue.location) {
+      const city = venue.location.trim().toLowerCase();
+      const fallback = CITY_COORDS_FALLBACK[city];
+      if (fallback) {
+        lat = fallback.lat;
+        lng = fallback.lng;
+      }
+    }
+
+    if (userCoords && lat && lng) {
+      return calculateDistance(userCoords.lat, userCoords.lng, lat, lng);
+    }
+    return null;
+  }, [venue, userCoords]);
 
   return (
     <div className="!min-h-screen !bg-[#f8fafc] !pb-20 !pt-24 !font-sans">
@@ -516,6 +610,12 @@ export default function VenueDetailsPage() {
                   <span className="!w-1 !h-1 !rounded-full !bg-gray-300"></span>
                   <span className="!flex !items-center !text-gray-600">
                     <MapPin className="!w-4 !h-4 !mr-1.5 !text-gray-400" /> {venue.location}
+                    {distance !== null && (
+                      <span className="!inline-flex !items-center !gap-0.5 !ml-2 !text-[#1abc60] !bg-green-50 !border !border-green-100 !px-1.5 !py-0.5 !rounded-md !text-[10px] !font-extrabold">
+                        <Navigation className="!w-2.5 !h-2.5 !fill-current" />
+                        {distance.toFixed(1)} km away
+                      </span>
+                    )}
                   </span>
                   <span className="!w-1 !h-1 !rounded-full !bg-gray-300"></span>
                   <span className="!bg-gray-100 !text-gray-700 !px-2.5 !py-1 !rounded-md !font-bold !text-[10px] !uppercase !tracking-wider">

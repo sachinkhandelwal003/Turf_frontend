@@ -267,7 +267,6 @@ export default function VenueLeadsPage() {
           </div>
         </div>
       )}
-      </div>
 
       {/* ============================================================== */}
       {/* PREMIUM DETAILS MODAL                                          */}

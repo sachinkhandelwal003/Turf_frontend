@@ -134,145 +134,139 @@ export default function VenueLeadsPage() {
   }
 
   return (
-    <div className="!min-h-screen !bg-[#f8fafc] !p-4 md:!p-6 lg:!p-8 !font-sans">
-      <div className="!max-w-[1600px] !mx-auto">
-        
-        {/* Header Section */}
-        <div className="!flex !flex-col md:!flex-row md:!items-center !justify-between !gap-6 !mb-8 !bg-white !p-6 !rounded-[24px] !border !border-gray-100 !shadow-sm">
-          <div>
-            <h1 className="!text-2xl md:!text-3xl !font-bold !text-gray-900 !tracking-tight !m-0 !mb-1">Registration Leads</h1>
-            <p className="!text-sm !font-medium !text-gray-500 !m-0">Manage ground owner registration enquiries and onboarding</p>
-          </div>
-
-          <div className="!flex !flex-wrap !items-center !gap-3">
-            <div className="!relative !group">
-              <Search className="!absolute !left-3.5 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-gray-400 group-focus-within:!text-[#1abc60] !transition-colors" />
-              <input
-                type="text"
-                placeholder="Search leads..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="!w-full md:!w-64 !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-gray-100 !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !rounded-xl !text-sm !font-medium !text-gray-900 !transition-all placeholder:!text-gray-400"
-              />
-            </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="!px-4 !py-2.5 !bg-gray-50 hover:!bg-gray-100 !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !rounded-xl !text-sm !font-bold !text-gray-700 !transition-all !cursor-pointer !appearance-none"
-            >
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="contacted">Contacted</option>
-              <option value="converted">Converted</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
+    <div className="!w-full !font-sans !bg-white !rounded-[24px] !border !border-slate-200/80 !shadow-sm !p-6 md:!p-8 !space-y-6">
+      
+      {/* Header Section */}
+      <div className="!flex !flex-col md:!flex-row md:!items-center !justify-between !gap-6 !pb-6 !border-b !border-slate-100">
+        <div>
+          <h1 className="!text-2xl md:!text-3xl !font-bold !text-slate-900 !tracking-tight !m-0 !mb-1.5">Registration Leads</h1>
+          <p className="!text-sm !font-medium !text-slate-500 !m-0">Manage ground owner registration enquiries and onboarding</p>
         </div>
 
-        {/* Content Section */}
-        {loading ? (
-          <div className="!flex !flex-col !items-center !justify-center !min-h-[50vh] !gap-4">
-            <div className="!w-16 !h-16 !bg-emerald-50 !rounded-2xl !flex !items-center !justify-center !border !border-emerald-100 !shadow-sm">
-              <Loader2 className="!w-8 !h-8 !animate-spin !text-[#1abc60]" />
+        <div className="!flex !flex-wrap !items-center !gap-3">
+          <div className="!relative !group">
+            <Search className="!absolute !left-3.5 !top-1/2 !-translate-y-1/2 !w-4 !h-4 !text-slate-400 group-focus-within:!text-[#1abc60] !transition-colors" />
+            <input
+              type="text"
+              placeholder="Search leads..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="!w-full md:!w-64 !pl-10 !pr-4 !py-2.5 !bg-slate-50 hover:!bg-slate-100 !border !border-slate-200 focus:!bg-white focus:!outline-none focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !rounded-xl !text-sm !font-medium !text-slate-900 !transition-all placeholder:!text-gray-400"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="!px-4 !py-2.5 !bg-slate-50 hover:!bg-slate-100 !border !border-slate-200 focus:!bg-white focus:!outline-none focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !rounded-xl !text-sm !font-bold !text-slate-700 !transition-all !cursor-pointer !appearance-none"
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="contacted">Contacted</option>
+            <option value="converted">Converted</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Content Section */}
+      {loading ? (
+        <div className="!flex !flex-col !items-center !justify-center !min-h-[40vh] !gap-4">
+          <div className="!w-16 !h-16 !bg-emerald-50 !rounded-2xl !flex !items-center !justify-center !border !border-emerald-100 !shadow-sm">
+            <Loader2 className="!w-8 !h-8 !animate-spin !text-[#1abc60]" />
+          </div>
+          <p className="!text-[11px] !font-bold !text-slate-400 !uppercase !tracking-[0.2em] !animate-pulse">Loading Leads...</p>
+        </div>
+      ) : filteredLeads.length === 0 ? (
+        <div className="!border !border-slate-200/60 !rounded-2xl !py-20 !text-center">
+           <div className="!w-20 !h-20 !bg-slate-50 !rounded-full !flex !items-center !justify-center !mx-auto !mb-4 !border !border-slate-200">
+              <Search className="!w-8 !h-8 !text-slate-400" />
             </div>
-            <p className="!text-[11px] !font-bold !text-gray-400 !uppercase !tracking-[0.2em] !animate-pulse">Loading Leads...</p>
-          </div>
-        ) : filteredLeads.length === 0 ? (
-          <div className="!bg-white !rounded-[24px] !border !border-gray-200 !py-20 !text-center !shadow-sm">
-             <div className="!w-20 !h-20 !bg-gray-50 !rounded-full !flex !items-center !justify-center !mx-auto !mb-4 !border !border-gray-100">
-                <Search className="!w-8 !h-8 !text-gray-300" />
-              </div>
-              <h3 className="!text-lg !font-bold !text-gray-900 !m-0 !mb-1">No Leads Found</h3>
-              <p className="!text-sm !font-medium !text-gray-500 !m-0">Try adjusting your search or filters.</p>
-          </div>
-        ) : (
-          <div className="!grid !grid-cols-1 sm:!grid-cols-2 lg:!grid-cols-3 xl:!grid-cols-4 !gap-6">
-            <AnimatePresence mode='popLayout'>
-              {filteredLeads.map((lead) => (
-                <motion.div
-                  key={lead._id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="!bg-white !rounded-[20px] !border !border-gray-200 !shadow-sm hover:!shadow-lg hover:!border-[#1abc60]/30 !transition-all !group !flex !flex-col !overflow-hidden"
-                >
-                  {/* Card Image Area */}
-                  <div className="!relative !h-48 !bg-gray-100 !overflow-hidden !shrink-0">
-                    {lead.photos && lead.photos.length > 0 ? (
-                      <img 
-                        src={getImageUrl(lead.photos[0])} 
-                        alt={lead.groundName}
-                        className="!w-full !h-full !object-cover group-hover:!scale-105 !transition-transform !duration-700"
-                      />
-                    ) : (
-                      <div className="!w-full !h-full !flex !items-center !justify-center !bg-gray-50 !text-gray-300">
-                        <ImageIcon className="!w-12 !h-12" />
+            <h3 className="!text-lg !font-bold !text-slate-900 !m-0 !mb-1">No Leads Found</h3>
+            <p className="!text-sm !font-medium !text-slate-500 !m-0">Try adjusting your search or filters.</p>
+        </div>
+      ) : (
+        <div className="!border !border-slate-200/60 !rounded-2xl !overflow-hidden">
+          <div className="!overflow-x-auto !custom-scrollbar">
+            <table className="!w-full !text-left !border-collapse !min-w-[900px]">
+              <thead className="!bg-slate-50 !text-slate-500 !text-[10px] !font-black !uppercase !tracking-widest !border-b !border-slate-200">
+                <tr>
+                  <th className="!px-6 md:!px-8 !py-4">Ground Info</th>
+                  <th className="!px-6 md:!px-8 !py-4">Owner Info</th>
+                  <th className="!px-6 md:!px-8 !py-4">Contact</th>
+                  <th className="!px-6 md:!px-8 !py-4">Location</th>
+                  <th className="!px-6 md:!px-8 !py-4">Status</th>
+                  <th className="!px-6 md:!px-8 !py-4 !text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="!divide-y !divide-slate-100">
+                {filteredLeads.map((lead) => (
+                  <tr key={lead._id} className="hover:!bg-slate-50/80 !transition-colors !border-b !border-slate-100 last:!border-0">
+                    <td className="!px-6 md:!px-8 !py-4">
+                      <div className="!flex !items-center !gap-4 !min-w-0">
+                        <div className="!w-10 !h-10 !rounded-xl !overflow-hidden !bg-slate-50 !border !border-slate-200 !shrink-0 !flex !items-center !justify-center text-slate-400">
+                          {lead.photos && lead.photos.length > 0 ? (
+                            <img src={getImageUrl(lead.photos[0])} alt={lead.groundName} className="!w-full !h-full !object-cover" />
+                          ) : (
+                            <ImageIcon className="!w-5 !h-5" />
+                          )}
+                        </div>
+                        <div className="!flex !flex-col !min-w-0">
+                          <span className="!text-sm !font-bold !text-slate-900 !truncate">{lead.groundName}</span>
+                          <span className="!text-xs !font-medium !text-slate-500 !truncate">{lead.turfName}</span>
+                        </div>
                       </div>
-                    )}
-                    {/* Dark gradient for badge readability */}
-                    <div className="!absolute !inset-0 !bg-gradient-to-b !from-gray-900/60 !via-transparent !to-transparent"></div>
-                    <div className={`!absolute !top-4 !right-4 !px-2.5 !py-1 !rounded-md !text-[10px] !font-bold !uppercase !tracking-wider !border ${getStatusColor(lead.status)} !shadow-sm`}>
-                      {lead.status}
-                    </div>
-                  </div>
-
-                  {/* Card Content Area */}
-                  <div className="!p-5 !flex !flex-col !flex-1">
-                    <div className="!mb-4">
-                      <h3 className="!text-lg !font-bold !text-gray-900 !truncate !m-0 !leading-tight group-hover:!text-[#1abc60] !transition-colors">{lead.groundName}</h3>
-                      <p className="!text-xs !font-semibold !text-gray-500 !truncate !mt-1 !m-0">{lead.turfName}</p>
-                    </div>
-
-                    <div className="!space-y-2.5 !mb-6 !flex-1">
-                      <div className="!flex !items-center !gap-2.5 !text-sm !font-medium !text-gray-600">
-                        <User className="!w-4 !h-4 !text-gray-400 !shrink-0" />
-                        <span className="!truncate">{lead.ownerName}</span>
+                    </td>
+                    <td className="!px-6 md:!px-8 !py-4">
+                      <div className="!flex !flex-col">
+                        <span className="!text-sm !font-bold !text-slate-800">{lead.ownerName}</span>
+                        <span className="!text-xs !font-medium !text-slate-500">{lead.email}</span>
                       </div>
-                      <div className="!flex !items-center !gap-2.5 !text-sm !font-medium !text-gray-600">
-                        <MapPin className="!w-4 !h-4 !text-gray-400 !shrink-0" />
-                        <span className="!truncate">{lead.location}</span>
-                      </div>
-                      <div className="!flex !items-center !gap-2.5 !text-sm !font-medium !text-gray-600">
-                        <Phone className="!w-4 !h-4 !text-gray-400 !shrink-0" />
-                        <span className="!truncate">{lead.contactNumber}</span>
-                      </div>
-                    </div>
-
-                    {/* Card Actions */}
-                    <div className="!flex !items-center !gap-2 !pt-4 !border-t !border-gray-100 !shrink-0">
-                      <button
-                        onClick={() => setSelectedLead(lead)}
-                        className="!flex-1 !flex !items-center !justify-center !gap-2 !py-2.5 !bg-white !border !border-gray-200 !text-gray-700 !rounded-xl !text-xs !font-bold hover:!bg-gray-50 hover:!text-gray-900 !transition-colors !cursor-pointer !shadow-sm"
-                      >
-                        <Eye className="!w-4 !h-4" /> Details
-                      </button>
-                      
-                      {lead.status === 'pending' && (
-                        <button
-                          onClick={() => handleUpdateStatus(lead._id, 'contacted')}
-                          disabled={updatingId === lead._id}
-                          className="!px-4 !py-2.5 !bg-[#1abc60]/10 !text-[#1abc60] hover:!bg-[#1abc60] hover:!text-white !rounded-xl !transition-all disabled:!opacity-50 !cursor-pointer !border-none !flex !items-center !justify-center"
-                          title="Mark as Contacted"
+                    </td>
+                    <td className="!px-6 md:!px-8 !py-4">
+                      <span className="!text-sm !font-bold !text-slate-600">{lead.contactNumber}</span>
+                    </td>
+                    <td className="!px-6 md:!px-8 !py-4">
+                      <span className="!text-sm !font-bold !text-slate-600">{lead.location}</span>
+                    </td>
+                    <td className="!px-6 md:!px-8 !py-4">
+                      <span className={`!inline-flex !px-2.5 !py-1 !rounded-full !text-[10px] !font-bold !uppercase !tracking-widest !border ${getStatusColor(lead.status)}`}>
+                        {lead.status}
+                      </span>
+                    </td>
+                    <td className="!px-6 md:!px-8 !py-4 !text-right">
+                      <div className="!flex !justify-end !gap-2">
+                        <div
+                          onClick={() => setSelectedLead(lead)}
+                          className="!p-2 !text-slate-400 hover:!text-[#1abc60] hover:!bg-emerald-50 !rounded-lg !transition-colors !border !border-transparent hover:!border-emerald-200 !bg-transparent !cursor-pointer !inline-flex"
+                          title="View Details"
                         >
-                          {updatingId === lead._id ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <CheckCircle2 className="!w-4 !h-4" />}
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => handleDeleteLead(lead._id)}
-                        className="!p-2.5 !bg-white !text-gray-400 hover:!text-red-600 hover:!bg-red-50 !border !border-gray-200 hover:!border-red-200 !rounded-xl !transition-all !cursor-pointer !flex !items-center !justify-center"
-                        title="Delete Lead"
-                      >
-                        <Trash2 className="!w-4 !h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                          <Eye className="!w-4 !h-4" />
+                        </div>
+                        {lead.status === 'pending' && (
+                          <div
+                            onClick={() => handleUpdateStatus(lead._id, 'contacted')}
+                            className="!p-2 !text-slate-400 hover:!text-blue-600 hover:!bg-blue-50 !rounded-lg !transition-colors !border !border-transparent hover:!border-blue-200 !bg-transparent !cursor-pointer !inline-flex"
+                            title="Mark as Contacted"
+                          >
+                            {updatingId === lead._id ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <CheckCircle2 className="!w-4 !h-4" />}
+                          </div>
+                        )}
+                        <div
+                          onClick={() => handleDeleteLead(lead._id)}
+                          className="!p-2 !text-slate-400 hover:!text-red-500 hover:!bg-red-50 !rounded-lg !transition-colors !border !border-transparent hover:!border-red-200 !bg-transparent !cursor-pointer !inline-flex"
+                          title="Delete Lead"
+                        >
+                          <Trash2 className="!w-4 !h-4" />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
+      )}
       </div>
 
       {/* ============================================================== */}

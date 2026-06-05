@@ -537,26 +537,26 @@ function AdminBookingsContent() {
   }, [offlineData.slots, bookedSlotsForOffline]);
 
   return (
-    <div className="!max-w-7xl !mx-auto !px-4 sm:!px-6 lg:!px-8 !py-8 !space-y-6 !font-sans">
+    <div className="!w-full !font-sans !bg-white !rounded-[24px] !border !border-slate-200/80 !shadow-sm !p-6 md:!p-8 !space-y-6">
       
       {/* Header Section */}
-      <div className="!flex !flex-col sm:!flex-row sm:!items-center !justify-between !gap-4 !bg-white !p-6 !rounded-2xl !border !border-gray-100 !shadow-sm">
+      <div className="!flex !flex-col sm:!flex-row sm:!items-center !justify-between !gap-4 !pb-6 !border-b !border-slate-100">
         <div>
-          <h1 className="!text-2xl !font-bold !text-gray-900 !tracking-tight !m-0">Manage Bookings</h1>
-          <p className="!text-[13px] !font-medium !text-gray-500 !mt-1.5 !m-0">Monitor and moderate venue reservations</p>
+          <h1 className="!text-2xl md:!text-3xl !font-black !text-slate-900 !tracking-tight !m-0 !mb-1.5">Manage Bookings</h1>
+          <p className="!text-sm !font-medium !text-slate-500 !m-0">Monitor and moderate venue reservations</p>
         </div>
         <div className="!flex !items-center !gap-4">
           {!isSuperadmin && (
             <button 
               onClick={() => setShowOfflineModal(true)}
-              className="!flex !items-center !gap-2 !bg-[#1abc60] !text-white !px-4 !py-2.5 !rounded-xl !font-semibold !text-[13px] !shadow-sm hover:!shadow-md hover:!bg-[#17a554] !transition-all !border-none !cursor-pointer"
+              className="!flex !items-center !gap-2 !bg-[#1abc60] !text-white !px-5 !py-3 !rounded-xl !font-bold !text-[13px] !shadow-md hover:!shadow-lg hover:!shadow-[#1abc60]/20 hover:!bg-[#17a554] !transition-all !border-none !cursor-pointer"
             >
               <Plus className="!w-4 !h-4 !block !shrink-0" /> New Offline Booking
             </button>
           )}
-          <div className="!bg-gray-50 !px-5 !py-2.5 !rounded-xl !border !border-gray-200 !flex !flex-col !items-center !min-w-[120px]">
-            <p className="!text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider !mb-0.5 !m-0">Total</p>
-            <p className="!text-xl !font-bold !text-[#1abc60] !leading-none !m-0">{totalBookings}</p>
+          <div className="!bg-slate-50 !px-5 !py-2 !rounded-xl !border !border-slate-200 !flex !flex-col !items-center !min-w-[120px]">
+            <p className="!text-[10px] !font-bold !text-slate-400 !uppercase !tracking-wider !mb-0.5 !m-0">Total</p>
+            <p className="!text-xl !font-black !text-[#1abc60] !leading-none !m-0">{totalBookings}</p>
           </div>
         </div>
       </div>
@@ -564,26 +564,26 @@ function AdminBookingsContent() {
       {/* Filters Section */}
       <div className="!space-y-4">
         {/* Main Search & Primary Filters */}
-        <div className="!grid !grid-cols-1 md:!grid-cols-12 !gap-4 !bg-white !p-5 !rounded-2xl !border !border-gray-100 !shadow-sm">
+        <div className="!grid !grid-cols-1 md:!grid-cols-12 !gap-4 !bg-slate-50/60 !p-5 !rounded-2xl !border !border-slate-100">
           
           {/* Search */}
           <div className="md:!col-span-5 !relative !group">
             <div className="!absolute !inset-y-0 !left-0 !pl-3.5 !flex !items-center !pointer-events-none">
-              <Search className="!w-4 !h-4 !text-gray-400 group-focus-within:!text-[#1abc60] !transition-colors" />
+              <Search className="!w-4 !h-4 !text-slate-400 group-focus-within:!text-[#1abc60] !transition-colors" />
             </div>
             <input 
               type="text" 
               placeholder="Search ID, User, Email, Venue..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="!w-full !pl-10 !pr-4 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-[13px] !font-medium !text-gray-900 !rounded-xl !transition-all placeholder:!text-gray-400"
+              className="!w-full !pl-10 !pr-4 !py-2.5 !bg-white !border !border-slate-200 focus:!outline-none focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !text-[13px] !font-medium !text-slate-900 !rounded-xl !transition-all placeholder:!text-slate-400"
             />
           </div>
 
           {/* Turf Filter */}
           <div className="md:!col-span-3 !relative !group">
             <div className="!absolute !inset-y-0 !left-0 !pl-3.5 !flex !items-center !pointer-events-none">
-              <MapPin className="!w-4 !h-4 !text-gray-400 group-focus-within:!text-[#1abc60] !transition-colors" />
+              <MapPin className="!w-4 !h-4 !text-slate-400 group-focus-within:!text-[#1abc60] !transition-colors" />
             </div>
             <select 
               value={turfIdFilter}
@@ -591,7 +591,7 @@ function AdminBookingsContent() {
                 setTurfIdFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="!w-full !pl-10 !pr-8 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-[13px] !font-medium !text-gray-900 !rounded-xl !appearance-none !cursor-pointer !transition-all"
+              className="!w-full !pl-10 !pr-8 !py-2.5 !bg-white !border !border-slate-200 focus:!outline-none focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !text-[13px] !font-medium !text-slate-900 !rounded-xl !appearance-none !cursor-pointer !transition-all"
             >
               <option value="">All Venues</option>
               {availableTurfs.map((turf) => (
@@ -606,7 +606,7 @@ function AdminBookingsContent() {
           {/* Status Filter */}
           <div className="md:!col-span-2 !relative !group">
             <div className="!absolute !inset-y-0 !left-0 !pl-3.5 !flex !items-center !pointer-events-none">
-              <Filter className="!w-4 !h-4 !text-gray-400 group-focus-within:!text-[#1abc60] !transition-colors" />
+              <Filter className="!w-4 !h-4 !text-slate-400 group-focus-within:!text-[#1abc60] !transition-colors" />
             </div>
             <select 
               value={statusFilter}
@@ -614,7 +614,7 @@ function AdminBookingsContent() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="!w-full !pl-10 !pr-8 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-[13px] !font-medium !text-gray-900 !rounded-xl !appearance-none !cursor-pointer !transition-all"
+              className="!w-full !pl-10 !pr-8 !py-2.5 !bg-white !border !border-slate-200 focus:!outline-none focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !text-[13px] !font-medium !text-slate-900 !rounded-xl !appearance-none !cursor-pointer !transition-all"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -631,7 +631,7 @@ function AdminBookingsContent() {
           <div className="md:!col-span-2">
             <button 
               onClick={clearFilters}
-              className="!w-full !flex !items-center !justify-center !gap-2 !bg-white !text-gray-600 !border !border-gray-200 !py-2.5 !px-4 !rounded-xl !text-[13px] !font-semibold hover:!bg-gray-50 hover:!text-gray-900 !transition-all !cursor-pointer"
+              className="!w-full !flex !items-center !justify-center !gap-2 !bg-white !text-slate-600 !border !border-slate-200 !py-2.5 !px-4 !rounded-xl !text-[13px] !font-semibold hover:!bg-slate-50 hover:!text-slate-900 !transition-all !cursor-pointer"
             >
               <XCircle className="!w-4 !h-4 !block !shrink-0" />
               Clear Filters
@@ -640,41 +640,41 @@ function AdminBookingsContent() {
         </div>
 
         {/* Date and Time Range Filters */}
-        <div className="!grid !grid-cols-1 sm:!grid-cols-2 lg:!grid-cols-4 !gap-4 !bg-white !p-5 !rounded-2xl !border !border-gray-100 !shadow-sm">
+        <div className="!grid !grid-cols-1 sm:!grid-cols-2 lg:!grid-cols-4 !gap-4 !bg-slate-50/60 !p-5 !rounded-2xl !border !border-slate-100">
           <div className="!space-y-2">
-            <label className="!text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider !ml-1">Start Date</label>
+            <label className="!text-[11px] !font-bold !text-slate-500 !uppercase !tracking-wider !ml-1">Start Date</label>
             <input 
               type="date" 
               value={startDate}
               onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
-              className="!w-full !px-3 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-[13px] !font-medium !text-gray-900 !rounded-xl !transition-all"
+              className="!w-full !px-3 !py-2.5 !bg-white !border !border-slate-200 focus:!outline-none focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !text-[13px] !font-medium !text-slate-900 !rounded-xl !transition-all"
             />
           </div>
           <div className="!space-y-2">
-            <label className="!text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider !ml-1">End Date</label>
+            <label className="!text-[11px] !font-bold !text-slate-500 !uppercase !tracking-wider !ml-1">End Date</label>
             <input 
               type="date" 
               value={endDate}
               onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
-              className="!w-full !px-3 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-[13px] !font-medium !text-gray-900 !rounded-xl !transition-all"
+              className="!w-full !px-3 !py-2.5 !bg-white !border !border-slate-200 focus:!outline-none focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !text-[13px] !font-medium !text-slate-900 !rounded-xl !transition-all"
             />
           </div>
           <div className="!space-y-2">
-            <label className="!text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider !ml-1">Start Time</label>
+            <label className="!text-[11px] !font-bold !text-slate-500 !uppercase !tracking-wider !ml-1">Start Time</label>
             <input 
               type="time" 
               value={startTime}
               onChange={(e) => { setStartTime(e.target.value); setCurrentPage(1); }}
-              className="!w-full !px-3 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-[13px] !font-medium !text-gray-900 !rounded-xl !transition-all"
+              className="!w-full !px-3 !py-2.5 !bg-white !border !border-slate-200 focus:!outline-none focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !text-[13px] !font-medium !text-slate-900 !rounded-xl !transition-all"
             />
           </div>
           <div className="!space-y-2">
-            <label className="!text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider !ml-1">End Time</label>
+            <label className="!text-[11px] !font-bold !text-slate-500 !uppercase !tracking-wider !ml-1">End Time</label>
             <input 
               type="time" 
               value={endTime}
               onChange={(e) => { setEndTime(e.target.value); setCurrentPage(1); }}
-              className="!w-full !px-3 !py-2.5 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-[13px] !font-medium !text-gray-900 !rounded-xl !transition-all"
+              className="!w-full !px-3 !py-2.5 !bg-white !border !border-slate-200 focus:!outline-none focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !text-[13px] !font-medium !text-slate-900 !rounded-xl !transition-all"
             />
           </div>
         </div>
@@ -696,11 +696,11 @@ function AdminBookingsContent() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="!bg-white !py-16 !px-6 !rounded-2xl !border !border-gray-100 !text-center !shadow-sm"
             >
-              <div className="!w-16 !h-16 !bg-gray-50 !rounded-full !flex !items-center !justify-center !mx-auto !mb-4 !border !border-gray-200">
-                <Calendar className="!w-8 !h-8 !text-gray-300" />
+              <div className="!w-16 !h-16 !bg-slate-50 !rounded-full !flex !items-center !justify-center !mx-auto !mb-4 !border !border-gray-200">
+                <Calendar className="!w-6 !h-6 !text-slate-400" />
               </div>
-              <h3 className="!text-lg !font-bold !text-gray-900 !m-0">No Bookings Found</h3>
-              <p className="!text-gray-500 !text-[13px] !mt-1.5 !font-medium !m-0">Try adjusting your search or filters to find what you're looking for.</p>
+              <h3 className="!text-slate-900 !font-bold !text-lg !mb-1.5 !m-0">No Bookings Found</h3>
+              <p className="!text-slate-500 !text-sm !font-medium !m-0">Try adjusting your search or filters to find what you're looking for.</p>
             </motion.div>
           ) : (
             <div className="!space-y-4">
@@ -708,47 +708,47 @@ function AdminBookingsContent() {
                 <motion.div 
                   layout
                   key={booking._id} 
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="!bg-white !rounded-2xl !border !border-gray-100 !overflow-hidden !shadow-sm hover:!shadow-md !transition-shadow"
+                  exit={{ opacity: 0, y: -10 }}
+                  className="!bg-white !rounded-2xl !border !border-slate-200/80 !overflow-hidden hover:!border-emerald-100 hover:!bg-emerald-50/5 !transition-all"
                 >
-                  <div className="!p-6 !flex !flex-col lg:!flex-row !gap-6 !items-start lg:!items-center">
+                  <div className="!p-5 md:!p-6 !flex !flex-col lg:!flex-row !gap-6 !items-start lg:!items-center">
                     
                     {/* Turf Info */}
                     <div className="!flex !items-center !gap-4 !flex-1 !min-w-0 !w-full">
-                      <div className="!w-20 !h-20 !rounded-xl !overflow-hidden !shrink-0 !bg-gray-50 !border !border-gray-100 !flex !items-center !justify-center">
+                      <div className="!w-16 !h-16 !rounded-xl !overflow-hidden !shrink-0 !bg-slate-50 !border !border-slate-100 !flex !items-center !justify-center">
                         {booking.turf?.images?.[0] ? (
                           <img src={getImageUrl(booking.turf.images[0])} alt={booking.turf.name} className="!w-full !h-full !object-cover" />
                         ) : (
-                          <MapPin className="!w-6 !h-6 !text-gray-300" />
+                          <MapPin className="!w-5 !h-5 !text-slate-300" />
                         )}
                       </div>
                       <div className="!min-w-0">
-                        <div className="!flex !items-center !gap-1.5 !mb-1 !text-gray-500">
+                        <div className="!flex !items-center !gap-1.5 !mb-1 !text-slate-400">
                           <Hash className="!w-3.5 !h-3.5 !shrink-0" />
-                          <span className="!text-[11px] !font-bold !uppercase !tracking-wider">{booking.bookingId || booking._id.slice(-8)}</span>
+                          <span className="!text-[10px] !font-bold !uppercase !tracking-wider">{booking.bookingId || booking._id.slice(-8)}</span>
                         </div>
-                        <h3 className="!text-[15px] !font-bold !text-gray-900 !truncate !m-0">{booking.turf?.name || 'Unknown Venue'}</h3>
-                        <div className="!flex !items-center !text-[13px] !font-medium !text-gray-500 !mt-1">
-                          <MapPin className="!w-3.5 !h-3.5 !mr-1.5 !text-gray-400 !shrink-0" />
+                        <h3 className="!text-[15px] !font-bold !text-slate-900 !truncate !m-0">{booking.turf?.name || 'Unknown Venue'}</h3>
+                        <div className="!flex !items-center !text-xs !font-medium !text-slate-550 !mt-1">
+                          <MapPin className="!w-3.5 !h-3.5 !mr-1 !text-slate-400 !shrink-0" />
                           <span className="!truncate">{booking.turf?.location?.city || 'Unknown City'}</span>
                         </div>
-                        <div className="!mt-3 !flex !flex-wrap !gap-2">
-                          <span className="!bg-gray-50 !text-gray-700 !px-2.5 !py-1 !rounded-md !text-[10px] !font-bold !uppercase !tracking-wider !border !border-gray-200">
+                        <div className="!mt-3 !flex !flex-wrap !gap-1.5">
+                          <span className="!bg-slate-50 !text-slate-600 !px-2.5 !py-1 !rounded-md !text-[9px] !font-bold !uppercase !tracking-wider !border !border-slate-200">
                             {booking.sport}
                           </span>
                           {booking.courts?.map((court, idx) => (
-                            <span key={idx} className="!bg-gray-50 !text-gray-700 !px-2.5 !py-1 !rounded-md !text-[10px] !font-bold !uppercase !tracking-wider !border !border-gray-200">
+                            <span key={idx} className="!bg-slate-50 !text-slate-600 !px-2.5 !py-1 !rounded-md !text-[9px] !font-bold !uppercase !tracking-wider !border !border-slate-200">
                               {court}
                             </span>
                           ))}
-                          <span className={`!px-2.5 !py-1 !rounded-md !text-[10px] !font-bold !uppercase !tracking-wider !border ${
-                            booking.status === 'confirmed' ? '!bg-emerald-50 !text-emerald-700 !border-emerald-200' : 
+                          <span className={`!px-2.5 !py-1 !rounded-md !text-[9px] !font-bold !uppercase !tracking-wider !border ${
+                            booking.status === 'confirmed' ? '!bg-emerald-50 !text-emerald-700 !border-emerald-200/60' : 
                             booking.status === 'completed' ? '!bg-[#1abc60] !text-white !border-[#1abc60]' : 
-                            booking.status === 'pending' ? '!bg-yellow-50 !text-yellow-700 !border-yellow-200' : 
-                            booking.status === 'cancelled' ? '!bg-red-50 !text-red-700 !border-red-200' : 
-                            '!bg-gray-50 !text-gray-700 !border-gray-200'
+                            booking.status === 'pending' ? '!bg-yellow-50 !text-yellow-750 !border-yellow-200/60' : 
+                            booking.status === 'cancelled' ? '!bg-red-50 !text-red-700 !border-red-200/60' : 
+                            '!bg-slate-50 !text-slate-600 !border-slate-200'
                           }`}>
                             {booking.status}
                           </span>
@@ -757,52 +757,52 @@ function AdminBookingsContent() {
                     </div>
 
                     {/* User Info */}
-                    <div className="!flex-1 !w-full lg:!border-l !border-gray-100 lg:!px-6 !space-y-2">
+                    <div className="!flex-1 !w-full lg:!border-l lg:!border-slate-100 lg:!px-6 !space-y-2">
                       <div className="!flex !items-center !gap-3">
-                        <div className="!w-11 !h-11 !rounded-full !bg-emerald-50 !flex !items-center !justify-center !border !border-emerald-100 !shrink-0 !overflow-hidden !text-[#1abc60]">
+                        <div className="!w-10 !h-10 !rounded-full !bg-emerald-50 !flex !items-center !justify-center !border !border-emerald-100 !shrink-0 !overflow-hidden !text-[#1abc60]">
                           {booking.user?.profilePhoto ? (
                             <img src={getImageUrl(booking.user.profilePhoto)} alt={booking.user.name} className="!w-full !h-full !object-cover" />
                           ) : (
-                            <UserIcon className="!w-5 !h-5" />
+                            <UserIcon className="!w-4.5 !h-4.5" />
                           )}
                         </div>
                         <div className="!min-w-0">
-                          <p className="!text-[14px] !font-bold !text-gray-900 !truncate !m-0">{booking.user?.name || 'Guest User'}</p>
-                          <p className="!text-[12px] !font-medium !text-gray-500 !truncate !m-0">{booking.user?.email}</p>
+                          <p className="!text-[14px] !font-bold !text-slate-900 !truncate !m-0">{booking.user?.name || 'Guest User'}</p>
+                          <p className="!text-[12px] !font-medium !text-slate-555 !truncate !m-0">{booking.user?.email}</p>
                         </div>
                       </div>
-                      <div className="!pl-[56px]">
-                        <span className="!text-[11px] !font-semibold !text-gray-600 !bg-gray-50 !px-2.5 !py-1 !rounded-md !border !border-gray-200">
+                      <div className="!pl-[52px]">
+                        <span className="!text-[10px] !font-bold !text-slate-500 !bg-slate-50 !px-2.5 !py-1 !rounded-md !border !border-slate-200">
                           {booking.user?.phone || 'No phone'}
                         </span>
                       </div>
                     </div>
 
                     {/* Slot & Payment Info */}
-                    <div className="!flex-1 !w-full lg:!border-l !border-gray-100 lg:!px-6 !space-y-3">
-                      <div className="!space-y-2 !border-b !border-gray-100 !pb-3">
-                        <div className="!flex !items-center !text-[13px] !font-semibold !text-gray-800">
-                          <Calendar className="!w-4 !h-4 !mr-2.5 !text-gray-400" />
+                    <div className="!flex-1 !w-full lg:!border-l lg:!border-slate-100 lg:!px-6 !space-y-3">
+                      <div className="!space-y-2 !border-b !border-slate-100 !pb-2.5">
+                        <div className="!flex !items-center !text-[13px] !font-semibold !text-slate-800">
+                          <Calendar className="!w-4 !h-4 !mr-2 !text-slate-400" />
                           <span>{formatDate(booking.date)}</span>
                         </div>
-                        <div className="!flex !items-center !text-[13px] !font-semibold !text-gray-800">
-                          <Clock4 className="!w-4 !h-4 !mr-2.5 !text-gray-400" />
+                        <div className="!flex !items-center !text-[13px] !font-semibold !text-slate-800">
+                          <Clock4 className="!w-4 !h-4 !mr-2 !text-slate-400" />
                           <span>{to12h(booking.startTime)} - {to12h(booking.endTime)}</span>
                         </div>
                         {!!booking.slots?.length && (
-                          <div className="!flex !flex-wrap !gap-1.5 !mt-2 !pl-6.5">
-                            <span className="!bg-gray-50 !text-gray-600 !px-2.5 !py-1 !rounded-md !text-[10px] !font-bold !border !border-gray-200">
+                          <div className="!flex !flex-wrap !gap-1.5 !mt-1.5 !pl-6">
+                            <span className="!bg-slate-50 !text-slate-505 !px-2 !py-0.5 !rounded-md !text-[9px] !font-bold !border !border-slate-200">
                               {booking.slots.length} Slot{booking.slots.length !== 1 ? 's' : ''}
                             </span>
                           </div>
                         )}
                       </div>
                       <div className="!flex !flex-col !items-end !gap-1">
-                        <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-wider !m-0">
+                        <p className="!text-[10px] !font-bold !text-slate-400 !m-0 !uppercase !tracking-wider">
                           {booking.paymentStatus === 'paid' ? 'Paid via ' + (booking.paymentMethod || 'online') : 'Payment Pending'}
                         </p>
-                        <p className="!text-lg !font-bold !text-gray-900 !m-0">₹{getBookingTotal(booking)}</p>
-                        <div className="!flex !gap-4 !mt-1.5">
+                        <p className="!text-lg !font-bold !text-slate-900 !m-0">₹{getBookingTotal(booking)}</p>
+                        <div className="!flex !gap-4 !mt-1">
                           <div className="!flex !flex-col !items-end">
                             <span className="!text-[9px] !font-bold !text-blue-500 !uppercase !tracking-wider">Wallet</span>
                             <span className="!text-[13px] !font-bold !text-blue-700">₹{(getBookingTotal(booking) * 0.8).toLocaleString()}</span>
@@ -820,7 +820,7 @@ function AdminBookingsContent() {
                       {booking.status === 'pending' && (
                         <button 
                           onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
-                          className="!flex-1 !w-full !bg-[#1abc60] !text-white !py-2.5 !px-3 !rounded-xl !text-[13px] !font-semibold hover:!bg-[#17a554] !transition-all !flex !items-center !justify-center !gap-1.5 !border-none !cursor-pointer !shadow-sm"
+                          className="!flex-1 !w-full !bg-[#1abc60] !text-white !py-2.5 !px-3 !rounded-xl !text-[13px] !font-bold hover:!bg-[#169c4e] !transition-all !flex !items-center !justify-center !gap-1.5 !border-none !cursor-pointer !shadow-md hover:!shadow-lg hover:!shadow-[#1abc60]/20"
                         >
                           <CheckCircle2 className="!w-4 !h-4 !block !shrink-0" /> Confirm
                         </button>
@@ -828,7 +828,7 @@ function AdminBookingsContent() {
                       {['pending', 'confirmed'].includes(booking.status) && (
                         <button 
                           onClick={() => handleStatusUpdate(booking._id, 'cancelled')}
-                          className="!flex-1 !w-full !bg-white !text-red-600 !border !border-red-200 !py-2.5 !px-3 !rounded-xl !text-[13px] !font-semibold hover:!bg-red-50 !transition-all !flex !items-center !justify-center !gap-1.5 !cursor-pointer !shadow-sm"
+                          className="!flex-1 !w-full !bg-white !text-red-655 !border !border-red-200 !py-2.5 !px-3 !rounded-xl !text-[13px] !font-bold hover:!bg-red-50 !transition-all !flex !items-center !justify-center !gap-1.5 !cursor-pointer"
                         >
                           <XCircle className="!w-4 !h-4 !block !shrink-0" /> Cancel
                         </button>
@@ -836,19 +836,19 @@ function AdminBookingsContent() {
                       {booking.status === 'confirmed' && (
                         <button 
                           onClick={() => handleStatusUpdate(booking._id, 'completed')}
-                          className="!flex-1 !w-full !bg-blue-600 !text-white !py-2.5 !px-3 !rounded-xl !text-[13px] !font-semibold hover:!bg-blue-700 !transition-all !flex !items-center !justify-center !gap-1.5 !border-none !cursor-pointer !shadow-sm"
+                          className="!flex-1 !w-full !bg-blue-600 !text-white !py-2.5 !px-3 !rounded-xl !text-[13px] !font-bold hover:!bg-blue-750 !transition-all !flex !items-center !justify-center !gap-1.5 !border-none !cursor-pointer !shadow-md hover:!shadow-lg hover:!shadow-blue-600/20"
                         >
                           <CheckCircle2 className="!w-4 !h-4 !block !shrink-0" /> Complete
                         </button>
                       )}
                       {['cancelled', 'completed'].includes(booking.status) && (
                         <div className="!flex !gap-2 !w-full">
-                          <div className="!flex-1 !py-2.5 !px-3 !rounded-xl !text-[11px] !font-bold !uppercase !tracking-wider !text-center !text-gray-500 !bg-gray-50 !border !border-gray-200">
+                          <div className="!flex-1 !py-2.5 !px-3 !rounded-xl !text-[10px] !font-bold !uppercase !tracking-wider !text-center !text-slate-500 !bg-slate-50 !border !border-slate-200">
                             {booking.status}
                           </div>
                           <button 
                             onClick={() => handleDelete(booking._id)}
-                            className="!p-2.5 !bg-white !text-gray-400 hover:!text-red-600 !border !border-gray-200 hover:!border-red-200 !rounded-xl !transition-all !cursor-pointer !shadow-sm"
+                            className="!p-2.5 !bg-white !text-slate-400 hover:!text-red-600 !border !border-slate-200 hover:!border-red-255 !rounded-xl !transition-all !cursor-pointer"
                             title="Delete Booking"
                           >
                             <Trash2 className="!w-4 !h-4 !block !shrink-0" />
@@ -867,15 +867,15 @@ function AdminBookingsContent() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="!flex !flex-col sm:!flex-row !items-center !justify-between !gap-4 !pt-6 !border-t !border-gray-100">
-          <p className="!text-[13px] !font-medium !text-gray-500 !m-0">
-            Showing <span className="!font-bold !text-gray-900">{bookings.length}</span> of <span className="!font-bold !text-gray-900">{totalBookings}</span> results
+        <div className="!flex !flex-col sm:!flex-row !items-center !justify-between !gap-4 !pt-6 !border-t !border-slate-100">
+          <p className="!text-[13px] !font-medium !text-slate-505 !m-0">
+            Showing <span className="!font-bold !text-slate-900">{bookings.length}</span> of <span className="!font-bold !text-slate-900">{totalBookings}</span> results
           </p>
           <div className="!flex !items-center !gap-1.5">
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="!p-2 !bg-white !border !border-gray-200 !text-gray-500 !rounded-xl disabled:!opacity-50 disabled:!cursor-not-allowed hover:!bg-gray-50 !transition-all !cursor-pointer !shadow-sm"
+              className="!p-2 !bg-white !border !border-slate-200 !text-slate-505 !rounded-xl disabled:!opacity-50 disabled:!cursor-not-allowed hover:!bg-slate-50 !transition-all !cursor-pointer"
             >
               <ChevronLeft className="!w-4 !h-4 !block !shrink-0" />
             </button>
@@ -892,10 +892,10 @@ function AdminBookingsContent() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`!min-w-[36px] !h-9 !rounded-xl !text-[13px] !font-bold !transition-all !cursor-pointer !shadow-sm ${
+                      className={`!min-w-[36px] !h-9 !rounded-xl !text-[13px] !font-bold !transition-all !cursor-pointer ${
                         currentPage === pageNum 
-                          ? '!bg-[#1abc60] !text-white !border !border-[#1abc60]' 
-                          : '!bg-white !text-gray-700 !border !border-gray-200 hover:!bg-gray-50'
+                          ? '!bg-[#1abc60] !text-white !border !border-[#1abc60] !shadow-md' 
+                          : '!bg-white !text-slate-655 !border !border-slate-200 hover:!bg-slate-50 hover:!border-slate-300'
                       }`}
                     >
                       {pageNum}
@@ -905,7 +905,7 @@ function AdminBookingsContent() {
                   pageNum === currentPage - 2 || 
                   pageNum === currentPage + 2
                 ) {
-                  return <span key={pageNum} className="!text-gray-400 !px-1.5 !font-bold">...</span>;
+                  return <span key={pageNum} className="!text-slate-400 !px-1.5 !font-bold">...</span>;
                 }
                 return null;
               })}
@@ -914,7 +914,7 @@ function AdminBookingsContent() {
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="!p-2 !bg-white !border !border-gray-200 !text-gray-500 !rounded-xl disabled:!opacity-50 disabled:!cursor-not-allowed hover:!bg-gray-50 !transition-all !cursor-pointer !shadow-sm"
+              className="!p-2 !bg-white !border !border-slate-200 !text-slate-505 !rounded-xl disabled:!opacity-50 disabled:!cursor-not-allowed hover:!bg-slate-50 !transition-all !cursor-pointer"
             >
               <ChevronRight className="!w-4 !h-4 !block !shrink-0" />
             </button>
@@ -927,13 +927,13 @@ function AdminBookingsContent() {
       {/* ============================================================== */}
       <AnimatePresence>
         {showOfflineModal && (
-          <div className="!fixed !inset-0 !bg-gray-900/40 !z-[100] !flex !items-center !justify-center !p-4 !backdrop-blur-sm">
+          <div className="!fixed !inset-0 !bg-slate-900/60 !z-[100] !flex !items-center !justify-center !p-4 !backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2 }}
-              className="!bg-[#f8fafc] !rounded-[24px] !w-full !max-w-4xl !max-h-[90vh] !shadow-2xl !flex !flex-col !overflow-hidden !border !border-gray-100"
+              className="!bg-slate-50 !rounded-[28px] !w-full !max-w-4xl !max-h-[90vh] !shadow-2xl !flex !flex-col !overflow-hidden !border !border-slate-200"
             >
               {/* Modal Header */}
               <div className="!px-6 !py-5 !border-b !border-gray-200 !flex !justify-between !items-center !bg-white !shrink-0">
@@ -1214,24 +1214,24 @@ function AdminBookingsContent() {
       {/* ============================================================== */}
       <AnimatePresence>
         {showQRModal && (
-          <div className="!fixed !inset-0 !bg-gray-900/40 !z-[110] !flex !items-center !justify-center !p-4 !backdrop-blur-sm">
+          <div className="!fixed !inset-0 !bg-slate-900/60 !z-[110] !flex !items-center !justify-center !p-4 !backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="!bg-white !rounded-[24px] !w-full !max-w-md !shadow-2xl !overflow-hidden !border !border-gray-100"
+              className="!bg-white !rounded-[28px] !w-full !max-w-md !shadow-2xl !overflow-hidden !border !border-slate-200"
             >
-              <div className="!p-8 !text-center !space-y-6">
+              <div className="!p-6 md:!p-8 !text-center !space-y-6">
                 
                 {/* Header */}
                 <div className="!flex !justify-between !items-start">
                   <div className="!text-left">
-                    <h3 className="!text-xl !font-bold !text-gray-900 !m-0 !leading-none">Scan to Pay</h3>
-                    <p className="!text-[13px] !font-medium !text-gray-500 !mt-1.5 !m-0">Customer needs to scan this code</p>
+                    <h3 className="!text-xl !font-bold !text-slate-900 !m-0 !leading-none">Scan to Pay</h3>
+                    <p className="!text-xs !font-medium !text-slate-500 !mt-1.5 !m-0">Customer needs to scan this code</p>
                   </div>
                   <button 
                     onClick={() => setShowQRModal(false)} 
-                    className="!p-2 !bg-white !border !border-gray-200 !text-gray-400 hover:!text-gray-600 hover:!bg-gray-50 !rounded-xl !transition-all !cursor-pointer !-mt-2 !-mr-2"
+                    className="!p-2.5 !bg-transparent hover:!bg-slate-100 !text-slate-400 hover:!text-slate-655 !rounded-full !transition-all !cursor-pointer !-mt-2 !-mr-2 !border-none"
                   >
                     <X className="!w-5 !h-5 !block" />
                   </button>
@@ -1239,30 +1239,30 @@ function AdminBookingsContent() {
 
                 {/* Amount Display */}
                 <div className="!bg-emerald-50/50 !border !border-emerald-100 !rounded-2xl !p-5">
-                  <p className="!text-[11px] !font-bold !text-[#1abc60] !uppercase !tracking-wider !mb-1 !m-0">Total Amount Payable</p>
-                  <p className="!text-4xl !font-bold !text-gray-900 !tracking-tight !m-0">₹{isManualPrice ? offlineData.manualPrice : calculatedOfflineTotal}</p>
+                  <p className="!text-[10px] !font-bold !text-[#1abc60] !uppercase !tracking-wider !mb-1 !m-0">Total Amount Payable</p>
+                  <p className="!text-4xl !font-black !text-slate-900 !tracking-tight !m-0">₹{isManualPrice ? offlineData.manualPrice : calculatedOfflineTotal}</p>
                 </div>
 
                 {/* QR Code */}
-                <div className="!bg-white !p-4 !rounded-2xl !border-2 !border-dashed !border-gray-200 !inline-block !mx-auto !shadow-sm">
+                <div className="!bg-white !p-4 !rounded-2xl !border-2 !border-dashed !border-slate-200 !inline-block !mx-auto !shadow-sm">
                   <img 
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=VenueAdmin&am=${isManualPrice ? offlineData.manualPrice : calculatedOfflineTotal}&cu=INR`)}`}
                     alt="Payment QR Code"
-                    className="!w-48 !h-48 !mx-auto !rounded-lg"
+                    className="!w-44 !h-44 !mx-auto !rounded-lg"
                   />
                 </div>
 
                 <div className="!space-y-5">
                   {/* UPI Input */}
                   <div className="!space-y-2">
-                    <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider !text-left !ml-1">Receiving UPI ID</label>
+                    <label className="!block !text-[11px] !font-bold !text-slate-500 !uppercase !tracking-wider !text-left !ml-1">Receiving UPI ID</label>
                     <div className="!flex !gap-2">
                       <input 
                         type="text" 
                         value={upiId} 
                         onChange={(e) => setUpiId(e.target.value)}
                         placeholder="e.g. name@upi"
-                        className="!flex-1 !px-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 !rounded-xl !text-[13px] !font-medium !text-gray-900 focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !outline-none !transition-all"
+                        className="!flex-1 !px-4 !py-3.5 !bg-slate-50 hover:!bg-slate-100 !border !border-slate-200 !rounded-xl !text-sm !font-bold !text-slate-900 focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !outline-none !transition-all"
                       />
                       {availableTurfs.find(t => t._id === offlineData.turfId)?.upiId === upiId && (
                         <div className="!flex !items-center !gap-1.5 !px-3 !bg-emerald-50 !text-[#1abc60] !rounded-xl !border !border-emerald-100 !shrink-0" title="Venue's verified UPI ID">
@@ -1274,9 +1274,9 @@ function AdminBookingsContent() {
                   </div>
 
                   {/* Info Box */}
-                  <div className="!bg-blue-50/80 !border !border-blue-100 !p-4 !rounded-xl !flex !items-start !gap-3">
+                  <div className="!bg-blue-50 !border !border-blue-100 !p-4 !rounded-xl !flex !items-start !gap-3">
                     <Info className="!w-5 !h-5 !text-blue-500 !shrink-0" />
-                    <p className="!text-[12px] !text-blue-800 !leading-relaxed !text-left !font-medium !m-0">
+                    <p className="!text-xs !text-blue-800 !leading-relaxed !text-left !font-medium !m-0">
                       Show this QR to the customer. Once they pay, click "Payment Verified" to confirm the booking.
                     </p>
                   </div>
@@ -1285,14 +1285,14 @@ function AdminBookingsContent() {
                   <div className="!flex !gap-3 !pt-2">
                     <button 
                       onClick={() => setShowQRModal(false)}
-                      className="!flex-1 !py-3.5 !px-4 !bg-white !border !border-gray-200 !text-gray-600 !rounded-xl !text-[13px] !font-bold hover:!bg-gray-50 !transition-all !cursor-pointer !shadow-sm"
+                      className="!flex-1 !py-3 !px-4 !bg-white !border !border-slate-200 !text-slate-600 !rounded-xl !text-xs !font-bold hover:!bg-slate-50 !transition-all !cursor-pointer"
                     >
                       Go Back
                     </button>
                     <button 
                       onClick={handleCreateOffline}
                       disabled={isCreatingOffline}
-                      className="!flex-[1.5] !py-3.5 !px-4 !bg-[#1abc60] !text-white !rounded-xl !text-[13px] !font-bold hover:!bg-[#17a554] !transition-all !cursor-pointer !shadow-md disabled:!opacity-50 !flex !items-center !justify-center !gap-2 !border-none"
+                      className="!flex-[1.5] !py-3 !px-4 !bg-[#1abc60] !text-white !rounded-xl !text-xs !font-bold hover:!bg-[#169c4e] !transition-all !cursor-pointer !shadow-md hover:!shadow-lg hover:!shadow-[#1abc60]/20 disabled:!opacity-50 !flex !items-center !justify-center !gap-2 !border-none"
                     >
                       {isCreatingOffline ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <CheckCircle2 className="!w-4 !h-4" />}
                       Payment Verified

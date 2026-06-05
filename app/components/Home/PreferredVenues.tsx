@@ -324,7 +324,7 @@ export default function FeaturedVenues() {
       return dateB - dateA;
     });
 
-    return venuesWithDistance.slice(0, 6);
+    return venuesWithDistance.slice(0, 3);
   }, [allTurfs, searchQuery, selectedSports, selectedCity, userCoords]);
 
   const toggleSport = (sport: string) => {

@@ -631,7 +631,7 @@ function GroundContent() {
           ) : filteredVenues.length > 0 ? (
             <>
               {/* Venues Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {paginatedVenues.map((venue) => (
                   <VenueCard key={venue.id} venue={venue} />
                 ))}

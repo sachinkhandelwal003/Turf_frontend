@@ -343,10 +343,10 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="!w-full !font-sans !space-y-6">
+    <div className="!w-full !font-sans !bg-white !rounded-[24px] !border !border-slate-200/80 !shadow-sm !p-6 md:!p-8 !space-y-6">
       
       {/* Header Section */}
-      <div className="!flex !flex-col sm:!flex-row sm:!items-center !justify-between !gap-4 !bg-white !p-6 md:!p-8 !rounded-[24px] !border !border-slate-200 !shadow-sm">
+      <div className="!flex !flex-col sm:!flex-row sm:!items-center !justify-between !gap-4 !pb-6 !border-b !border-slate-100">
         <div>
           <h1 className="!text-2xl md:!text-3xl !font-black !text-slate-900 !tracking-tight !m-0 !mb-1.5">User Management</h1>
           <p className="!text-sm !font-medium !text-slate-500 !m-0">View and manage users, roles, and account permissions</p>
@@ -363,7 +363,7 @@ export default function AdminUsersPage() {
       <div className="!grid !grid-cols-1 md:!grid-cols-3 !gap-6">
         
         {/* Total Users */}
-        <div className="!bg-white !p-6 !rounded-[24px] !border !border-slate-200 !shadow-sm !flex !items-center !gap-5 !group hover:!border-emerald-100 !transition-colors">
+        <div className="!bg-slate-50/60 !p-6 !rounded-2xl !border !border-slate-100 !flex !items-center !gap-5 !group hover:!border-emerald-100 hover:!bg-emerald-50/20 !transition-all">
           <div className="!w-14 !h-14 !rounded-2xl !bg-emerald-50 !text-[#1abc60] !flex !items-center !justify-center !shrink-0 group-hover:!scale-110 !transition-transform !border !border-emerald-100">
             <Users className="!w-6 !h-6" />
           </div>
@@ -374,7 +374,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Admins Count */}
-        <div className="!bg-white !p-6 !rounded-[24px] !border !border-slate-200 !shadow-sm !flex !items-center !gap-5 !group hover:!border-blue-100 !transition-colors">
+        <div className="!bg-slate-50/60 !p-6 !rounded-2xl !border !border-slate-100 !flex !items-center !gap-5 !group hover:!border-blue-100 hover:!bg-blue-50/20 !transition-all">
           <div className="!w-14 !h-14 !rounded-2xl !bg-blue-50 !text-blue-600 !flex !items-center !justify-center !shrink-0 group-hover:!scale-110 !transition-transform !border !border-blue-100">
             <ShieldCheck className="!w-6 !h-6" />
           </div>
@@ -385,7 +385,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Regular Users Count */}
-        <div className="!bg-white !p-6 !rounded-[24px] !border !border-slate-200 !shadow-sm !flex !items-center !gap-5 !group hover:!border-orange-100 !transition-colors">
+        <div className="!bg-slate-50/60 !p-6 !rounded-2xl !border !border-slate-100 !flex !items-center !gap-5 !group hover:!border-orange-100 hover:!bg-orange-50/20 !transition-all">
           <div className="!w-14 !h-14 !rounded-2xl !bg-orange-50 !text-orange-500 !flex !items-center !justify-center !shrink-0 group-hover:!scale-110 !transition-transform !border !border-orange-100">
             <UserIcon className="!w-6 !h-6" />
           </div>
@@ -398,7 +398,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Data Table Section */}
-      <div className="!bg-white !rounded-[24px] !shadow-sm !border !border-slate-200 !overflow-hidden">
+      <div className="!border !border-slate-200/60 !rounded-2xl !overflow-hidden">
         
         {/* Toolbar */}
         <div className="!p-5 md:!p-6 !border-b !border-slate-200 !bg-white">

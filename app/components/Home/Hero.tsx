@@ -53,7 +53,6 @@ export default function Hero() {
         }
       },
       (error) => {
-        console.error("Geolocation error:", error);
         toast.error("Failed to get your location. Please check permissions.");
         setIsDetecting(false);
       }

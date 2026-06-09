@@ -8,7 +8,8 @@ const Footer = () => {
   return (
     <footer className="bg-[#f8f9fa] border-t border-gray-200 font-sans">
       
-      <div className="max-w-[1250px] mx-auto px-4 lg:px-8 pt-8 pb-4">
+      {/* pb-8 ko reduce karke pb-4 kar diya hai taaki neeche ka gap kam ho jaye */}
+      <div className="max-w-[1250px] mx-auto px-4 lg:px-8 pt-10 pb-4">
         
         {/* --- Main 4 Column Grid --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -34,22 +35,21 @@ const Footer = () => {
             </h4>
             <ul className="space-y-1.5">
               <li>
-                <Link href="/about-us" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                <Link href="/about-us" className="text-gray-500 text-[14px] font-medium hover:text-[#1abc60] transition-colors duration-200 block">
                   About Us
                 </Link>
               </li>
               {['Terms of Service', 'Privacy Policy'].map(item => (
                 <li key={item}>
                   <Link href={`/${item.toLowerCase().replace(/ /g, '-')}`}
-                    // FIX: Default Gray, Hover pe Green hoga
-                    className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block"
+                    className="text-gray-500 text-[14px] font-medium hover:text-[#1abc60] transition-colors duration-200 block"
                   >
                     {item}
                   </Link>
                 </li>
               ))}
               <li>
-                <Link href="/careers" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                <Link href="/careers" className="text-gray-500 text-[14px] font-medium hover:text-[#1abc60] transition-colors duration-200 block">
                   Careers
                 </Link>
               </li>
@@ -63,22 +63,22 @@ const Footer = () => {
             </h4>
             <ul className="space-y-1.5">
               <li>
-                <Link href="/contact-support" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                <Link href="/contact-support" className="text-gray-500 text-[14px] font-medium hover:text-[#1abc60] transition-colors duration-200 block">
                   Contact Support
                 </Link>
               </li>
               <li>
-                <Link href="/faqs" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                <Link href="/faqs" className="text-gray-500 text-[14px] font-medium hover:text-[#1abc60] transition-colors duration-200 block">
                   FAQs
                 </Link>
               </li>
               <li>
-                <Link href="/owner-help" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                <Link href="/owner-help" className="text-gray-500 text-[14px] font-medium hover:text-[#1abc60] transition-colors duration-200 block">
                   Owner Help
                 </Link>
               </li>
               <li>
-                <Link href="/safety-center" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
+                <Link href="/safety-center" className="text-gray-500 text-[14px] font-medium hover:text-[#1abc60] transition-colors duration-200 block">
                   Safety Center
                 </Link>
               </li>
@@ -103,7 +103,7 @@ const Footer = () => {
                 />
                 <button 
                   type="submit"
-                  className="!bg-[#1abc60] hover:!bg-[#169c4e] !text-white font-bold py-3 rounded-lg text-[14px] transition-colors w-full !border-none !shadow-sm cursor-pointer !m-0"
+                  className="bg-[#1abc60] hover:bg-[#169c4e] text-white font-bold py-3 rounded-lg text-[14px] transition-colors w-full border-none shadow-sm cursor-pointer m-0"
                 >
                   Subscribe
                 </button>
@@ -114,8 +114,9 @@ const Footer = () => {
         </div>
 
         {/* --- Bottom Bar --- */}
-        <div className="mt-6 pt-4 flex items-center justify-center border-t border-gray-200">
-          <p className="text-gray-400 text-[13px]">
+        <div className=" flex items-center justify-center border-t border-gray-200">
+          {/* m-0 add kiya taaki default spacing hat jaye */}
+          <p className="text-gray-400 text-[15px] ">
             &copy; {year} GameOn. All rights reserved.
           </p>
         </div>

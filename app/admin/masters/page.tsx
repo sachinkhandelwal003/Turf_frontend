@@ -15,6 +15,7 @@ interface MasterEntry {
   category: "sport" | "amenity" | "court_type";
   isActive: boolean;
   image?: string;
+  playerCount?: number | null;
 }
 
 export default function AdminMastersPage() {
@@ -23,10 +24,12 @@ export default function AdminMastersPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [activeCategory, setActiveCategory] = useState<"sport" | "amenity" | "court_type">("sport");
   const [newName, setNewName] = useState("");
+  const [newPlayerCount, setNewPlayerCount] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<MasterEntry | null>(null);
   const [editName, setEditName] = useState("");
+  const [editPlayerCount, setEditPlayerCount] = useState<string>("");
   const [selectedEditFile, setSelectedEditFile] = useState<File | null>(null);
   const [editPreviewUrl, setEditPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -84,6 +87,9 @@ export default function AdminMastersPage() {
       const formData = new FormData();
       formData.append("name", newName.trim());
       formData.append("category", activeCategory);
+      if (activeCategory === "sport" && newPlayerCount.trim()) {
+        formData.append("playerCount", newPlayerCount.trim());
+      }
       if (selectedFile) {
         formData.append("image", selectedFile);
       }
@@ -97,6 +103,7 @@ export default function AdminMastersPage() {
       if (res.data.success) {
         setMasters([...masters, res.data.master]);
         setNewName("");
+        setNewPlayerCount("");
         setSelectedFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
         toast.success(`${activeCategory.replace('_', ' ')} added successfully`);
@@ -135,6 +142,7 @@ export default function AdminMastersPage() {
   const handleEditInitiate = (entry: MasterEntry) => {
     setEditingEntry(entry);
     setEditName(entry.name);
+    setEditPlayerCount(entry.playerCount?.toString() || "");
     setSelectedEditFile(null);
     setEditPreviewUrl(entry.image ? (entry.image.startsWith('http') ? entry.image : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${entry.image}`) : null);
   };
@@ -148,6 +156,9 @@ export default function AdminMastersPage() {
       const formData = new FormData();
       formData.append("name", editName.trim());
       formData.append("category", activeCategory);
+      if (activeCategory === "sport" && editPlayerCount.trim()) {
+        formData.append("playerCount", editPlayerCount.trim());
+      }
       if (selectedEditFile) {
         formData.append("image", selectedEditFile);
       }
@@ -162,6 +173,7 @@ export default function AdminMastersPage() {
         setMasters(masters.map(m => m._id === editingEntry._id ? res.data.master : m));
         setEditingEntry(null);
         setEditName("");
+        setEditPlayerCount("");
         setSelectedEditFile(null);
         toast.success("Entry updated successfully");
       }
@@ -216,6 +228,7 @@ export default function AdminMastersPage() {
                   onClick={() => {
                     setActiveCategory(cat.id as any);
                     setNewName("");
+                    setNewPlayerCount("");
                     setSelectedFile(null);
                   }}
                   className={`!w-full group !flex !flex-col !items-start !gap-1.5 !p-4 !rounded-xl !transition-all !border-none !cursor-pointer !outline-none ${
@@ -269,7 +282,7 @@ export default function AdminMastersPage() {
             <form onSubmit={handleAdd} className="!m-0">
               <div className="!grid !grid-cols-1 md:!grid-cols-12 !gap-5 !items-end">
                 {/* Name Input */}
-                <div className="md:!col-span-5 !space-y-2">
+                <div className={`${activeCategory === 'sport' ? 'md:!col-span-4' : 'md:!col-span-5'} !space-y-2`}>
                   <label className="!block !text-[10px] !font-bold !text-slate-500 !uppercase !tracking-wider">Entry Name</label>
                   <div className="!group !flex !items-center !bg-white !border !border-slate-200 focus-within:!border-[#1abc60] focus-within:!ring-1 focus-within:!ring-[#1abc60] !rounded-xl !transition-all">
                     <div className="!pl-4 !pr-2 !text-slate-400 group-focus-within:!text-[#1abc60]">
@@ -284,9 +297,29 @@ export default function AdminMastersPage() {
                     />
                   </div>
                 </div>
+
+                {/* Player Count Input (Only for Sport) */}
+                {activeCategory === 'sport' && (
+                  <div className="md:!col-span-3 !space-y-2">
+                    <label className="!block !text-[10px] !font-bold !text-slate-500 !uppercase !tracking-wider">Player Count</label>
+                    <div className="!group !flex !items-center !bg-white !border !border-slate-200 focus-within:!border-[#1abc60] focus-within:!ring-1 focus-within:!ring-[#1abc60] !rounded-xl !transition-all">
+                      <div className="!pl-4 !pr-2 !text-slate-400 group-focus-within:!text-[#1abc60]">
+                        <Layers className="!w-4 !h-4" />
+                      </div>
+                      <input 
+                        type="number" 
+                        value={newPlayerCount}
+                        onChange={(e) => setNewPlayerCount(e.target.value)}
+                        placeholder="e.g. 11 (Cricket)"
+                        min="1"
+                        className="!flex-1 !px-2 !py-3.5 !bg-transparent !outline-none !border-none !text-sm !font-bold !text-slate-800 placeholder:!text-slate-300"
+                      />
+                    </div>
+                  </div>
+                )}
                 
                 {/* Image Upload */}
-                <div className="md:!col-span-4 !space-y-2">
+                <div className={`${activeCategory === 'sport' ? 'md:!col-span-3' : 'md:!col-span-4'} !space-y-2`}>
                   <label className="!block !text-[10px] !font-bold !text-slate-500 !uppercase !tracking-wider">Icon / Image</label>
                   <input 
                     type="file" 
@@ -328,7 +361,7 @@ export default function AdminMastersPage() {
                 </div>
 
                 {/* Submit Button */}
-                <div className="md:!col-span-3">
+                <div className="md:!col-span-2">
                   <button 
                     disabled={isSaving || !newName.trim()}
                     type="submit"
@@ -385,7 +418,14 @@ export default function AdminMastersPage() {
                       </div>
                       <div className="!min-w-0">
                         <span className="!font-bold !text-slate-900 group-hover:!text-[#1abc60] !transition-colors !block !mb-0.5 !uppercase !tracking-tight !truncate">{entry.name}</span>
-                        <span className="!text-[9px] !font-bold !text-slate-400 !uppercase !tracking-wider !block !opacity-70">UID: {entry._id.slice(-6)}</span>
+                        <div className="!flex !items-center !gap-2">
+                          <span className="!text-[9px] !font-bold !text-slate-400 !uppercase !tracking-wider !opacity-70">UID: {entry._id.slice(-6)}</span>
+                          {entry.playerCount && activeCategory === 'sport' && (
+                            <span className="!px-2 !py-0.5 !bg-emerald-50 !text-emerald-700 !text-[9px] !font-bold !uppercase !tracking-wider !rounded-full">
+                              {entry.playerCount} Players
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
@@ -481,6 +521,26 @@ export default function AdminMastersPage() {
                         />
                       </div>
                     </div>
+
+                    {/* Player Count Input (Only for Sport) */}
+                    {activeCategory === 'sport' && (
+                      <div className="!space-y-2">
+                        <label className="!block !text-[10px] !font-bold !text-slate-500 !uppercase !tracking-wider">Player Count</label>
+                        <div className="!group !flex !items-center !bg-slate-50 !border !border-slate-200 focus-within:!bg-white focus-within:!border-[#1abc60] focus-within:!ring-1 focus-within:!ring-[#1abc60] !rounded-xl !transition-all">
+                          <div className="!pl-4 !pr-2 !text-slate-400 group-focus-within:!text-[#1abc60]">
+                            <Layers className="!w-4 !h-4" />
+                          </div>
+                          <input 
+                            type="number" 
+                            value={editPlayerCount}
+                            onChange={(e) => setEditPlayerCount(e.target.value)}
+                            placeholder="e.g. 11 (Cricket)"
+                            min="1"
+                            className="!flex-1 !px-2 !py-3.5 !bg-transparent !outline-none !border-none !text-sm !font-bold !text-slate-800"
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <div className="!space-y-2">
                       <label className="!block !text-[10px] !font-bold !text-slate-500 !uppercase !tracking-wider">Icon / Image</label>

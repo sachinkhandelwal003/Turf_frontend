@@ -369,7 +369,6 @@ export default function FeaturedVenues() {
         }
       },
       (error) => {
-        console.error("Geolocation error:", error);
         toast.error("Failed to get your location");
         setLoading(false);
       }

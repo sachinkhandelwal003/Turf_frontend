@@ -116,6 +116,11 @@ function AdminBookingsContent() {
   useEffect(() => {
     if (showOfflineModal && offlineData.turfId && offlineData.date) {
       fetchAvailability(offlineData.turfId, offlineData.date);
+      // Refresh availability every 30 seconds while modal is open
+      const intervalId = setInterval(() => {
+        fetchAvailability(offlineData.turfId, offlineData.date);
+      }, 30000);
+      return () => clearInterval(intervalId);
     }
   }, [showOfflineModal, offlineData.turfId, offlineData.date]);
 
@@ -445,12 +450,29 @@ function AdminBookingsContent() {
     const dateObj = new Date(year, month - 1, day);
     const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
 
-    const operatingDay = turf.operatingHours?.find(
+    // Default operating hours if none are set
+    const defaultOperatingHours = [
+      { day: 'Monday', open: '06:00', close: '22:00', isOpen: true },
+      { day: 'Tuesday', open: '06:00', close: '22:00', isOpen: true },
+      { day: 'Wednesday', open: '06:00', close: '22:00', isOpen: true },
+      { day: 'Thursday', open: '06:00', close: '22:00', isOpen: true },
+      { day: 'Friday', open: '06:00', close: '22:00', isOpen: true },
+      { day: 'Saturday', open: '06:00', close: '22:00', isOpen: true },
+      { day: 'Sunday', open: '06:00', close: '22:00', isOpen: true }
+    ];
+    
+    const operatingHours = turf.operatingHours && turf.operatingHours.length > 0 
+      ? turf.operatingHours 
+      : defaultOperatingHours;
+      
+    const operatingDay = operatingHours.find(
       (d: any) => d.day.toLowerCase() === dayName.toLowerCase()
-    );
+    ) || defaultOperatingHours.find(d => d.day.toLowerCase() === dayName.toLowerCase());
+    
     if (!operatingDay || operatingDay.isOpen === false) return [];
+    
     const open = operatingDay.open || '06:00';
-    const close = operatingDay.close || '23:00';
+    const close = operatingDay.close || '22:00';
     const duration = Number(turf.slotDuration || 60);
     const d = Math.max(15, duration || 60);
     let cur = parseTimeToMinutes(open);
@@ -970,7 +992,16 @@ function AdminBookingsContent() {
                         <select 
                           required
                           value={offlineData.turfId} 
-                          onChange={(e) => setOfflineData({...offlineData, turfId: e.target.value, slots: [], courts: []})}
+                          onChange={(e) => {
+                            const selectedTurf = availableTurfs.find(t => t._id === e.target.value);
+                            setOfflineData({
+                              ...offlineData, 
+                              turfId: e.target.value, 
+                              slots: [], 
+                              courts: [],
+                              sport: selectedTurf?.sports?.[0] || ""
+                            });
+                          }}
                           className="!w-full !px-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-[13px] !font-medium !text-gray-900 !rounded-xl !transition-all !appearance-none !cursor-pointer"
                         >
                           <option value="">Choose a Venue</option>
@@ -979,14 +1010,13 @@ function AdminBookingsContent() {
                       </div>
 
                       <div className="!space-y-2">
-                        <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Select Sport <span className="!text-red-500">*</span></label>
+                        <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Select Sport</label>
                         <select 
-                          required
                           value={offlineData.sport}
                           onChange={(e) => setOfflineData({...offlineData, sport: e.target.value})}
                           className="!w-full !px-4 !py-3 !bg-gray-50 hover:!bg-white !border !border-gray-200 focus:!bg-white focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !text-[13px] !font-medium !text-gray-900 !rounded-xl !transition-all !appearance-none !cursor-pointer"
                         >
-                          <option value="">Choose a Sport</option>
+                          <option value="">Auto-select (Venue's first sport)</option>
                           {availableTurfs.find(t => t._id === offlineData.turfId)?.sports?.map((sport: string) => (
                             <option key={sport} value={sport}>{sport}</option>
                           ))}

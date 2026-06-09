@@ -382,23 +382,24 @@ function GroundContent() {
             })
             .catch(err => console.error("Reverse geocoding error:", err));
         },
-        async (error) => {
+        (error) => {
           console.warn("Browser geolocation failed/denied, trying IP location...", error);
-          try {
-            const ipRes = await fetch('https://ipapi.co/json/');
-            const ipData = await ipRes.json();
-            if (ipData.latitude && ipData.longitude) {
-              setUserCoords({
-                lat: ipData.latitude,
-                lng: ipData.longitude
-              });
-              if (ipData.city) {
-                setUserLocationName(ipData.city);
+          fetch('https://ip-api.com/json/')
+            .then(res => res.json())
+            .then(ipData => {
+              if (ipData.lat && ipData.lon) {
+                setUserCoords({
+                  lat: ipData.lat,
+                  lng: ipData.lon
+                });
+                if (ipData.city) {
+                  setUserLocationName(ipData.city);
+                }
               }
-            }
-          } catch (ipErr) {
-            console.error("IP geolocation failed:", ipErr);
-          }
+            })
+            .catch(ipErr => {
+              console.error("IP geolocation failed:", ipErr);
+            });
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
       );

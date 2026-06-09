@@ -9,7 +9,7 @@ const HowItWorks = dynamic(() => import('@/app/components/Home/HowsitWork'), { s
 
 export default function Home() {
   return (
-    <main className="bg-gray-50 min-h-screen font-sans pb-20 pt-[80px]">
+    <main className="bg-gray-50 min-h-screen font-sans pb-8 pt-[80px]">
       
       {/* 1. Hero & Search Section */}
       <Hero />

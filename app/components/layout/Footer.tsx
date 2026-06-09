@@ -8,14 +8,14 @@ const Footer = () => {
   return (
     <footer className="bg-[#f8f9fa] border-t border-gray-200 font-sans">
       
-      <div className="max-w-[1250px] mx-auto px-4 lg:px-8 py-16">
+      <div className="max-w-[1250px] mx-auto px-4 lg:px-8 pt-8 pb-4">
         
         {/* --- Main 4 Column Grid --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
           {/* 1. Brand Info */}
           <div className="lg:col-span-1 pr-4">
-            <Link href="/" className="inline-block mb-5">
+            <Link href="/" className="inline-block mb-4">
               <img 
                 src="/mainlogo.png" // Update with your local logo path
                 alt="GameOn Logo" 
@@ -29,10 +29,10 @@ const Footer = () => {
 
           {/* 2. Company Links */}
           <div>
-            <h4 className="text-[13px] font-extrabold text-[#111111] uppercase tracking-widest mb-7">
+            <h4 className="text-[13px] font-extrabold text-[#111111] uppercase tracking-widest mb-2.5">
               Company
             </h4>
-            <ul className="space-y-4">
+            <ul className="space-y-1.5">
               <li>
                 <Link href="/about-us" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
                   About Us
@@ -58,10 +58,10 @@ const Footer = () => {
 
           {/* 3. Support Links */}
           <div>
-            <h4 className="text-[13px] font-extrabold text-[#111111] uppercase tracking-widest mb-7">
+            <h4 className="text-[13px] font-extrabold text-[#111111] uppercase tracking-widest mb-2.5">
               Support
             </h4>
-            <ul className="space-y-4">
+            <ul className="space-y-1.5">
               <li>
                 <Link href="/contact-support" className="!text-gray-500 text-[14px] font-medium hover:!text-[#1abc60] transition-colors duration-200 !no-underline block">
                   Contact Support
@@ -87,15 +87,15 @@ const Footer = () => {
 
           {/* 4. Newsletter Box */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-gray-100 rounded-[16px] p-7 shadow-sm">
+            <div className="bg-white border border-gray-100 rounded-[16px] p-6 shadow-sm">
               <h4 className="text-[13px] font-extrabold text-[#111111] uppercase tracking-widest mb-3">
                 Newsletter
               </h4>
-              <p className="text-gray-500 text-[13px] leading-relaxed mb-5">
+              <p className="text-gray-500 text-[13px] leading-relaxed mb-4">
                 Get the latest match alerts and venue openings.
               </p>
               
-              <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-3.5">
+              <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-3">
                 <input 
                   type="email" 
                   placeholder="Email Address" 
@@ -114,7 +114,7 @@ const Footer = () => {
         </div>
 
         {/* --- Bottom Bar --- */}
-        <div className="mt-16 pt-8 flex items-center justify-center border-t border-gray-200">
+        <div className="mt-6 pt-4 flex items-center justify-center border-t border-gray-200">
           <p className="text-gray-400 text-[13px]">
             &copy; {year} GameOn. All rights reserved.
           </p>

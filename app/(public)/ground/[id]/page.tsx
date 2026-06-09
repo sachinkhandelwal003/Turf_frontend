@@ -77,6 +77,7 @@ export default function VenueDetailsPage() {
   const [isBooking, setIsBooking] = useState(false);
   const [bookedSlots, setBookedSlots] = useState<any[]>([]);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isAboutExpanded, setIsAboutExpanded] = useState(false);
 
   // Fetch User Geolocation
   useEffect(() => {
@@ -88,20 +89,21 @@ export default function VenueDetailsPage() {
             lng: position.coords.longitude
           });
         },
-        async (error) => {
+        (error) => {
           console.warn("Browser geolocation failed/denied, trying IP location...", error);
-          try {
-            const ipRes = await fetch('https://ipapi.co/json/');
-            const ipData = await ipRes.json();
-            if (ipData.latitude && ipData.longitude) {
-              setUserCoords({
-                lat: ipData.latitude,
-                lng: ipData.longitude
-              });
-            }
-          } catch (ipErr) {
-            console.error("IP geolocation failed:", ipErr);
-          }
+          fetch('https://ip-api.com/json/')
+            .then(res => res.json())
+            .then(ipData => {
+              if (ipData.lat && ipData.lon) {
+                setUserCoords({
+                  lat: ipData.lat,
+                  lng: ipData.lon
+                });
+              }
+            })
+            .catch(ipErr => {
+              console.error("IP geolocation failed:", ipErr);
+            });
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
       );
@@ -207,6 +209,10 @@ export default function VenueDetailsPage() {
       }
     };
     fetchAvailability();
+    
+    // Refresh availability every 30 seconds
+    const intervalId = setInterval(fetchAvailability, 30000);
+    return () => clearInterval(intervalId);
   }, [id, selectedDate]);
 
   const formatMinutes = (mins: number) =>
@@ -521,6 +527,27 @@ export default function VenueDetailsPage() {
     return () => clearInterval(interval);
   }, [currentImages]);
 
+  const distance = useMemo(() => {
+    if (!venue) return null;
+    let lat = venue.coordinates?.lat;
+    let lng = venue.coordinates?.lng;
+
+    // Fallback to city coordinates if venue coordinates are missing
+    if ((!lat || !lng) && venue.location) {
+      const city = venue.location.trim().toLowerCase();
+      const fallback = CITY_COORDS_FALLBACK[city];
+      if (fallback) {
+        lat = fallback.lat;
+        lng = fallback.lng;
+      }
+    }
+
+    if (userCoords && lat && lng) {
+      return calculateDistance(userCoords.lat, userCoords.lng, lat, lng);
+    }
+    return null;
+  }, [venue, userCoords]);
+
   if (loading) {
     return (
       <div className="!min-h-screen !flex !items-center !justify-center !bg-[#f8fafc]">
@@ -562,27 +589,6 @@ export default function VenueDetailsPage() {
   const [year, month, day] = selectedDate.split('-').map(Number);
   const dateObj = new Date(year, month - 1, day);
   const dayNameForDisplay = dateObj.toLocaleDateString("en-US", { weekday: "long" });
-
-  const distance = useMemo(() => {
-    if (!venue) return null;
-    let lat = venue.coordinates?.lat;
-    let lng = venue.coordinates?.lng;
-
-    // Fallback to city coordinates if venue coordinates are missing
-    if ((!lat || !lng) && venue.location) {
-      const city = venue.location.trim().toLowerCase();
-      const fallback = CITY_COORDS_FALLBACK[city];
-      if (fallback) {
-        lat = fallback.lat;
-        lng = fallback.lng;
-      }
-    }
-
-    if (userCoords && lat && lng) {
-      return calculateDistance(userCoords.lat, userCoords.lng, lat, lng);
-    }
-    return null;
-  }, [venue, userCoords]);
 
   return (
     <div className="!min-h-screen !bg-[#f8fafc] !pb-20 !pt-24 !font-sans">
@@ -699,9 +705,19 @@ export default function VenueDetailsPage() {
 
             <div className="!mb-12">
               <h3 className="!text-xl !font-bold !text-gray-900 !mb-4">About Venue</h3>
-              <p className="!text-base !text-gray-600 !leading-relaxed !font-medium">
-                {venue.about}
-              </p>
+              <div className="!relative">
+                <div className={`!transition-all ${!isAboutExpanded ? '!line-clamp-3' : ''}`}>
+                  <div className="!text-base !text-gray-600 !leading-relaxed !font-medium !whitespace-pre-line">
+                    {venue.about}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsAboutExpanded(!isAboutExpanded)}
+                  className="!mt-2 !text-[#1abc60] !text-sm !font-bold !transition-colors hover:!text-[#169c4e] !border-none !bg-transparent !cursor-pointer !p-0"
+                >
+                  {isAboutExpanded ? 'Read Less' : 'Read More'}
+                </button>
+              </div>
             </div>
           </div>
 

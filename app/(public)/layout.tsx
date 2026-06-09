@@ -18,18 +18,18 @@ export default function PublicLayout({
   );
 // kehfn;oiwhef;/ih;fuiph
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       {!hideNavbarFooter && (
         <Suspense fallback={<div className="min-h-[80px]" />}>
           <Navbar />
         </Suspense>
       )}
-      <main className="min-h-screen">{children}</main>
+      <main className="flex-grow">{children}</main>
       {!hideNavbarFooter && (
         <Suspense fallback={<div className="min-h-[200px]" />}>
           <Footer />
         </Suspense>
       )}
-    </>
+    </div>
   );
 }

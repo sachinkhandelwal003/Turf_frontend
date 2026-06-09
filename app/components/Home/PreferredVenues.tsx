@@ -200,12 +200,12 @@ export default function FeaturedVenues() {
           console.warn("Browser geolocation failed/denied, trying IP location...", error);
           // 2. Fallback to IP geolocation
           try {
-            const ipRes = await fetch('https://ipapi.co/json/');
+            const ipRes = await fetch('https://ip-api.com/json/');
             const ipData = await ipRes.json();
-            if (ipData.latitude && ipData.longitude) {
+            if (ipData.lat && ipData.lon) {
               setUserCoords({
-                lat: ipData.latitude,
-                lng: ipData.longitude
+                lat: ipData.lat,
+                lng: ipData.lon
               });
               console.log("IP-based location detected:", ipData.city);
             }

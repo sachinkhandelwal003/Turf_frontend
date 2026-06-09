@@ -51,9 +51,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    
     let apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
     
     if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_API_URL) {
@@ -76,7 +83,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       newSocket.close();
     };
-  }, []);
+  }, [isMounted]);
 
   const fetchConversations = useCallback(async () => {
     if (!userId) return;

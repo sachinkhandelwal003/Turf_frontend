@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, Calendar, MapPin, Mail, Phone, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -763,19 +763,74 @@ export default function PrivacyPolicy() {
         </div>
       </section>
 
-      {/* ── FOOTER BAR ── */}
-      <footer className="border-t border-gray-100 bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm font-medium space-y-4">
-          <p>
-            © 2026 GameOn Sports Services Private Limited · CIN: U93290UW2026PTC252581
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 lg:gap-8 text-gray-600">
-            <a href="mailto:support@gameon-india.com" className="flex items-center gap-2 hover:text-emerald-600 transition-colors"><Mail className="w-4 h-4"/> support@gameon-india.com</a>
-            <a href="tel:+918896172818" className="flex items-center gap-2 hover:text-emerald-600 transition-colors"><Phone className="w-4 h-4"/> +91 88961 72818</a>
+      {/* ── FOOTER BAR (UPDATED FOR PERFECT ALIGNMENT) ── */}
+      <footer className="border-t border-gray-100 bg-[#FAFAFA] pt-16 pb-8 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12 items-start">
+            
+            {/* 1. Brand Section */}
+            <div className="flex flex-col items-start">
+              <img 
+                src="/gameon-logo.png" 
+                alt="GameOn Logo" 
+                className="h-10 w-auto object-contain mb-3" 
+              />
+              <p className="text-gray-500 text-[14px] leading-relaxed">
+                The Kinetic Editorial of Sport.<br />
+                Transforming how the world plays together.
+              </p>
+            </div>
+
+            {/* 2. Company Links */}
+            <div>
+              <h4 className="font-extrabold text-gray-900 text-[13px] uppercase tracking-[0.1em] mb-4">Company</h4>
+              <ul className="space-y-3 text-[14px] text-gray-500 font-medium">
+                <li><Link href="#" className="hover:text-emerald-600 transition-colors">About Us</Link></li>
+                <li><Link href="#" className="hover:text-emerald-600 transition-colors">Terms of Service</Link></li>
+                <li><Link href="#" className="hover:text-emerald-600 transition-colors">Privacy Policy</Link></li>
+                <li><Link href="#" className="hover:text-emerald-600 transition-colors">Careers</Link></li>
+              </ul>
+            </div>
+
+            {/* 3. Support Links */}
+            <div>
+              <h4 className="font-extrabold text-gray-900 text-[13px] uppercase tracking-[0.1em] mb-4">Support</h4>
+              <ul className="space-y-3 text-[14px] text-gray-500 font-medium">
+                <li><Link href="#" className="hover:text-emerald-600 transition-colors">Contact Support</Link></li>
+                <li><Link href="#" className="hover:text-emerald-600 transition-colors">FAQs</Link></li>
+                <li><Link href="#" className="hover:text-emerald-600 transition-colors">Owner Help</Link></li>
+                <li><Link href="#" className="hover:text-emerald-600 transition-colors">Safety Center</Link></li>
+              </ul>
+            </div>
+
+            {/* 4. Newsletter Card */}
+            <div className="bg-white p-6 rounded-2xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] border border-gray-100">
+              <h4 className="font-extrabold text-gray-900 text-[13px] uppercase tracking-[0.1em] mb-3">Newsletter</h4>
+              <p className="text-gray-500 text-[13px] mb-4 leading-relaxed">
+                Get the latest match alerts and venue openings.
+              </p>
+              <form className="flex flex-col space-y-3">
+                <input 
+                  type="email" 
+                  placeholder="Email Address" 
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 placeholder:text-gray-400"
+                  required
+                />
+                <button 
+                  type="submit"
+                  className="w-full bg-[#1db954] hover:bg-[#1aa34a] text-white font-bold py-2.5 rounded-lg text-sm transition-colors"
+                >
+                  Subscribe
+                </button>
+              </form>
+            </div>
+
           </div>
-          <p className="pt-4 text-xs text-gray-400">
-            Registered Office: KH-126, Bypass Road, Shanti Shivpuri, Ghaziabad, UP — 201001
-          </p>
+
+          {/* Bottom Copyright */}
+          <div className="mt-16 pt-8 border-t border-gray-200 text-center text-gray-400 text-sm">
+            © 2026 GameOn. All rights reserved.
+          </div>
         </div>
       </footer>
     </div>

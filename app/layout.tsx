@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-
-import { AuthProvider } from "@/app/context/AuthContext";
-import { ChatProvider } from "@/app/context/ChatContext";
-
-import { Toaster } from "sonner";
+import ClientProviders from "./ClientProviders";
 import { Suspense } from "react";
-
-import FloatingChatWrapper from "./components/chat/FloatingChatWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,21 +19,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} overflow-x-hidden`}>
-        <AuthProvider>
-          <ChatProvider>
-            <Suspense fallback={null}>
-              {children}
-            </Suspense>
-
-            <Suspense fallback={null}>
-              <FloatingChatWrapper />
-            </Suspense>
-
-            <Toaster position="top-right" richColors />
-          </ChatProvider>
-        </AuthProvider>
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        }>
+          <ClientProviders>{children}</ClientProviders>
+        </Suspense>
       </body>
     </html>
   );
 }
-// klewhr[oqwhefoih]

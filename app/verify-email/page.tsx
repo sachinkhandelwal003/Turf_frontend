@@ -26,7 +26,7 @@ function VerifyEmailContent() {
 
     const verifyEmail = async () => {
       try {
-        const response = await apiRequest(`/verify-email?token=${token}`, "GET");
+        const response = await apiRequest(`/auth/verify-email?token=${token}`, "GET");
         
         // If successful, log the user in
         if (response.token && response.user) {

@@ -28,21 +28,16 @@ function VerifyEmailContent() {
       try {
         const response = await apiRequest(`/auth/verify-email?token=${token}`, "GET");
         
-        // If successful, log the user in
-        if (response.token && response.user) {
-          localStorage.setItem("token", response.token);
-          localStorage.setItem("adminUser", JSON.stringify(response.user));
-          login(response.token, response.user);
-        }
+        // No auto-login, just redirect to login page
         
         setStatus("success");
         setMessage(response.msg || "Email verified successfully!");
         
         toast.success("Email verified! Welcome aboard! 🎉");
         
-        // Redirect to home after 3 seconds
+        // Redirect to login after 3 seconds
         setTimeout(() => {
-          router.push("/");
+          router.push("/login");
         }, 3000);
         
       } catch (error: any) {
@@ -82,7 +77,7 @@ function VerifyEmailContent() {
             </div>
             <h2 className="text-xl font-bold text-gray-800">Email Verified!</h2>
             <p className="text-gray-500">{message}</p>
-            <p className="text-sm text-gray-400 mt-2">Redirecting you to home...</p>
+            <p className="text-sm text-gray-400 mt-2">Redirecting you to login...</p>
           </div>
         )}
 

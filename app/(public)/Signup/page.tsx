@@ -74,18 +74,12 @@ export default function SignUp() {
 
     try {
       const response = await apiRequest('/auth/register', 'POST', formData as any);
-      toast.success("Signed up successfully!");
+      toast.success(response.msg || "Signed up successfully!");
       
-      if (response.token) {
-        localStorage.setItem("token", response.token);
-      }
-      if (response.user) {
-        localStorage.setItem("adminUser", JSON.stringify(response.user));
-      }
-
+      // Show success message and don't auto-login
       setTimeout(() => {
-        window.location.href = '/'; // Force reload to pick up context
-      }, 1500);
+        router.push('/login');
+      }, 2000);
     } catch (error: any) {
       toast.error(error?.message || "Failed to create account. Please try again.");
     } finally {

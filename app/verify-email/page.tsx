@@ -89,10 +89,10 @@ function VerifyEmailContent() {
             <h2 className="text-xl font-bold text-gray-800">Verification Failed</h2>
             <p className="text-gray-500">{message}</p>
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/login")}
               className="mt-4 px-6 py-2.5 bg-[#1abc60] hover:bg-[#169c4e] text-white font-bold rounded-lg transition-colors"
             >
-              Go Home
+              Go to Login
             </button>
           </div>
         )}

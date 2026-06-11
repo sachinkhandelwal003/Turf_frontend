@@ -13,7 +13,7 @@ export default function PublicLayout({
 }) {
   useScrollRestoration();
   const pathname = usePathname() || "";
-  const hideNavbarFooter = ['/login', '/Signup', '/ForgotPassword', '/ResetPassword'].some(path => 
+  const hideNavbarFooter = ['/login', '/Signup', '/ForgotPassword', '/ResetPassword', '/verify-email'].some(path => 
     pathname.startsWith(path)
   );
 // kehfn;oiwhef;/ih;fuiph

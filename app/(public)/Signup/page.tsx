@@ -4,10 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Eye, EyeOff, ChevronDown, Loader2, ArrowLeft } from 'lucide-react';
-import { apiRequest } from '@/app/api'; 
 import { useAuth } from '@/app/context/AuthContext';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
+import { GoogleLogin } from '@react-oauth/google';
 
 // Example: import gameOnLogo from '../../public/image_b83177.png';
 
@@ -16,17 +16,22 @@ const AppleIcon = () => ( <svg viewBox="0 0 24 24" width="16" height="16" xmlns=
 
 export default function SignUp() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, googleLogin, login } = useAuth();
   
   const [showPass, setShowPass] = useState(false);
   const [showConfPass, setShowConfPass] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient && !authLoading && isAuthenticated) {
       router.push('/');
     }
-  }, [isAuthenticated, authLoading, router]);
+  }, [isAuthenticated, authLoading, router, isClient]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -73,24 +78,58 @@ export default function SignUp() {
     setIsLoading(true);
 
     try {
-      const response = await apiRequest('/auth/register', 'POST', formData as any);
-      toast.success("Signed up successfully!");
+      // Register the user
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
       
-      if (response.token) {
-        localStorage.setItem("token", response.token);
-      }
-      if (response.user) {
-        localStorage.setItem("adminUser", JSON.stringify(response.user));
+      if (!response.ok || !data.success) {
+        throw new Error(data.msg || data.message || 'Failed to create account');
       }
 
+      toast.success(data.msg || "Signed up successfully! Please check your email for verification.");
+      
       setTimeout(() => {
-        window.location.href = '/'; // Force reload to pick up context
-      }, 1500);
+        router.push('/login');
+      }, 2000);
     } catch (error: any) {
       toast.error(error?.message || "Failed to create account. Please try again.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleLoginSuccess = async (credentialResponse: any) => {
+    setIsLoading(true);
+    try {
+      const user = await googleLogin(credentialResponse.credential);
+      
+      if (user.role !== 'user') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminUser');
+        toast.error("Admins must login through the Admin Portal.");
+        return;
+      }
+
+      toast.success("Signed up successfully! 🎉");
+      
+      setTimeout(() => {
+        router.push('/');
+      }, 1500);
+    } catch (error: any) {
+      toast.error(error?.message || "Google login failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLoginError = () => {
+    toast.error("Google login failed. Please try again.");
   };
 
   return (
@@ -243,9 +282,16 @@ export default function SignUp() {
 
           {/* SOCIAL BUTTONS: !text-[#2d3748] add kiya hai taaki text dark gray dikhe */}
           <div className="grid grid-cols-2 gap-4 mb-8">
-            <button type="button" className="flex items-center justify-center gap-2.5 !bg-[#f4f5f5] hover:!bg-[#e9ebea] py-3.5 rounded-lg transition-all text-[13px] font-bold !text-[#2d3748] border-none">
-              Google <GoogleIcon />
-            </button>
+            <div className="flex items-center justify-center">
+              {isClient && (
+                <GoogleLogin
+                  onSuccess={handleGoogleLoginSuccess}
+                  onError={handleGoogleLoginError}
+                  theme="outline"
+                  size="large"
+                />
+              )}
+            </div>
             <button type="button" className="flex items-center justify-center gap-2.5 !bg-[#f4f5f5] hover:!bg-[#e9ebea] py-3.5 rounded-lg transition-all text-[13px] font-bold !text-[#2d3748] border-none">
               Apple <AppleIcon />
             </button>

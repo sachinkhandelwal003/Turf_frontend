@@ -209,10 +209,6 @@ export default function VenueDetailsPage() {
       }
     };
     fetchAvailability();
-    
-    // Refresh availability every 30 seconds
-    const intervalId = setInterval(fetchAvailability, 30000);
-    return () => clearInterval(intervalId);
   }, [id, selectedDate]);
 
   const formatMinutes = (mins: number) =>

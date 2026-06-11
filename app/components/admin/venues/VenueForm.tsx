@@ -4,7 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { 
   Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2,
   Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash, Calendar, Info,
-  PlusCircle, Trash2, Trophy, X, Scale
+  PlusCircle, Trash2, Trophy
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -40,7 +40,7 @@ interface FormShape {
   name: string;
   description: string;
   sports: string[];
-  surfaceType: string[];
+  surfaceType: string;
   amenities: string[];
   address: string;
   city: string;
@@ -69,10 +69,10 @@ interface ApiCarryForwardShape {
 }
 
 const defaultForm: FormShape = {
-  name: "",
-  description: "",
+  name: '',
+  description: '',
   sports: [],
-  surfaceType: [],
+  surfaceType: '',
   amenities: [],
   address: '',
   city: '',
@@ -139,7 +139,6 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
   const [rating, setRating] = useState(0);
   const [reviewsCount, setReviewsCount] = useState(0);
-  const [showTermsModal, setShowTermsModal] = useState(false);
   const logoRef = useRef<HTMLInputElement | null>(null);
   const heroRef = useRef<HTMLInputElement | null>(null);
   const galleryRef = useRef<HTMLInputElement | null>(null);
@@ -222,7 +221,7 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
         }
         if (surfaces.length) {
           setSurfaceOptions(surfaces);
-          setForm((prev) => ({ ...prev, surfaceType: prev.surfaceType?.length ? prev.surfaceType : [] }));
+          setForm((prev) => ({ ...prev, surfaceType: prev.surfaceType || surfaces[0] }));
         }
       } catch (error) {
         toast.error('Failed to load masters, using default options.');
@@ -288,10 +287,10 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
         });
 
         setForm({
-          name: target.name || "",
-          description: target.description || "",
+          name: target.name || '',
+          description: target.description || '',
           sports: finalSports,
-          surfaceType: Array.isArray(target.surfaceType) ? target.surfaceType : target.surfaceType ? [target.surfaceType] : [],
+          surfaceType: target.surfaceType || 'Hybrid Grass',
           amenities: target.amenities?.length ? target.amenities : [],
           address: target.location?.address || '',
           city: target.location?.city || '',
@@ -366,12 +365,11 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
       
       let nextCourts = [];
       if (currentCourts.length < courtsCount) {
-        const defaultSurface = form.surfaceType?.[0] || surfaceOptions[0] || 'Synthetic';
         nextCourts = [
           ...currentCourts,
           ...Array.from({ length: courtsCount - currentCourts.length }).map((_, idx) => ({
             name: `Court ${currentCourts.length + idx + 1}`,
-            courtType: defaultSurface
+            courtType: form.surfaceType || surfaceOptions[0] || 'Synthetic'
           }))
         ];
       } else {
@@ -946,23 +944,15 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
                 <button
                   key={option}
                   type="button"
-                  onClick={() => setForm(prev => {
-                    const isSelected = prev.surfaceType.includes(option);
-                    return {
-                      ...prev,
-                      surfaceType: isSelected
-                        ? prev.surfaceType.filter(s => s !== option)
-                        : [...prev.surfaceType, option]
-                    };
-                  })}
+                  onClick={() => setForm(prev => ({ ...prev, surfaceType: option }))}
                   className={`!flex !items-center !justify-between !rounded-lg !border !px-4 !py-2.5 !text-sm !font-medium !transition-colors !cursor-pointer ${
-                    form.surfaceType.includes(option)
+                    form.surfaceType === option
                       ? '!border-[#1abc60] !bg-green-50 !text-[#1abc60]'
                       : '!border-gray-200 !bg-white !text-gray-600 hover:!border-gray-300 hover:!bg-gray-50'
                   }`}
                 >
                   {option}
-                  {form.surfaceType.includes(option) && <CheckCircle2 className="h-4 w-4" />}
+                  {form.surfaceType === option && <CheckCircle2 className="h-4 w-4" />}
                 </button>
               ))}
             </div>
@@ -1565,112 +1555,6 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
         </div>
       </div>
 
-      {/* Partner Terms Modal */}
-      {showTermsModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-emerald-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">Partner Terms</h3>
-              </div>
-              <button
-                onClick={() => setShowTermsModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-8">
-                <section>
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-emerald-400 font-black text-2xl">01</span>
-                    <h4 className="text-lg font-bold text-gray-900">Definitions</h4>
-                  </div>
-                  <p className="text-gray-600 leading-relaxed text-[15px] mb-6">
-                    In these Partner Terms, unless the context requires otherwise, the following terms shall have the meanings assigned to them:
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      {
-                        term: "Applicable Law",
-                        desc: "Means all laws, rules, regulations, circulars, notifications, judicial pronouncements, and directives applicable in India, including but not limited to the Information Technology Act, 2000, the Consumer Protection Act, 2019, the Consumer Protection (E-Commerce) Rules, 2020, the Income Tax Act, 1961, the Central Goods and Services Tax Act, 2017, the Prevention of Money Laundering Act, 2002, and the Digital Personal Data Protection Act, 2023."
-                      },
-                      {
-                        term: "Booking",
-                        desc: "Means a confirmed reservation of a Slot at a Venue made by a User through the Platform."
-                      },
-                      {
-                        term: "Booking Value",
-                        desc: "Means the gross amount (in Indian Rupees) charged to the User for the Booking before any discounts, refunds, or fees, as listed by the Partner on the Platform."
-                      },
-                      {
-                        term: "Commercial Schedule",
-                        desc: "Means the schedule signed between GameOn and the Partner (forming part of the Partner Onboarding Form) which records the commercial terms applicable to the Partner, including the Partner Payout share, settlement cycle, and any other agreed commercial terms."
-                      },
-                      {
-                        term: "Convenience Fee",
-                        desc: "Means the fee, if any, charged by GameOn to the User per Booking."
-                      },
-                      {
-                        term: "Partner Payout",
-                        desc: "Means the amount payable by GameOn to the Partner in respect of completed Bookings, calculated as set out in the Commercial Schedule."
-                      }
-                    ].map((item) => (
-                      <div key={item.term} className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
-                        <span className="inline-block px-2.5 py-1 rounded-lg bg-emerald-100/80 text-emerald-800 font-bold text-[10px] uppercase tracking-widest mb-3">
-                          Defined Term
-                        </span>
-                        <h5 className="text-gray-900 font-bold text-[15px] mb-2">{item.term}</h5>
-                        <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section>
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-emerald-400 font-black text-2xl">02</span>
-                    <h4 className="text-lg font-bold text-gray-900">GameOn’s Role as an Intermediary</h4>
-                  </div>
-                  <div className="space-y-4 text-gray-600 leading-relaxed text-[15px]">
-                    <p>
-                      GameOn is a technology platform that connects Users with Partners. We facilitate Bookings, payments, and communications between Users and Partners. We are not the operator of any Venue. Each Venue is owned and operated by the Partner.
-                    </p>
-                    <div className="bg-emerald-50 border-l-4 border-emerald-500 p-6 rounded-r-2xl">
-                      <strong className="text-emerald-950 font-black text-base flex items-center gap-2 mb-2">
-                        <Scale className="w-5 h-5 text-emerald-600" />
-                        IT Act Safe Harbour Protection
-                      </strong>
-                      <p className="text-emerald-900/80 text-sm leading-relaxed">
-                        GameOn qualifies as an "intermediary" under Section 2(1)(w) of the Information Technology Act, 2000 and is entitled to the safe-harbour protections of Section 79 of that Act.
-                      </p>
-                    </div>
-                  </div>
-                </section>
-
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-center">
-                  <p className="text-amber-800 text-sm font-medium">
-                    For complete Partner Terms, please visit the <a href="/partner-terms" target="_blank" rel="noopener noreferrer" className="text-amber-900 font-bold underline">Partner Terms page</a>
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="p-6 border-t border-gray-100 flex justify-end">
-              <button
-                onClick={() => setShowTermsModal(false)}
-                className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Action Bar */}
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-4 z-40">
         <label className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700 font-medium">
@@ -1680,7 +1564,7 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
             onChange={(e) => setForm((prev) => ({ ...prev, termsAccepted: e.target.checked }))} 
             className="!h-4 !w-4 !rounded !border-gray-300 !text-[#1abc60] cursor-pointer" 
           />
-          I agree to the <button type="button" onClick={() => setShowTermsModal(true)} className="text-[#1abc60] hover:underline font-medium">Partner Terms</button>
+          I agree to the <a href="/partner-terms" target="_blank" rel="noopener noreferrer" className="text-[#1abc60] hover:underline">Partner Terms</a>
         </label>
         
         <div className="flex items-center gap-3 w-full sm:w-auto">

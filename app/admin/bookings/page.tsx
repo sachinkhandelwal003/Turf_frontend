@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense, useCallback } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
@@ -59,11 +59,6 @@ interface Turf {
   rates?: { day: string; price: number; isPeak?: boolean }[];
   operatingHours?: { day: string; open: string; close: string; isOpen: boolean }[];
   courts?: { name: string; courtType?: string }[];
-  sportConfigs?: {
-    sportName: string;
-    courts?: { name: string; isActive?: boolean }[];
-    [key: string]: any;
-  }[];
   sports?: string[];
   upiId?: string;
 }
@@ -121,11 +116,6 @@ function AdminBookingsContent() {
   useEffect(() => {
     if (showOfflineModal && offlineData.turfId && offlineData.date) {
       fetchAvailability(offlineData.turfId, offlineData.date);
-      // Refresh availability every 30 seconds while modal is open
-      const intervalId = setInterval(() => {
-        fetchAvailability(offlineData.turfId, offlineData.date);
-      }, 30000);
-      return () => clearInterval(intervalId);
     }
   }, [showOfflineModal, offlineData.turfId, offlineData.date]);
 
@@ -200,23 +190,10 @@ function AdminBookingsContent() {
     }
   };
 
-  const getTurfCourts = useCallback((turfId: string, sportName?: string) => {
+  const getTurfCourts = (turfId: string) => {
     const turf = availableTurfs.find(t => t._id === turfId) as any;
-    if (!turf) return [];
-    
-    // First check if we have sport-specific courts
-    if (sportName && turf.sportConfigs) {
-      const sportConfig = turf.sportConfigs.find(
-        (config: any) => config.sportName === sportName
-      );
-      if (sportConfig?.courts && sportConfig.courts.length > 0) {
-        return sportConfig.courts;
-      }
-    }
-    
-    // Fallback to global courts
     return turf?.courts || [];
-  }, [availableTurfs]);
+  };
 
   useEffect(() => {
     const turfId = searchParams.get('turfId');
@@ -468,29 +445,12 @@ function AdminBookingsContent() {
     const dateObj = new Date(year, month - 1, day);
     const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
 
-    // Default operating hours if none are set
-    const defaultOperatingHours = [
-      { day: 'Monday', open: '06:00', close: '22:00', isOpen: true },
-      { day: 'Tuesday', open: '06:00', close: '22:00', isOpen: true },
-      { day: 'Wednesday', open: '06:00', close: '22:00', isOpen: true },
-      { day: 'Thursday', open: '06:00', close: '22:00', isOpen: true },
-      { day: 'Friday', open: '06:00', close: '22:00', isOpen: true },
-      { day: 'Saturday', open: '06:00', close: '22:00', isOpen: true },
-      { day: 'Sunday', open: '06:00', close: '22:00', isOpen: true }
-    ];
-    
-    const operatingHours = turf.operatingHours && turf.operatingHours.length > 0 
-      ? turf.operatingHours 
-      : defaultOperatingHours;
-      
-    const operatingDay = operatingHours.find(
+    const operatingDay = turf.operatingHours?.find(
       (d: any) => d.day.toLowerCase() === dayName.toLowerCase()
-    ) || defaultOperatingHours.find(d => d.day.toLowerCase() === dayName.toLowerCase());
-    
+    );
     if (!operatingDay || operatingDay.isOpen === false) return [];
-    
     const open = operatingDay.open || '06:00';
-    const close = operatingDay.close || '22:00';
+    const close = operatingDay.close || '23:00';
     const duration = Number(turf.slotDuration || 60);
     const d = Math.max(15, duration || 60);
     let cur = parseTimeToMinutes(open);
@@ -515,7 +475,7 @@ function AdminBookingsContent() {
     return (eh * 60 + em) - (sh * 60 + sm);
   };
 
-  const getBookedCourtsForRange = useCallback((timeVal: string) => {
+  const getBookedCourtsForRange = (timeVal: string) => {
     const [start, end] = timeVal.split(" - ");
     if (!start || !end) return new Set<string>();
     const booked = new Set<string>();
@@ -525,7 +485,7 @@ function AdminBookingsContent() {
       }
     });
     return booked;
-  }, [bookedSlotsForOffline]);
+  };
 
   const getEffectiveSlotPrice = (turfId: string, date: string) => {
     const turf = availableTurfs.find((t) => t._id === turfId) as any;
@@ -574,18 +534,7 @@ function AdminBookingsContent() {
         (courtName) => !prev.slots.some((slot) => getBookedCourtsForRange(slot).has(courtName))
       ),
     }));
-  }, [offlineData.slots, getBookedCourtsForRange]);
-
-  // Reset courts when sport changes
-  useEffect(() => {
-    if (offlineData.turfId && offlineData.sport) {
-      const currentCourts = getTurfCourts(offlineData.turfId, offlineData.sport).map( c  => typeof c === 'string' ? c : c.name);
-      setOfflineData(prev => ({
-        ...prev,
-        courts: prev.courts.filter(c => currentCourts.includes(c))
-      }));
-    }
-  }, [offlineData.sport, offlineData.turfId, getTurfCourts]);
+  }, [offlineData.slots, bookedSlotsForOffline]);
 
   return (
     <div className="!w-full !font-sans !bg-white !rounded-[24px] !border !border-slate-200/80 !shadow-sm !p-6 md:!p-8 !space-y-6">
@@ -1079,7 +1028,7 @@ function AdminBookingsContent() {
                         <div className="!space-y-2">
                           <label className="!block !text-[11px] !font-bold !text-gray-500 !uppercase !tracking-wider">Select Courts <span className="!text-red-500">*</span></label>
                           <div className="!flex !flex-wrap !gap-3">
-                            {getTurfCourts(offlineData.turfId, offlineData.sport).map((court: any) => {
+                            {getTurfCourts(offlineData.turfId).map((court: any) => {
                               const courtName = typeof court === 'string' ? court : (court.name || 'Court');
                               const isSelected = offlineData.courts.includes(courtName);
                               const isBookedForSelectedSlots = offlineData.slots.some((slot) =>
@@ -1122,7 +1071,7 @@ function AdminBookingsContent() {
                             {buildSlotsForTurf(offlineData.turfId, offlineData.date).map((slot: any) => {
                               const timeVal = slot.value;
                               const bookedCourts = getBookedCourtsForRange(timeVal);
-                              const isFullyBooked = bookedCourts.size >= (getTurfCourts(offlineData.turfId, offlineData.sport).length || 1);
+                              const isFullyBooked = bookedCourts.size >= (getTurfCourts(offlineData.turfId).length || 1);
                               const clashesWithSelectedCourts =
                                 offlineData.courts.length > 0 &&
                                 offlineData.courts.some((c) => bookedCourts.has(c));

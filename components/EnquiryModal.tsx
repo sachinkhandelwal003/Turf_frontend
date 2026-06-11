@@ -8,7 +8,7 @@ interface EnquiryModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
+// ouiwhepfuieghfuirepg;fuip
 export default function EnquiryModal({ isOpen, onClose }: EnquiryModalProps) {
  const [formData, setFormData] = useState({
   name: '',

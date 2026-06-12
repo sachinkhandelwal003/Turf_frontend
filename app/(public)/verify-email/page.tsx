@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
@@ -18,6 +18,7 @@ function VerifyEmailForm() {
     "loading" | "success" | "error" | "missing"
   >("loading");
   const [message, setMessage] = useState("");
+  const apiCalledRef = useRef(false); // Prevent duplicate calls (doesn't trigger re-renders)
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -26,6 +27,9 @@ function VerifyEmailForm() {
         setMessage("Verification token is missing");
         return;
       }
+
+      if (apiCalledRef.current) return;
+      apiCalledRef.current = true;
 
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";

@@ -1538,16 +1538,20 @@ export default function ProfilePage() {
                 <div className="!bg-amber-50 !rounded-xl !p-4 !border !border-amber-200">
                   <p className="!text-xs !font-semibold !text-amber-700 !uppercase !tracking-wider mb-2">Cancellation Policy</p>
                   {refundPreview ? (
-                    <div className="!space-y-1">
-                      <p className="!text-xs !text-amber-700">
-                        {refundPreview.canCancel ? (
-                          `You will receive ₹${refundPreview.refundAmount} as refund`
-                        ) : (
-                          refundPreview.message || "Cannot cancel booking now"
-                        )}
-                      </p>
-                      {refundPreview.lessThan48Hours && (
-                        <p className="!text-xs !text-amber-600 mt-1">Note: Convenience fee deducted since cancellation is within 48 hours</p>
+                    <div className="!space-y-2">
+                      <p className="!text-sm !font-bold !text-amber-900">{refundPreview.policyNote}</p>
+                      <div className="!grid !grid-cols-2 !gap-2 !text-xs">
+                        <div className="!bg-white !p-2 !rounded-lg">
+                          <span className="!text-gray-500">Your Refund:</span>
+                          <span className="!block !text-lg !font-bold !text-green-600">₹{refundPreview.refundAmount}</span>
+                        </div>
+                        <div className="!bg-white !p-2 !rounded-lg">
+                          <span className="!text-gray-500">Hours Left:</span>
+                          <span className="!block !text-lg !font-bold !text-gray-700">{refundPreview.hoursUntilBooking}h</span>
+                        </div>
+                      </div>
+                      {refundPreview.refundPercentage < 100 && (
+                        <p className="!text-xs !text-amber-600 !italic">Tip: Cancel earlier to get a higher refund!</p>
                       )}
                     </div>
                   ) : (

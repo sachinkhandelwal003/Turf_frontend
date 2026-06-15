@@ -654,12 +654,12 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
           });
           // Filter out default values within sport configs too
           return {
-            ...rest,
-            images: strippedImages,
-            sportName, // Normalize name
-            slotPricings: (rest.slotPricings || []).filter(sp => sp.price > 0),
-            courts: (rest.courts || []).filter(c => c.name !== 'Court 1' || !c.isActive) // Keep if changed
-          };
+                    ...rest,
+                    images: strippedImages,
+                    sportName, // Normalize name
+                    slotPricings: (rest.slotPricings || []).filter(sp => sp.price > 0),
+                    courts: rest.courts || [] // Keep all courts
+                  };
         });
         payload.append('sportConfigs', JSON.stringify(sportConfigsToSubmit));
 

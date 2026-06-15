@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
+import { useSettings } from '@/app/context/SettingsContext';
 import { Suspense } from 'react';
 import { toast } from 'sonner';
 import { GoogleLogin } from '@react-oauth/google';
@@ -29,6 +30,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect');
   const { login, googleLogin, appleLogin, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { settings, isLoading: settingsLoading } = useSettings();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,12 +44,12 @@ function LoginForm() {
   }, []);
 
   useEffect(() => {
-    if (isClient && !authLoading && isAuthenticated) {
+    if (isClient && !authLoading && !settingsLoading && isAuthenticated) {
       router.push('/');
     }
-  }, [isAuthenticated, authLoading, router, isClient]);
+  }, [isAuthenticated, authLoading, router, isClient, settingsLoading]);
 
-  if (isClient && authLoading) {
+  if (isClient && (authLoading || settingsLoading)) {
     return (
       <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
         <div className="bg-white w-full max-w-[420px] p-6 sm:p-10 rounded-2xl shadow-sm relative">
@@ -129,9 +131,9 @@ function LoginForm() {
     toast.error("Google login failed. Please try again.");
   };
 
-  // Initialize Apple Sign-In SDK
+  // Initialize Apple Sign-In SDK only if Apple login is enabled
   useEffect(() => {
-    if (typeof window !== 'undefined' && isClient) {
+    if (typeof window !== 'undefined' && isClient && settings?.appleLogin?.enabled) {
       // Load Apple JS SDK
       const script = document.createElement('script');
       script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
@@ -139,7 +141,7 @@ function LoginForm() {
         // Initialize Apple Sign-In
         if (window.AppleID) {
           window.AppleID.auth.init({
-            clientId: process.env.NEXT_PUBLIC_APPLE_CLIENT_ID || '',
+            clientId: settings.appleLogin.clientId || process.env.NEXT_PUBLIC_APPLE_CLIENT_ID || '',
             scope: 'name email',
             redirectURI: window.location.origin,
             state: 'state',
@@ -159,7 +161,7 @@ function LoginForm() {
         document.removeEventListener('AppleIDSignInOnFailure', handleAppleLoginError);
       };
     }
-  }, [isClient]);
+  }, [isClient, settings?.appleLogin?.enabled, settings?.appleLogin?.clientId]);
 
   const handleAppleLoginSuccess = async (event: any) => {
     setIsLoading(true);
@@ -202,6 +204,9 @@ function LoginForm() {
       window.AppleID.auth.signIn();
     }
   };
+
+  const showGoogleButton = settings?.googleLogin?.enabled;
+  const showAppleButton = settings?.appleLogin?.enabled;
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
@@ -287,32 +292,38 @@ function LoginForm() {
             {isLoading ? "Logging in..." : "Login"} {!isLoading && <ArrowRight className="w-4 h-4" />}
           </button>
 
-          {/* Divider */}
-          <div className="relative flex items-center justify-center mb-8">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
-            <span className="relative bg-white px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Or Continue With</span>
-          </div>
+          {/* Only show divider if at least one social button is enabled */}
+          {(showGoogleButton || showAppleButton) && (
+            <div className="relative flex items-center justify-center mb-8">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
+              <span className="relative bg-white px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Or Continue With</span>
+            </div>
+          )}
 
           {/* SOCIAL BUTTONS */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="flex items-center justify-center">
-              {isClient && (
-                <GoogleLogin
-                  onSuccess={handleGoogleLoginSuccess}
-                  onError={handleGoogleLoginError}
-                  theme="outline"
-                  size="large"
-                />
-              )}
-            </div>
-            <button 
-              type="button" 
-              onClick={triggerAppleLogin}
-              disabled={isLoading}
-              className="flex items-center justify-center gap-2.5 !bg-[#f4f5f5] hover:!bg-[#e9ebea] py-3.5 rounded-lg transition-all text-[13px] font-bold !text-[#2d3748] border-none"
-            >
-              Apple <AppleIcon />
-            </button>
+          <div className={`mb-8 ${showGoogleButton && showAppleButton ? 'grid grid-cols-2 gap-4' : 'flex justify-center'}`}>
+            {showGoogleButton && (
+              <div className="flex items-center justify-center">
+                {isClient && (
+                  <GoogleLogin
+                    onSuccess={handleGoogleLoginSuccess}
+                    onError={handleGoogleLoginError}
+                    theme="outline"
+                    size="large"
+                  />
+                )}
+              </div>
+            )}
+            {showAppleButton && (
+              <button 
+                type="button" 
+                onClick={triggerAppleLogin}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2.5 !bg-[#f4f5f5] hover:!bg-[#e9ebea] py-3.5 rounded-lg transition-all text-[13px] font-bold !text-[#2d3748] border-none"
+              >
+                Apple <AppleIcon />
+              </button>
+            )}
           </div>
 
           <p className="text-center text-[13px] text-gray-500 font-medium">

@@ -371,7 +371,7 @@ export default function SignUp() {
             </div>
           )}
 
-          {/* SOCIAL BUTTONS: !text-[#2d3748] add kiya hai taaki text dark gray dikhe */}
+          {/* SOCIAL BUTTONS */}
           <div className={`mb-8 ${showGoogleButton && showAppleButton ? 'grid grid-cols-2 gap-4' : 'flex justify-center'}`}>
             {showGoogleButton && (
               <div className="flex items-center justify-center">
@@ -390,9 +390,10 @@ export default function SignUp() {
                 type="button" 
                 onClick={triggerAppleLogin}
                 disabled={isLoading}
-                className="flex items-center justify-center gap-2.5 !bg-[#f4f5f5] hover:!bg-[#e9ebea] py-3.5 rounded-lg transition-all text-[13px] font-bold !text-[#2d3748] border-none"
+                className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all text-base font-medium text-gray-800"
               >
-                Apple <AppleIcon />
+                <AppleIcon />
+                <span>Sign in with Apple</span>
               </button>
             )}
           </div>

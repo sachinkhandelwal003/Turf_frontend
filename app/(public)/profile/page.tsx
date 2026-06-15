@@ -213,6 +213,12 @@ export default function ProfilePage() {
   const [rewardAmount, setRewardAmount] = useState(0);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
+  // Cancel Booking States
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
+  const [refundPreview, setRefundPreview] = useState<any>(null);
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -485,6 +491,45 @@ export default function ProfilePage() {
       toast.error(apiError.response?.data?.msg || `Failed to delete ${itemType}`);
     } finally {
       setIsDeleting(null);
+    }
+  };
+
+  // Get Refund Preview
+  const getRefundPreview = async (bookingId: string) => {
+    try {
+      const res = await api.get(`/bookings/${bookingId}/refund-preview`);
+      if (res.data.success) {
+        setRefundPreview(res.data.data);
+      }
+    } catch (error: unknown) {
+      console.error('Refund preview error:', error);
+    }
+  };
+
+  // Open Cancel Modal
+  const openCancelModal = async (booking: Booking) => {
+    setBookingToCancel(booking);
+    setShowCancelModal(true);
+    await getRefundPreview(booking._id);
+  };
+
+  // Handle Cancel Booking
+  const handleCancelBooking = async () => {
+    if (!bookingToCancel) return;
+    setCancelLoading(true);
+    try {
+      const res = await api.post(`/bookings/${bookingToCancel._id}/cancel`);
+      if (res.data.success) {
+        toast.success('Booking cancelled successfully');
+        setBookings(prev => prev.map(b => b._id === bookingToCancel._id ? { ...b, status: 'cancelled' } : b));
+        setShowCancelModal(false);
+        setBookingToCancel(null);
+      }
+    } catch (error: unknown) {
+      const apiError = getApiError(error);
+      toast.error(apiError.response?.data?.msg || 'Failed to cancel booking');
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -976,6 +1021,14 @@ export default function ProfilePage() {
                                   {booking.paymentStatus}
                                 </span>
                                 <div className="!flex !items-center !gap-3">
+                                  {!isTourn && booking.status === 'confirmed' && getDisplayStatus(booking) === 'upcoming' && (
+                                    <button 
+                                      onClick={() => openCancelModal(booking)}
+                                      className="!text-[11px] !font-bold !text-red-600 !uppercase !tracking-wider hover:!text-red-700 !transition-all !bg-transparent !border-none !cursor-pointer"
+                                    >
+                                      Cancel
+                                    </button>
+                                  )}
                                   {isDeleting === booking._id ? (
                                     <Loader2 className="!w-4 !h-4 !animate-spin !text-red-500" />
                                   ) : (
@@ -1435,6 +1488,88 @@ export default function ProfilePage() {
                 >
                   {submittingReview ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <Send className="!w-4 !h-4" />}
                   Submit Review
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Cancel Booking Modal */}
+      <AnimatePresence>
+        {showCancelModal && bookingToCancel && (
+          <div className="!fixed !inset-0 !z-[130] !flex !items-center !justify-center !p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCancelModal(false)}
+              className="!absolute !inset-0 !bg-gray-900/60 !backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="!relative !w-full !max-w-md !bg-white !rounded-2xl !shadow-2xl !overflow-hidden !border !border-gray-200"
+            >
+              <div className="!px-6 !py-4 !border-b !border-gray-100 !flex !justify-between !items-center !bg-red-50/50">
+                <div>
+                  <h3 className="!text-lg !font-bold !text-gray-900 !leading-tight">Cancel Booking</h3>
+                  <p className="!text-xs !font-medium !text-gray-500 !mt-0.5">Are you sure you want to cancel?</p>
+                </div>
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="!p-2 !text-gray-400 hover:!text-gray-600 hover:!bg-gray-100 !rounded-lg !transition-colors !bg-transparent !border-none !cursor-pointer"
+                >
+                  <X className="!w-5 !h-5" />
+                </button>
+              </div>
+
+              <div className="!p-6 !space-y-6">
+                {/* Booking Info */}
+                <div className="!bg-gray-50 !rounded-xl !p-4 !border !border-gray-100">
+                  <p className="!text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider !mb-2">Booking Details</p>
+                  <h4 className="!text-sm !font-bold !text-gray-900 mb-1">{bookingToCancel.turf?.name}</h4>
+                  <p className="!text-xs !text-gray-500">{bookingToCancel.date} • {bookingToCancel.startTime} - {bookingToCancel.endTime}</p>
+                  <p className="!text-sm !font-bold !text-[#1abc60] mt-2">₹{getBookingTotal(bookingToCancel)}</p>
+                </div>
+
+                {/* Cancellation Policy */}
+                <div className="!bg-amber-50 !rounded-xl !p-4 !border !border-amber-200">
+                  <p className="!text-xs !font-semibold !text-amber-700 !uppercase !tracking-wider mb-2">Cancellation Policy</p>
+                  {refundPreview ? (
+                    <div className="!space-y-1">
+                      <p className="!text-xs !text-amber-700">
+                        {refundPreview.canCancel ? (
+                          `You will receive ₹${refundPreview.refundAmount} as refund`
+                        ) : (
+                          refundPreview.message || "Cannot cancel booking now"
+                        )}
+                      </p>
+                      {refundPreview.lessThan48Hours && (
+                        <p className="!text-xs !text-amber-600 mt-1">Note: Convenience fee deducted since cancellation is within 48 hours</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="!text-xs !text-amber-600">Checking cancellation policy...</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="!p-6 !border-t !border-gray-100 !bg-gray-50 !flex !gap-3">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="!flex-1 !py-2.5 !bg-white !border !border-gray-300 !text-gray-700 !rounded-lg !font-semibold !text-sm hover:!bg-gray-100 !transition-colors !cursor-pointer"
+                >
+                  Keep Booking
+                </button>
+                <button
+                  onClick={handleCancelBooking}
+                  disabled={cancelLoading || (refundPreview && !refundPreview.canCancel)}
+                  className="!flex-1 !py-2.5 !bg-red-600 !text-white !border !border-red-600 !rounded-lg !font-semibold !text-sm hover:!bg-red-700 !transition-colors !cursor-pointer !flex !items-center !justify-center !gap-2 disabled:!opacity-60 disabled:!cursor-not-allowed"
+                >
+                  {cancelLoading ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : null}
+                  Confirm Cancel
                 </button>
               </div>
             </motion.div>

@@ -4,8 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, X, User, LogOut, Coins, UserCheck, LayoutDashboard } from 'lucide-react'; 
+import { 
+  Menu, X, User, LogOut, Coins, UserCheck, LayoutDashboard, 
+  Bell, Check, Trash2, CheckCheck, Loader2 
+} from 'lucide-react'; 
 import { useAuth } from '@/app/context/AuthContext';
+import api from '@/app/services/api';
+import { toast } from 'sonner';
 
 const navLinks = [
   { name: 'Home', href: '/' },
@@ -13,20 +18,39 @@ const navLinks = [
   { name: 'Tournaments', href: '/tournament' },
 ];
 
+interface Notification {
+  _id: string;
+  title: string;
+  body: string;
+  type: string;
+  read: boolean;
+  createdAt: string;
+}
+
 export default function Navbar() {
+  // === ALL HOOKS FIRST (NO EARLY RETURNS BEFORE THIS!) ===
   const { user, isAuthenticated, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
+  
+  // === UI STATES ===
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
+  // === NOTIFICATIONS STATE ===
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // === EFFECTS ===
   // Set mounted state
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  // === UI STATES ===
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -34,11 +58,82 @@ export default function Navbar() {
     else document.body.style.overflow = 'unset';
   }, [isOpen]);
 
-  // Click outside to close Profile Dropdown
+  // === NOTIFICATIONS FUNCTIONS ===
+  const fetchNotifications = async () => {
+    if (!isAuthenticated) return;
+    setNotificationsLoading(true);
+    try {
+      const res = await api.get('/notifications');
+      if (res.data.success) {
+        setNotifications(res.data.data.notifications);
+        setUnreadCount(res.data.data.unreadCount);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    setActionLoading(id);
+    try {
+      await api.put(`/notifications/${id}/read`);
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      toast.error("Failed to mark as read");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    setActionLoading('all');
+    try {
+      await api.put('/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+      toast.success("All notifications marked as read");
+    } catch (error) {
+      toast.error("Failed to mark all as read");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const deleteNotification = async (id: string) => {
+    setActionLoading(id);
+    try {
+      await api.delete(`/notifications/${id}`);
+      const wasUnread = notifications.find(n => n._id === id)?.read === false;
+      setNotifications(prev => prev.filter(n => n._id !== id));
+      if (wasUnread) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+      toast.success("Notification deleted");
+    } catch (error) {
+      toast.error("Failed to delete notification");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Fetch notifications on mount and when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchNotifications();
+    }
+  }, [isAuthenticated]);
+
+  // Click outside to close Profile Dropdown and Notifications
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -131,9 +226,129 @@ export default function Navbar() {
                     <span className="text-sm font-bold text-yellow-700">{user?.coins || 0}</span>
                   </div>
 
+                  {/* Notification Bell */}
+                  <div className="relative" ref={notificationRef}>
+                    <button
+                      onClick={() => {
+                        setIsNotificationsOpen(!isNotificationsOpen);
+                        setIsDropdownOpen(false);
+                      }}
+                      className="relative w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-gray-300 transition-colors"
+                    >
+                      <Bell className="!w-5 !h-5 !block !shrink-0 !text-gray-700" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Notifications Dropdown */}
+                    <AnimatePresence>
+                      {isNotificationsOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 mt-3 w-[360px] bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 overflow-hidden z-[100]"
+                        >
+                          {/* Header */}
+                          <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+                            <h3 className="text-[15px] font-bold !text-[#2d3748]">Notifications</h3>
+                            {unreadCount > 0 && (
+                              <button
+                                onClick={markAllAsRead}
+                                disabled={actionLoading === 'all'}
+                                className="flex items-center gap-1.5 text-[12px] font-bold !text-[#1abc60] hover:!text-[#169c4e] transition-colors disabled:opacity-50"
+                              >
+                                {actionLoading === 'all' ? (
+                                  <Loader2 className="!w-3 !h-3 animate-spin" />
+                                ) : (
+                                  <CheckCheck className="!w-3 !h-3" />
+                                )}
+                                Mark all read
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Notifications List */}
+                          <div className="max-h-[400px] overflow-y-auto">
+                            {notificationsLoading ? (
+                              <div className="p-8 flex items-center justify-center">
+                                <Loader2 className="!w-6 !h-6 animate-spin !text-[#1abc60]" />
+                              </div>
+                            ) : notifications.length === 0 ? (
+                              <div className="p-8 text-center">
+                                <p className="text-gray-400 font-bold text-sm">No notifications yet</p>
+                              </div>
+                            ) : (
+                              notifications.map((notification) => (
+                                <div
+                                  key={notification._id}
+                                  className={`px-5 py-4 border-b border-gray-50 hover:bg-gray-50 transition-colors ${
+                                    !notification.read ? 'bg-green-50/30' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-start gap-3">
+                                    {/* Unread indicator */}
+                                    {!notification.read && (
+                                      <div className="w-2 h-2 rounded-full bg-[#1abc60] mt-2 shrink-0" />
+                                    )}
+
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-bold text-gray-900">{notification.title}</p>
+                                      <p className="text-xs text-gray-500 mt-1">{notification.body}</p>
+                                      <p className="text-[10px] text-gray-400 mt-1 font-medium">
+                                        {new Date(notification.createdAt).toLocaleString()}
+                                      </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      {/* Mark as read button */}
+                                      {!notification.read && (
+                                        <button
+                                          onClick={() => markAsRead(notification._id)}
+                                          disabled={actionLoading === notification._id}
+                                          className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 hover:text-[#1abc60] transition-colors disabled:opacity-50"
+                                        >
+                                          {actionLoading === notification._id ? (
+                                            <Loader2 className="!w-4 !h-4 animate-spin" />
+                                          ) : (
+                                            <Check className="!w-4 !h-4" />
+                                          )}
+                                        </button>
+                                      )}
+
+                                      {/* Delete button */}
+                                      <button
+                                        onClick={() => deleteNotification(notification._id)}
+                                        disabled={actionLoading === notification._id}
+                                        className="p-1.5 rounded-full hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors disabled:opacity-50"
+                                      >
+                                        {actionLoading === notification._id ? (
+                                          <Loader2 className="!w-4 !h-4 animate-spin" />
+                                        ) : (
+                                          <Trash2 className="!w-4 !h-4" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
                   <div className="relative" ref={dropdownRef}>
                     <button
-                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      onClick={() => {
+                        setIsDropdownOpen(!isDropdownOpen);
+                        setIsNotificationsOpen(false);
+                      }}
                       className="w-10 h-10 rounded-full border-2 border-transparent hover:border-[#1abc60] overflow-hidden cursor-pointer transition-all shadow-sm focus:outline-none !bg-transparent !p-0"
                     >
                       <img
@@ -279,6 +494,17 @@ export default function Navbar() {
                           <span className="text-base font-bold text-yellow-700">My Coins</span>
                         </div>
                         <span className="text-lg font-black text-yellow-700">{user?.coins || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 mb-2">
+                        <div className="flex items-center gap-2">
+                          <Bell className="!w-5 !h-5 !block !shrink-0 !text-gray-700" />
+                          <span className="text-base font-bold text-gray-700">Notifications</span>
+                        </div>
+                        {unreadCount > 0 && (
+                          <span className="bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                            {unreadCount}
+                          </span>
+                        )}
                       </div>
                       <Link href="/profile" onClick={() => setIsOpen(false)} className="flex items-center gap-3 text-[18px] font-bold !text-[#1abc60] !no-underline">
                         <div className="w-8 h-8 rounded-full overflow-hidden border border-[#1abc60]/20">

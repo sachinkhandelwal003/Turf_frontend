@@ -37,34 +37,8 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  
-  // Prevent hydration mismatch
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
-  useEffect(() => {
-    if (isClient && !authLoading && !settingsLoading && isAuthenticated) {
-      router.push('/');
-    }
-  }, [isAuthenticated, authLoading, router, isClient, settingsLoading]);
-
-  if (isClient && (authLoading || settingsLoading)) {
-    return (
-      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
-        <div className="bg-white w-full max-w-[420px] p-6 sm:p-10 rounded-2xl shadow-sm relative">
-          <div className="flex justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isClient && isAuthenticated) {
-    return null;
-  }
-
+  // === ALL HANDLER FUNCTIONS FIRST ===
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -131,6 +105,60 @@ function LoginForm() {
     toast.error("Google login failed. Please try again.");
   };
 
+  const handleAppleLoginSuccess = async (event: any) => {
+    setIsLoading(true);
+    try {
+      const { id_token, user } = event.detail.authorization;
+      const fullName = user ? {
+        givenName: user.name?.firstName,
+        familyName: user.name?.lastName
+      } : undefined;
+
+      const userData = await appleLogin(id_token, fullName);
+
+      if (userData.role !== 'user') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminUser');
+        toast.error("Admins must login through the Admin Portal.");
+        return;
+      }
+
+      toast.success("Logged in Successfully! 🎉");
+
+      if (redirect) {
+        router.push(redirect);
+      } else {
+        router.push('/');
+      }
+
+    } catch (error: any) {
+      toast.error(error?.message || "Apple login failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAppleLoginError = () => {
+    toast.error("Apple login failed. Please try again.");
+  };
+
+  const triggerAppleLogin = () => {
+    if (window.AppleID) {
+      window.AppleID.auth.signIn();
+    }
+  };
+  
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient && !authLoading && !settingsLoading && isAuthenticated) {
+      router.push('/');
+    }
+  }, [isAuthenticated, authLoading, router, isClient, settingsLoading]);
+
   // Initialize Apple Sign-In SDK only if Apple login is enabled
   useEffect(() => {
     if (typeof window !== 'undefined' && isClient && settings?.appleLogin?.enabled) {
@@ -163,47 +191,21 @@ function LoginForm() {
     }
   }, [isClient, settings?.appleLogin?.enabled, settings?.appleLogin?.clientId]);
 
-  const handleAppleLoginSuccess = async (event: any) => {
-    setIsLoading(true);
-    try {
-      const { id_token, user } = event.detail.authorization;
-      const fullName = user ? {
-        givenName: user.name?.firstName,
-        familyName: user.name?.lastName
-      } : undefined;
+  if (isClient && (authLoading || settingsLoading)) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
+        <div className="bg-white w-full max-w-[420px] p-6 sm:p-10 rounded-2xl shadow-sm relative">
+          <div className="flex justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      const userData = await appleLogin(id_token, fullName);
-
-      if (userData.role !== 'user') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('adminUser');
-        toast.error("Admins must login through the Admin Portal.");
-        return;
-      }
-
-      toast.success("Logged in Successfully! 🎉");
-
-      if (redirect) {
-        router.push(redirect);
-      } else {
-        router.push('/');
-      }
-    } catch (error: any) {
-      toast.error(error?.message || "Apple login failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAppleLoginError = () => {
-    toast.error("Apple login failed. Please try again.");
-  };
-
-  const triggerAppleLogin = () => {
-    if (window.AppleID) {
-      window.AppleID.auth.signIn();
-    }
-  };
+  if (isClient && isAuthenticated) {
+    return null;
+  }
 
   const showGoogleButton = settings?.googleLogin?.enabled;
   const showAppleButton = settings?.appleLogin?.enabled;

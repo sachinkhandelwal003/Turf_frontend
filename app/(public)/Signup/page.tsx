@@ -28,6 +28,7 @@ const GoogleIcon = () => ( <svg viewBox="0 0 24 24" width="16" height="16" xmlns
 const AppleIcon = () => ( <svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.15 2.95.97 3.83 2.32-3.18 1.94-2.64 6.32.48 7.62-.7 1.83-1.83 3.6-2.96 4.71v-.01zm-3.08-16.7c-.12-1.95 1.4-3.64 3.25-3.79.25 2.12-1.63 3.8-3.25 3.79z"/></svg> );
 
 export default function SignUp() {
+  // === ALL HOOKS FIRST (NO EARLY RETURNS BEFORE!) ===
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading, googleLogin, appleLogin } = useAuth();
   const { settings, isLoading: settingsLoading } = useSettings();
@@ -36,17 +37,6 @@ export default function SignUp() {
   const [showConfPass, setShowConfPass] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (isClient && !authLoading && !settingsLoading && isAuthenticated) {
-      router.push('/');
-    }
-  }, [isAuthenticated, authLoading, router, isClient, settingsLoading]);
-
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -55,14 +45,7 @@ export default function SignUp() {
     confirmPassword: ""
   });
 
-  if (authLoading || settingsLoading || isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
-      </div>
-    );
-  }
-
+  // === ALL HANDLER FUNCTIONS BEFORE EFFECTS ===
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -146,38 +129,6 @@ export default function SignUp() {
     toast.error("Google login failed. Please try again.");
   };
 
-  // Initialize Apple Sign-In SDK only if Apple login is enabled
-  useEffect(() => {
-    if (typeof window !== 'undefined' && isClient && settings?.appleLogin?.enabled) {
-      // Load Apple JS SDK
-      const script = document.createElement('script');
-      script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
-      script.onload = () => {
-        // Initialize Apple Sign-In
-        if (window.AppleID) {
-          window.AppleID.auth.init({
-            clientId: settings.appleLogin.clientId || process.env.NEXT_PUBLIC_APPLE_CLIENT_ID || '',
-            scope: 'name email',
-            redirectURI: window.location.origin,
-            state: 'state',
-            nonce: 'nonce',
-            usePopup: true
-          });
-        }
-      };
-      document.body.appendChild(script);
-
-      // Listen for Apple Sign-In response
-      document.addEventListener('AppleIDSignInOnSuccess', handleAppleLoginSuccess);
-      document.addEventListener('AppleIDSignInOnFailure', handleAppleLoginError);
-
-      return () => {
-        document.removeEventListener('AppleIDSignInOnSuccess', handleAppleLoginSuccess);
-        document.removeEventListener('AppleIDSignInOnFailure', handleAppleLoginError);
-      };
-    }
-  }, [isClient, settings?.appleLogin?.enabled, settings?.appleLogin?.clientId]);
-
   const handleAppleLoginSuccess = async (event: any) => {
     setIsLoading(true);
     try {
@@ -217,6 +168,58 @@ export default function SignUp() {
       window.AppleID.auth.signIn();
     }
   };
+
+  // === ALL EFFECTS ===
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient && !authLoading && !settingsLoading && isAuthenticated) {
+      router.push('/');
+    }
+  }, [isAuthenticated, authLoading, router, isClient, settingsLoading]);
+
+  // Initialize Apple Sign-In SDK only if Apple login is enabled
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isClient && settings?.appleLogin?.enabled) {
+      // Load Apple JS SDK
+      const script = document.createElement('script');
+      script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+      script.onload = () => {
+        // Initialize Apple Sign-In
+        if (window.AppleID) {
+          window.AppleID.auth.init({
+            clientId: settings.appleLogin.clientId || process.env.NEXT_PUBLIC_APPLE_CLIENT_ID || '',
+            scope: 'name email',
+            redirectURI: window.location.origin,
+            state: 'state',
+            nonce: 'nonce',
+            usePopup: true
+          });
+        }
+      };
+      document.body.appendChild(script);
+
+      // Listen for Apple Sign-In response
+      document.addEventListener('AppleIDSignInOnSuccess', handleAppleLoginSuccess);
+      document.addEventListener('AppleIDSignInOnFailure', handleAppleLoginError);
+
+      return () => {
+        document.removeEventListener('AppleIDSignInOnSuccess', handleAppleLoginSuccess);
+        document.removeEventListener('AppleIDSignInOnFailure', handleAppleLoginError);
+      };
+    }
+  }, [isClient, settings?.appleLogin?.enabled, settings?.appleLogin?.clientId]);
+
+  // === THEN EARLY RETURN ===
+  if (authLoading || settingsLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />
+      </div>
+    );
+  }
 
   const showGoogleButton = settings?.googleLogin?.enabled;
   const showAppleButton = settings?.appleLogin?.enabled;

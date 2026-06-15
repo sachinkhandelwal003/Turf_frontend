@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, Clock, MapPin, ChevronRight, Star, 
   Download, History, User, Settings, LogOut,
-  CheckCircle2, XCircle, Clock4, Loader2
+  CheckCircle2, XCircle, Clock4, Loader2, X, AlertCircle, Info
 } from 'lucide-react';
 import api from '@/app/services/api';
 import { useAuth } from '@/app/context/AuthContext';
@@ -45,11 +45,26 @@ interface Booking {
   };
 }
 
+interface RefundPreview {
+  bookingId: string;
+  paidAmount: number;
+  convenienceFee: number;
+  convenienceFeeDeducted: number;
+  refundAmount: number;
+  isMoreThan48Hours: boolean;
+  hoursUntilBooking: number;
+}
+
 export default function MyBookingsPage() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled'>('upcoming');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [refundPreview, setRefundPreview] = useState<RefundPreview | null>(null);
+  const [modalStep, setModalStep] = useState<'preview' | 'confirm' | 'success'>('preview');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchBookings();
@@ -66,6 +81,39 @@ export default function MyBookingsPage() {
       toast.error("Failed to load bookings");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openCancelModal = async (booking: Booking) => {
+    setSelectedBooking(booking);
+    setModalStep('preview');
+    setActionLoading(true);
+    try {
+      const res = await api.get(`/bookings/${booking._id}/refund-preview`);
+      if (res.data.success) {
+        setRefundPreview(res.data.preview);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to get refund preview");
+      return;
+    } finally {
+      setActionLoading(false);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCancelBooking = async () => {
+    if (!selectedBooking) return;
+    setActionLoading(true);
+    try {
+      await api.post(`/bookings/${selectedBooking._id}/cancel`);
+      toast.success("Booking cancelled successfully!");
+      setModalStep('success');
+      fetchBookings();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to cancel booking");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -156,6 +204,10 @@ export default function MyBookingsPage() {
                   <Calendar className="w-5 h-5" />
                   Grounds Bookings
                 </button>
+                <Link href="/refunds" className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-gray-500 hover:bg-gray-50 font-bold text-sm uppercase tracking-wider transition-all">
+                  <History className="w-5 h-5" />
+                  Refunds
+                </Link>
                 <button className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-gray-500 hover:bg-gray-50 font-bold text-sm uppercase tracking-wider transition-all">
                   <User className="w-5 h-5" />
                   Edit Profile
@@ -302,6 +354,14 @@ export default function MyBookingsPage() {
                               )}
                             </div>
                             <div className="flex gap-3">
+                              {activeTab === 'upcoming' && booking.status === 'confirmed' && (
+                                <button 
+                                  onClick={() => openCancelModal(booking)}
+                                  className="px-6 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border border-red-200"
+                                >
+                                  Cancel Booking
+                                </button>
+                              )}
                               {activeTab === 'completed' && (
                                 <button className="px-6 py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">
                                   Write Review
@@ -325,6 +385,162 @@ export default function MyBookingsPage() {
           </div>
         </div>
       </div>
+
+      {/* --- CANCEL BOOKING MODAL --- */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            />
+            
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white rounded-[32px] max-w-lg w-full shadow-2xl overflow-hidden"
+            >
+              {/* Close Button */}
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors z-10"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+
+              {modalStep === 'preview' && refundPreview && (
+                <div className="p-8">
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-50 flex items-center justify-center">
+                      <AlertCircle className="w-8 h-8 text-amber-600" />
+                    </div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-2">Cancel Booking?</h2>
+                    <p className="text-sm text-gray-500 font-medium">
+                      Review your refund details before proceeding.
+                    </p>
+                  </div>
+
+                  {/* Refund Details */}
+                  <div className="bg-gray-50 rounded-2xl p-6 space-y-4 mb-6">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 font-bold">Booking ID</span>
+                      <span className="text-sm font-black text-gray-900">{selectedBooking?.bookingId}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 font-bold">Amount Paid</span>
+                      <span className="text-sm font-black text-gray-900">₹{refundPreview.paidAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 font-bold">
+                        Convenience Fee {!refundPreview.isMoreThan48Hours && '(Deducted)'}
+                      </span>
+                      <span className={`text-sm font-black ${refundPreview.isMoreThan48Hours ? 'text-gray-900' : 'text-red-600'}`}>
+                        {refundPreview.isMoreThan48Hours ? '₹0' : `₹${refundPreview.convenienceFeeDeducted.toLocaleString()}`}
+                      </span>
+                    </div>
+                    <div className="h-px bg-gray-200" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 font-bold">Refund Amount</span>
+                      <span className="text-xl font-black text-[#1abc60]">₹{refundPreview.refundAmount.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Policy Info */}
+                  <div className="bg-blue-50 rounded-2xl p-4 mb-6 flex items-start gap-3">
+                    <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-black text-blue-900 mb-1">Cancellation Policy</p>
+                      <p className="text-blue-700 font-medium">
+                        {refundPreview.isMoreThan48Hours 
+                          ? 'Great! You are eligible for a full refund since you are cancelling 48 hours or more before the booking time.'
+                          : `You are cancelling ${refundPreview.hoursUntilBooking.toFixed(1)} hours before. Convenience fee will not be refunded.`
+                        }
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setIsModalOpen(false)}
+                      className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-black text-sm uppercase tracking-widest hover:bg-gray-50 transition-all"
+                    >
+                      Keep Booking
+                    </button>
+                    <button
+                      onClick={() => setModalStep('confirm')}
+                      className="flex-1 py-3 rounded-xl bg-red-600 text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-red-100 hover:bg-red-700 transition-all"
+                    >
+                      Proceed
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {modalStep === 'confirm' && (
+                <div className="p-8">
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
+                      <AlertCircle className="w-8 h-8 text-red-600" />
+                    </div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-2">Confirm Cancellation</h2>
+                    <p className="text-sm text-gray-500 font-medium">
+                      This action cannot be undone. Are you sure?
+                    </p>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setModalStep('preview')}
+                      className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-black text-sm uppercase tracking-widest hover:bg-gray-50 transition-all"
+                    >
+                      Go Back
+                    </button>
+                    <button
+                      onClick={handleCancelBooking}
+                      disabled={actionLoading}
+                      className="flex-1 py-3 rounded-xl bg-red-600 text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-red-100 hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {actionLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Cancelling...
+                        </>
+                      ) : (
+                        'Yes, Cancel'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {modalStep === 'success' && (
+                <div className="p-8 text-center">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-50 flex items-center justify-center">
+                    <CheckCircle2 className="w-10 h-10 text-[#1abc60]" />
+                  </div>
+                  <h2 className="text-2xl font-black text-gray-900 mb-2">Booking Cancelled!</h2>
+                  <p className="text-sm text-gray-500 font-medium mb-6">
+                    Your booking has been cancelled. Refund will be processed soon.
+                  </p>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="w-full py-3 rounded-xl bg-[#1abc60] text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-green-100 hover:bg-[#18a052] transition-all"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

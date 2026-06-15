@@ -392,8 +392,8 @@ export default function SignUp() {
                 disabled={isLoading}
                 className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all text-base font-medium text-gray-800"
               >
+                <span>Sign in with</span>
                 <AppleIcon />
-                <span>Sign in with Apple</span>
               </button>
             )}
           </div>

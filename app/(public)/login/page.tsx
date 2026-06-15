@@ -233,7 +233,7 @@ function LoginForm() {
 
         <div className="text-center mb-8">
           <h1 className="text-[28px] font-extrabold text-[#2d3748] mb-1 tracking-tight">Welcome Back</h1>
-          <p className="text-gray-500 text-[13px]">Sign in to manage your bookings and leagues.</p>
+          <p className="text-gray-500 text-[13px]">to manage your bookings and leagues.</p>
         </div>
 
         <form onSubmit={handleLogin}>
@@ -321,8 +321,8 @@ function LoginForm() {
                 disabled={isLoading}
                 className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all text-base font-medium text-gray-800"
               >
+                <span>Sign in with</span>
                 <AppleIcon />
-                <span>Sign in with Apple</span>
               </button>
             )}
           </div>

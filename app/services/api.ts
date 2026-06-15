@@ -18,7 +18,7 @@ const getApiUrl = () => {
   return 'https://gameonindia.tech/api';
 };
 
-const API_URL = getApiUrl();
+const API_URL = typeof window !== 'undefined' ? getApiUrl() : 'https://gameonindia.tech/api';
 
 
 const api = axios.create({
@@ -31,9 +31,11 @@ const api = axios.create({
 // Add token to requests if exists
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },

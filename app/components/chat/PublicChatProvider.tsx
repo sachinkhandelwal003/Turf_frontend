@@ -52,9 +52,10 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
   }, [userId]);
 
   useEffect(() => {
+    let newSocket: ReturnType<typeof io> | null = null;
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
     const socketUrl = apiUrl.replace("/api", "");
-    const newSocket = io(socketUrl, {
+    newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,
@@ -63,7 +64,9 @@ export const PublicChatProvider = ({ children }: { children: React.ReactNode }) 
     setSocket(newSocket);
 
     return () => {
-      newSocket.close();
+      if (newSocket) {
+        newSocket.close();
+      }
     };
   }, []);
 

@@ -20,6 +20,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
   googleLogin: (tokenId: string) => Promise<User>;
+  appleLogin: (idToken: string, fullName?: { givenName?: string; familyName?: string }) => Promise<User>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isSuperadmin: boolean;
@@ -171,6 +172,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const appleLogin = async (idToken: string, fullName?: { givenName?: string; familyName?: string }): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+      const response = await fetch(`${API_URL}/auth/apple-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, fullName })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.msg || data.message || 'Apple login failed');
+      }
+
+      const userData: User = {
+        id: data.user.id || data.user._id,
+        name: data.user.name,
+        email: data.user.email,
+        phone: data.user.phone,
+        role: data.user.role,
+        permissions: data.user.permissions || [],
+        profilePhoto: data.user.profilePhoto,
+        coverPhoto: data.user.coverPhoto,
+        coins: data.user.coins || 0,
+        createdAt: data.user.createdAt
+      };
+
+      setUser(userData);
+      localStorage.setItem('adminUser', JSON.stringify(userData));
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+      return userData;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -209,6 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     login,
     googleLogin,
+    appleLogin,
     logout,
     isAuthenticated: !!user,
     isSuperadmin: user?.role === 'superadmin',

@@ -1,5 +1,17 @@
 "use client";
 
+// Type declaration for Apple ID SDK
+declare global {
+  interface Window {
+    AppleID: {
+      auth: {
+        init: (config: any) => void;
+        signIn: () => void;
+      };
+    };
+  }
+}
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,7 +28,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect');
-  const { login, googleLogin, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, googleLogin, appleLogin, isAuthenticated, isLoading: authLoading } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -115,6 +127,80 @@ function LoginForm() {
 
   const handleGoogleLoginError = () => {
     toast.error("Google login failed. Please try again.");
+  };
+
+  // Initialize Apple Sign-In SDK
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isClient) {
+      // Load Apple JS SDK
+      const script = document.createElement('script');
+      script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+      script.onload = () => {
+        // Initialize Apple Sign-In
+        if (window.AppleID) {
+          window.AppleID.auth.init({
+            clientId: process.env.NEXT_PUBLIC_APPLE_CLIENT_ID || '',
+            scope: 'name email',
+            redirectURI: window.location.origin,
+            state: 'state',
+            nonce: 'nonce',
+            usePopup: true
+          });
+        }
+      };
+      document.body.appendChild(script);
+
+      // Listen for Apple Sign-In response
+      document.addEventListener('AppleIDSignInOnSuccess', handleAppleLoginSuccess);
+      document.addEventListener('AppleIDSignInOnFailure', handleAppleLoginError);
+
+      return () => {
+        document.removeEventListener('AppleIDSignInOnSuccess', handleAppleLoginSuccess);
+        document.removeEventListener('AppleIDSignInOnFailure', handleAppleLoginError);
+      };
+    }
+  }, [isClient]);
+
+  const handleAppleLoginSuccess = async (event: any) => {
+    setIsLoading(true);
+    try {
+      const { id_token, user } = event.detail.authorization;
+      const fullName = user ? {
+        givenName: user.name?.firstName,
+        familyName: user.name?.lastName
+      } : undefined;
+
+      const userData = await appleLogin(id_token, fullName);
+
+      if (userData.role !== 'user') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminUser');
+        toast.error("Admins must login through the Admin Portal.");
+        return;
+      }
+
+      toast.success("Logged in Successfully! 🎉");
+
+      if (redirect) {
+        router.push(redirect);
+      } else {
+        router.push('/');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "Apple login failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAppleLoginError = () => {
+    toast.error("Apple login failed. Please try again.");
+  };
+
+  const triggerAppleLogin = () => {
+    if (window.AppleID) {
+      window.AppleID.auth.signIn();
+    }
   };
 
   return (
@@ -219,7 +305,12 @@ function LoginForm() {
                 />
               )}
             </div>
-            <button type="button" className="flex items-center justify-center gap-2.5 !bg-[#f4f5f5] hover:!bg-[#e9ebea] py-3.5 rounded-lg transition-all text-[13px] font-bold !text-[#2d3748] border-none">
+            <button 
+              type="button" 
+              onClick={triggerAppleLogin}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-2.5 !bg-[#f4f5f5] hover:!bg-[#e9ebea] py-3.5 rounded-lg transition-all text-[13px] font-bold !text-[#2d3748] border-none"
+            >
               Apple <AppleIcon />
             </button>
           </div>

@@ -229,7 +229,8 @@ export default function CheckoutPage() {
                 razorpaySignature: response.razorpay_signature,
                 usedCoins: useCoins ? appliedCoins : 0,
                 splitWithSquad: splitWithSquad,
-                numPlayers: splitWithSquad ? numPlayers : undefined
+                numPlayers: splitWithSquad ? numPlayers : undefined,
+                paymentStrategy: strategy
               });
 
               if (res.data.success) {
@@ -292,7 +293,8 @@ export default function CheckoutPage() {
         paymentId: `PAY-${Date.now()}`,
         usedCoins: useCoins ? appliedCoins : 0,
         splitWithSquad,
-        numPlayers: splitWithSquad ? numPlayers : undefined
+        numPlayers: splitWithSquad ? numPlayers : undefined,
+        paymentStrategy: strategy
       });
 
       if (res.data.success) {

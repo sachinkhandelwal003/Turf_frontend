@@ -38,6 +38,8 @@ interface Booking {
   courts: string[];
   totalAmount: number;
   paidAmount: number;
+  balanceAmount?: number;
+  paymentStrategy?: string;
   price?: number;
   paymentMethod: string;
   isMultiple?: boolean;
@@ -308,12 +310,42 @@ export default function PaymentSuccessPage() {
                   <p className="text-sm font-bold text-gray-900 uppercase">
                     ₹{(isTournament 
                         ? parseSafeNumber(tournament?.entryFee) 
-                        : (parseSafeNumber(booking?.paidAmount) || (booking ? getBookingTotal(booking) : 0))
+                        : (booking?.paidAmount !== undefined && booking?.paidAmount !== null ? parseSafeNumber(booking.paidAmount) : (booking ? getBookingTotal(booking) : 0))
                       ).toLocaleString()} 
                     <span className="text-gray-400 font-medium text-xs ml-1 normal-case">via {(isTournament ? 'UPI' : (booking?.paymentMethod || 'UPI').toUpperCase())}</span>
                   </p>
                 </div>
               </div>
+
+              {!isTournament && booking && parseSafeNumber(booking.balanceAmount) > 0 && (
+                <>
+                  {/* Total Amount */}
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#1abc60] shrink-0">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Total Amount</p>
+                      <p className="text-sm font-bold text-gray-900 uppercase">
+                        ₹{parseSafeNumber(booking.totalAmount).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Balance Due */}
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center text-red-500 shrink-0">
+                      <Info className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Balance due at venue</p>
+                      <p className="text-sm font-bold text-red-600 uppercase">
+                        ₹{parseSafeNumber(booking.balanceAmount).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Team Members Section */}

@@ -622,7 +622,7 @@ export default function ProfilePage() {
         activities.push({
           icon: CreditCard,
           title: "Payment Successful",
-          desc: `Paid ₹${getBookingTotal(b)} for ${isTourn ? 'registration' : 'booking'} #${b.bookingId?.slice(-6)}`,
+          desc: `Paid ₹${parseSafeNumber(b.paidAmount).toLocaleString()} for ${isTourn ? 'registration' : 'booking'} #${b.bookingId?.slice(-6)}`,
           time: new Date(b.updatedAt).toLocaleDateString(),
           color: "text-emerald-600",
           bg: "bg-emerald-50",
@@ -811,7 +811,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="!p-4 !bg-emerald-50 !rounded-lg !border !border-emerald-100">
                   <p className="!text-2xl !font-bold !text-[#1abc60] !mb-1">
-                    ₹{bookings.reduce((sum, b) => sum + parseSafeNumber(b.paidAmount || getBookingTotal(b)), 0)}
+                    ₹{bookings.reduce((sum, b) => sum + parseSafeNumber(b.paidAmount), 0).toLocaleString()}
                   </p>
                   <p className="!text-xs !font-semibold !text-emerald-700 !uppercase">Total Spent</p>
                 </div>
@@ -921,6 +921,9 @@ export default function ProfilePage() {
                         const itemName = isTourn ? (booking.tournament?.title || "Tournament Details") : (booking.turf?.name || "Venue Deleted");
             const itemImage = isTourn ? booking.tournament?.image : booking.turf?.images?.[0];
             const itemLocation = isTourn ? (booking.tournament?.location || "Tournament Event") : (booking.turf?.location?.city || "Unknown Location");
+            const total = parseSafeNumber(booking.totalAmount || getBookingTotal(booking));
+            const paid = parseSafeNumber(booking.paidAmount);
+            const balance = Math.max(0, total - paid);
             
             return (
                           <motion.div 
@@ -984,12 +987,18 @@ export default function ProfilePage() {
                                     <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-wider !mb-0.5">
                                       Total Amount
                                     </p>
-                                    <p className="!text-base !font-bold !text-gray-900">
-                                      ₹{getBookingTotal(booking).toLocaleString()}
+                                    <p className="!text-sm !font-bold !text-gray-600">
+                                      ₹{total.toLocaleString()}
                                     </p>
-                                    {parseSafeNumber(booking.balanceAmount) > 0 ? (
+                                    <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-wider !mt-1.5">
+                                      Paid Amount
+                                    </p>
+                                    <p className="!text-base !font-bold !text-[#1abc60]">
+                                      ₹{paid.toLocaleString()}
+                                    </p>
+                                    {balance > 0 ? (
                                       <p className="!text-[9px] !font-bold !text-red-500 !uppercase !mt-0.5">
-                                        ₹{parseSafeNumber(booking.balanceAmount).toLocaleString()} Balance
+                                        ₹{balance.toLocaleString()} Balance
                                       </p>
                                     ) : (
                                       <p className="!text-[9px] !font-bold !text-[#1abc60] !uppercase !mt-0.5">
@@ -1288,104 +1297,113 @@ export default function ProfilePage() {
               </div>
 
               <div className="!p-6 !overflow-y-auto !custom-scrollbar !flex-1">
-                <div className="!grid !grid-cols-2 gap-6">
-                  <div className="!space-y-1">
-                    <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
-                      <Ticket className="!w-3.5 !h-3.5" /> ID
-                    </p>
-                    <p className="!text-sm !font-bold !text-gray-900">#{selectedBooking.bookingId}</p>
-                  </div>
-                  <div className="!space-y-1">
-                    <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
-                      <Calendar className="!w-3.5 !h-3.5" /> Date
-                    </p>
-                    <p className="!text-sm !font-bold !text-gray-900">{selectedBooking.date}</p>
-                  </div>
-                  {!isTournamentBooking(selectedBooking) && (
+                {(() => {
+                  const total = parseSafeNumber(selectedBooking.totalAmount || getBookingTotal(selectedBooking));
+                  const paid = parseSafeNumber(selectedBooking.paidAmount);
+                  const balance = Math.max(0, total - paid);
+                  return (
                     <>
-                      <div className="!space-y-1">
-                        <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
-                          <Clock className="!w-3.5 !h-3.5" /> Time
-                        </p>
-                        <p className="!text-sm !font-bold !text-gray-900">{selectedBooking.startTime} - {selectedBooking.endTime}</p>
+                      <div className="!grid !grid-cols-2 gap-6">
+                        <div className="!space-y-1">
+                          <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                            <Ticket className="!w-3.5 !h-3.5" /> ID
+                          </p>
+                          <p className="!text-sm !font-bold !text-gray-900">#{selectedBooking.bookingId}</p>
+                        </div>
+                        <div className="!space-y-1">
+                          <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                            <Calendar className="!w-3.5 !h-3.5" /> Date
+                          </p>
+                          <p className="!text-sm !font-bold !text-gray-900">{selectedBooking.date}</p>
+                        </div>
+                        {!isTournamentBooking(selectedBooking) && (
+                          <>
+                            <div className="!space-y-1">
+                              <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                                <Clock className="!w-3.5 !h-3.5" /> Time
+                              </p>
+                              <p className="!text-sm !font-bold !text-gray-900">{selectedBooking.startTime} - {selectedBooking.endTime}</p>
+                            </div>
+                            <div className="!space-y-1">
+                              <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                                <LayoutList className="!w-3.5 !h-3.5" /> Courts
+                              </p>
+                              <p className="!text-sm !font-bold !text-gray-900">{selectedBooking.courts?.join(', ') || 'N/A'}</p>
+                            </div>
+                          </>
+                        )}
+                        <div className="!space-y-1">
+                          <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                            <CreditCard className="!w-3.5 !h-3.5" /> Total Price
+                          </p>
+                          <p className="!text-sm !font-bold !text-gray-900">₹{total.toLocaleString()}</p>
+                        </div>
+                        <div className="!space-y-1">
+                          <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                            <CheckCircle2 className="!w-3.5 !h-3.5" /> Paid Amount
+                          </p>
+                          <p className="!text-sm !font-bold !text-[#1abc60]">₹{paid.toLocaleString()}</p>
+                          {balance > 0 ? (
+                            <p className="!text-[10px] !font-bold !text-red-500 !mt-1">
+                              (₹{balance.toLocaleString()} due at venue)
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="!space-y-1">
+                          <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
+                            <CheckCircle2 className="!w-3.5 !h-3.5" /> Status
+                          </p>
+                          <span className={`!inline-flex !px-2 !py-0.5 !rounded !text-[10px] !font-bold !uppercase !tracking-wider !border ${
+                            getDisplayStatus(selectedBooking) === 'completed'
+                              ? '!bg-blue-50 !text-blue-600 !border-blue-200'
+                              : selectedBooking.status === 'confirmed'
+                                ? '!bg-emerald-50 !text-emerald-600 !border-emerald-200'
+                                : selectedBooking.status === 'cancelled'
+                                  ? '!bg-red-50 !text-red-600 !border-red-200'
+                                  : '!bg-amber-50 !text-amber-600 !border-amber-200'
+                          }`}>
+                            {getDisplayStatus(selectedBooking)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="!space-y-1">
-                        <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
-                          <LayoutList className="!w-3.5 !h-3.5" /> Courts
-                        </p>
-                        <p className="!text-sm !font-bold !text-gray-900">{selectedBooking.courts?.join(', ') || 'N/A'}</p>
+
+                      <div className="!mt-8 !pt-6 !border-t !border-gray-100 !flex !items-center !gap-4">
+                        <div className="!w-12 !h-12 !bg-gray-50 !rounded-lg !flex !items-center !justify-center !text-gray-500 !shrink-0 !border !border-gray-200">
+                          <MapPin className="!w-6 !h-6" />
+                        </div>
+                        <div className="!flex-1">
+                          <p className="!text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider !mb-0.5">Location</p>
+                          <p className="!text-sm !font-bold !text-gray-900">
+                            {isTournamentBooking(selectedBooking) 
+                              ? (selectedBooking.tournament?.location || "Tournament Event")
+                              : (selectedBooking.turf?.location 
+                                  ? `${selectedBooking.turf.location.address}, ${selectedBooking.turf.location.city}` 
+                                  : "Location Unavailable")}
+                          </p>
+                        </div>
+                        {isTournamentBooking(selectedBooking) && (
+                          <button 
+                            onClick={() => router.push(`/tournament/${selectedBooking.tournament?._id || selectedBooking.tournamentId}`)}
+                            className="!p-3 !bg-[#1abc60]/10 hover:!bg-[#1abc60]/20 !text-[#1abc60] !rounded-lg !transition-colors !border !border-[#1abc60]/20 !cursor-pointer !flex !items-center !gap-2 !font-bold !text-xs"
+                            title="View Tournament"
+                          >
+                            <Trophy className="!w-4 !h-4" />
+                            VIEW TOURNAMENT
+                          </button>
+                        )}
+                        {selectedBooking.turf && !isTournamentBooking(selectedBooking) && (
+                          <button 
+                            onClick={() => router.push(`/ground/${selectedBooking.turf?._id}`)}
+                            className="!p-3 !bg-gray-50 hover:!bg-gray-100 !text-gray-600 !rounded-lg !transition-colors !border !border-gray-200 !cursor-pointer"
+                            title="View Venue"
+                          >
+                            <ExternalLink className="!w-5 !h-5" />
+                          </button>
+                        )}
                       </div>
                     </>
-                  )}
-                  <div className="!space-y-1">
-                    <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
-                      <CreditCard className="!w-3.5 !h-3.5" /> Total Price
-                    </p>
-                    <p className="!text-sm !font-bold !text-gray-900">₹{getBookingTotal(selectedBooking)}</p>
-                  </div>
-                  <div className="!space-y-1">
-                    <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
-                      <CheckCircle2 className="!w-3.5 !h-3.5" /> Paid Amount
-                    </p>
-                    <p className="!text-sm !font-bold !text-[#1abc60]">₹{parseSafeNumber(selectedBooking.paidAmount) || getBookingTotal(selectedBooking)}</p>
-                    {parseSafeNumber(selectedBooking.balanceAmount) > 0 ? (
-                      <p className="!text-[10px] !font-bold !text-red-500 !mt-1">
-                        (₹{selectedBooking.balanceAmount} due at venue)
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="!space-y-1">
-                    <p className="!flex !items-center !gap-1.5 !text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider">
-                      <CheckCircle2 className="!w-3.5 !h-3.5" /> Status
-                    </p>
-                    <span className={`!inline-flex !px-2 !py-0.5 !rounded !text-[10px] !font-bold !uppercase !tracking-wider !border ${
-                      getDisplayStatus(selectedBooking) === 'completed'
-                        ? '!bg-blue-50 !text-blue-600 !border-blue-200'
-                        : selectedBooking.status === 'confirmed'
-                          ? '!bg-emerald-50 !text-emerald-600 !border-emerald-200'
-                          : selectedBooking.status === 'cancelled'
-                            ? '!bg-red-50 !text-red-600 !border-red-200'
-                            : '!bg-amber-50 !text-amber-600 !border-amber-200'
-                    }`}>
-                      {getDisplayStatus(selectedBooking)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="!mt-8 !pt-6 !border-t !border-gray-100 !flex !items-center !gap-4">
-                  <div className="!w-12 !h-12 !bg-gray-50 !rounded-lg !flex !items-center !justify-center !text-gray-500 !shrink-0 !border !border-gray-200">
-                    <MapPin className="!w-6 !h-6" />
-                  </div>
-                  <div className="!flex-1">
-                    <p className="!text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider !mb-0.5">Location</p>
-                    <p className="!text-sm !font-bold !text-gray-900">
-                      {isTournamentBooking(selectedBooking) 
-                        ? (selectedBooking.tournament?.location || "Tournament Event")
-                        : (selectedBooking.turf?.location 
-                            ? `${selectedBooking.turf.location.address}, ${selectedBooking.turf.location.city}` 
-                            : "Location Unavailable")}
-                    </p>
-                  </div>
-                  {isTournamentBooking(selectedBooking) && (
-                    <button 
-                      onClick={() => router.push(`/tournament/${selectedBooking.tournament?._id || selectedBooking.tournamentId}`)}
-                      className="!p-3 !bg-[#1abc60]/10 hover:!bg-[#1abc60]/20 !text-[#1abc60] !rounded-lg !transition-colors !border !border-[#1abc60]/20 !cursor-pointer !flex !items-center !gap-2 !font-bold !text-xs"
-                      title="View Tournament"
-                    >
-                      <Trophy className="!w-4 !h-4" />
-                      VIEW TOURNAMENT
-                    </button>
-                  )}
-                  {selectedBooking.turf && !isTournamentBooking(selectedBooking) && (
-                    <button 
-                      onClick={() => router.push(`/ground/${selectedBooking.turf?._id}`)}
-                      className="!p-3 !bg-gray-50 hover:!bg-gray-100 !text-gray-600 !rounded-lg !transition-colors !border !border-gray-200 !cursor-pointer"
-                      title="View Venue"
-                    >
-                      <ExternalLink className="!w-5 !h-5" />
-                    </button>
-                  )}
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Modal Actions */}

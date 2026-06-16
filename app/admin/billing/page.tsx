@@ -183,10 +183,10 @@ export default function BillingPage() {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
-  const getAdminStats = (adminId: string, totalRevenue: number) => {
+  const getAdminStats = (adminId: string, totalRevenue: number, totalRefunded: number = 0) => {
     const adminSettlements = settlements.filter(s => s.admin?._id === adminId && s.status === 'completed');
     const totalPaid = adminSettlements.reduce((sum, s) => sum + s.amount, 0);
-    const totalWalletShare = totalRevenue * 0.8;
+    const totalWalletShare = (totalRevenue) * 0.8;
     const pending = Math.max(0, totalWalletShare - totalPaid);
     return { totalPaid, pending };
   };
@@ -305,13 +305,17 @@ export default function BillingPage() {
             </div>
             <div className="!flex !flex-wrap !gap-8 md:!gap-12">
               <div className="!text-center md:!text-left">
-                <p className="!text-xs !font-bold !text-white/70 !uppercase !tracking-wider !mb-1">Gross Revenue</p>
-                <p className="!text-3xl !font-black !m-0">₹{summary?.totalRevenue.toLocaleString()}</p>
-              </div>
-              <div className="!text-center md:!text-left">
-                <p className="!text-xs !font-bold !text-white/70 !uppercase !tracking-wider !mb-1">Net Earned (80%)</p>
-                <p className="!text-3xl !font-black !m-0">₹{((summary?.totalRevenue || 0) * 0.8).toLocaleString()}</p>
-              </div>
+          <p className="!text-xs !font-bold !text-white/70 !uppercase !tracking-wider !mb-1">Gross Revenue</p>
+          <p className="!text-3xl !font-black !m-0">₹{summary?.totalRevenue.toLocaleString()}</p>
+        </div>
+        <div className="!text-center md:!text-left">
+          <p className="!text-xs !font-bold !text-white/70 !uppercase !tracking-wider !mb-1">Total Refunded</p>
+          <p className="!text-3xl !font-black !m-0">₹{(summary?.refunds?.totalRefunded || 0).toLocaleString()}</p>
+        </div>
+        <div className="!text-center md:!text-left">
+          <p className="!text-xs !font-bold !text-white/70 !uppercase !tracking-wider !mb-1">Net Earned (80%)</p>
+          <p className="!text-3xl !font-black !m-0">₹{((summary?.totalRevenue || 0) * 0.8).toLocaleString()}</p>
+        </div>
               <div className="!text-center md:!text-left">
                 <p className="!text-xs !font-bold !text-white/70 !uppercase !tracking-wider !mb-1">Total Paid</p>
                 <p className="!text-3xl !font-black !m-0">
@@ -419,15 +423,16 @@ export default function BillingPage() {
                       <th className="!px-6 md:!px-8 !py-4">Bookings</th>
                       <th className="!px-6 md:!px-8 !py-4">Tournaments</th>
                       <th className="!px-6 md:!px-8 !py-4">Wallet (80%)</th>
-                      <th className="!px-6 md:!px-8 !py-4">Paid</th>
-                      <th className="!px-6 md:!px-8 !py-4">Pending</th>
-                      <th className="!px-6 md:!px-8 !py-4">Total</th>
+          <th className="!px-6 md:!px-8 !py-4">Refunded</th>
+          <th className="!px-6 md:!px-8 !py-4">Paid</th>
+          <th className="!px-6 md:!px-8 !py-4">Pending</th>
+          <th className="!px-6 md:!px-8 !py-4">Total</th>
                       <th className="!px-6 md:!px-8 !py-4 !text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="!divide-y !divide-slate-100">
                     {filteredAdmins.map((admin) => {
-                      const stats = getAdminStats(admin.adminId, admin.totalRevenue);
+        const stats = getAdminStats(admin.adminId, admin.totalRevenue, admin.totalRefunded);
                       return (
                         <tr key={admin.adminId} className="hover:!bg-slate-50/50 !transition-colors">
                           <td className="!px-6 md:!px-8 !py-4">
@@ -454,18 +459,23 @@ export default function BillingPage() {
                             <span className="!text-sm !font-semibold !text-slate-900">₹{admin.tournamentRevenue.toLocaleString()}</span>
                           </td>
                           <td className="!px-6 md:!px-8 !py-4">
-                            <div className="!flex !flex-col">
-                              <span className="!text-sm !font-bold !text-blue-600">
-                                ₹{(admin.totalRevenue * 0.8).toLocaleString()}
-                              </span>
-                              <span className="!text-[10px] !text-slate-400 !font-medium !uppercase !tracking-wider !mt-0.5">Total Share</span>
-                            </div>
-                          </td>
-                          <td className="!px-6 md:!px-8 !py-4">
-                            <span className="!text-sm !font-bold !text-emerald-600">
-                              ₹{stats.totalPaid.toLocaleString()}
-                            </span>
-                          </td>
+            <div className="!flex !flex-col">
+              <span className="!text-sm !font-bold !text-blue-600">
+                ₹{(admin.totalRevenue * 0.8).toLocaleString()}
+              </span>
+              <span className="!text-[10px] !text-slate-400 !font-medium !uppercase !tracking-wider !mt-0.5">Total Share</span>
+            </div>
+          </td>
+          <td className="!px-6 md:!px-8 !py-4">
+            <span className="!text-sm !font-bold !text-red-600">
+              ₹{(admin.totalRefunded || 0).toLocaleString()}
+            </span>
+          </td>
+          <td className="!px-6 md:!px-8 !py-4">
+            <span className="!text-sm !font-bold !text-emerald-600">
+              ₹{stats.totalPaid.toLocaleString()}
+            </span>
+          </td>
                           <td className="!px-6 md:!px-8 !py-4">
                             <span className={`!text-sm !font-bold ${stats.pending > 0 ? '!text-orange-600' : '!text-slate-400'}`}>
                               ₹{stats.pending.toLocaleString()}

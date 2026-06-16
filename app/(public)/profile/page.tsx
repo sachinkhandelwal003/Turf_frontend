@@ -1038,17 +1038,6 @@ export default function ProfilePage() {
                                       Cancel
                                     </button>
                                   )}
-                                  {isDeleting === booking._id ? (
-                                    <Loader2 className="!w-4 !h-4 !animate-spin !text-red-500" />
-                                  ) : (
-                                    <button 
-                                      onClick={() => handleDeleteItem(booking)}
-                                      className="!p-1.5 !text-gray-400 hover:!text-red-500 hover:!bg-red-50 !rounded-md !transition-all !bg-transparent !border-none !cursor-pointer"
-                                      title={`Delete ${isTourn ? 'Registration' : 'Booking'}`}
-                                    >
-                                      <Trash2 className="!w-4 !h-4" />
-                                    </button>
-                                  )}
                                   {isTourn ? (
                                     <button 
                                       onClick={() => router.push(`/tournament/${booking.tournament?._id || booking.tournamentId}`)}
@@ -1413,17 +1402,6 @@ export default function ProfilePage() {
                   onClick={() => setSelectedBooking(null)}
                 >
                   Close
-                </button>
-                <button 
-                  disabled={isDeleting === selectedBooking._id}
-                  onClick={() => {
-                    handleDeleteItem(selectedBooking);
-                    setSelectedBooking(null);
-                  }}
-                  className="!flex-1 !py-2.5 !bg-red-50 !text-red-600 !border !border-red-200 !rounded-lg !font-semibold !text-sm hover:!bg-red-100 !transition-colors !cursor-pointer !shadow-sm !flex !items-center !justify-center !gap-2"
-                >
-                  {isDeleting === selectedBooking._id ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : <Trash2 className="!w-4 !h-4" />}
-                  Delete
                 </button>
                 <button className="!flex-[2] !py-2.5 !bg-[#1abc60] !text-white !rounded-lg !font-semibold !text-sm !shadow-sm hover:!bg-[#17a554] !transition-colors !border-none !cursor-pointer">
                   Download Invoice

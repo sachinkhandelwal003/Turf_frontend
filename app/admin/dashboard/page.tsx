@@ -94,6 +94,8 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pendingPayout, setPendingPayout] = useState<number>(0);
+  const [wallet, setWallet] = useState<any>(null);
+  const [walletTransactions, setWalletTransactions] = useState<any[]>([]);
 
   // Filters State
   const [selectedCity, setSelectedCity] = useState('');
@@ -134,6 +136,8 @@ export default function AdminDashboard() {
     fetchDashboardData();
     if (isSuperadmin) {
       fetchAllTurfs();
+    } else {
+      fetchWalletData();
     }
   }, [selectedCity, selectedTurf]);
 
@@ -152,6 +156,26 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Error fetching all turfs for filters:', error);
+    }
+  };
+
+  const fetchWalletData = async () => {
+    try {
+      if (isSuperadmin) return; // Only for venue partners/admins
+      const [walletRes, txnRes] = await Promise.all([
+        api.get('/wallet'),
+        api.get('/wallet/transactions')
+      ]);
+      
+      if (walletRes.data.success) {
+        setWallet(walletRes.data.data);
+      }
+      
+      if (txnRes.data.success) {
+        setWalletTransactions(txnRes.data.data.transactions || []);
+      }
+    } catch (err) {
+      console.error('Error fetching wallet data:', err);
     }
   };
 
@@ -231,6 +255,7 @@ export default function AdminDashboard() {
                 } catch (fallbackErr) {
                   console.warn('Both settlement endpoints failed or are restricted');
                 }
+
               }
             }
 
@@ -405,14 +430,13 @@ export default function AdminDashboard() {
         <div className="!p-6 md:!p-8 !space-y-8 !bg-gray-50/30">
           
           {/* Revenue KPIs (Top Row) */}
-          {isSuperadmin && (
           <div className="!grid !grid-cols-1 sm:!grid-cols-2 lg:!grid-cols-4 !gap-5 md:!gap-6">
             {[
               { 
-                title: 'Total Revenue', 
-                value: stats.revenue?.total || 0, 
-                sub: 'Gross platform earnings', 
-                icon: BarChart3, 
+                title: isSuperadmin ? 'Total Revenue' : 'Total Bookings', 
+                value: isSuperadmin ? (stats.revenue?.total || 0) : (stats.bookings?.total || 0), 
+                sub: isSuperadmin ? 'Gross platform earnings' : 'Total bookings received', 
+                icon: isSuperadmin ? BarChart3 : Calendar, 
                 color: '!text-emerald-600', 
                 bg: '!bg-emerald-50', 
                 border: '!border-emerald-100 hover:!border-emerald-300' 
@@ -458,14 +482,13 @@ export default function AdminDashboard() {
                 <div>
                   <p className="!text-[11px] !font-bold !text-gray-500 !uppercase !tracking-widest !mb-1 !m-0">{stat.title}</p>
                   <h3 className="!text-2xl md:!text-3xl !font-bold !text-gray-900 !leading-none !tracking-tight !m-0">
-                    ₹{stat.value.toLocaleString()}
+                    {isSuperadmin || i > 0 ? `₹${stat.value.toLocaleString()}` : stat.value}
                   </h3>
                   <p className="!text-[10px] !text-gray-400 !font-semibold !mt-2 !uppercase !tracking-wide !m-0">{stat.sub}</p>
                 </div>
               </motion.div>
             ))}
           </div>
-          )}
 
           {/* Match Revenue Breakdown (Conditional) */}
           {isSuperadmin && stats.revenue?.matches && stats.revenue.matches.total > 0 && (
@@ -548,6 +571,85 @@ export default function AdminDashboard() {
         </div>
       </div>
       {/* ========================================================= */}
+
+      {/* --- WALLET SECTION (FOR ADMINS/VENUE PARTNERS) --- */}
+      {!isSuperadmin && (
+        <div className="!grid !grid-cols-1 lg:!grid-cols-3 !gap-6">
+          {/* Wallet Summary */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="!lg:!col-span-1 !bg-gradient-to-br !from-[#1abc60] !to-[#16a085] !rounded-[24px] !p-6 md:!p-8 !text-white !shadow-lg"
+          >
+            <div className="!flex !items-center !justify-between !mb-6">
+              <div>
+                <p className="!text-xs !font-semibold !text-white/80 !uppercase !tracking-widest !m-0">Wallet Balance</p>
+                <h2 className="!text-4xl !font-black !mt-2 !m-0">
+                  ₹{wallet?.balance?.toLocaleString() || '0'}
+                </h2>
+              </div>
+              <div className="!w-14 !h-14 !bg-white/20 !rounded-2xl !flex !items-center !justify-center !backdrop-blur-sm">
+                <Wallet className="!w-7 !h-7 !text-white" />
+              </div>
+            </div>
+            
+            <div className="!grid !grid-cols-2 !gap-4">
+              <div>
+                <p className="!text-[11px] !font-semibold !text-white/70 !uppercase !tracking-widest !m-0">Total Earnings</p>
+                <p className="!text-xl !font-bold !mt-1 !m-0">₹{wallet?.totalEarnings?.toLocaleString() || '0'}</p>
+              </div>
+              <div>
+                <p className="!text-[11px] !font-semibold !text-white/70 !uppercase !tracking-widest !m-0">Pending Payout</p>
+                <p className="!text-xl !font-bold !mt-1 !m-0">₹{pendingPayout.toLocaleString()}</p>
+              </div>
+            </div>
+          </motion.div>
+          
+          {/* Recent Transactions */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="!lg:!col-span-2 !bg-white !rounded-[24px] !border !border-gray-200 !shadow-sm !overflow-hidden !flex !flex-col"
+          >
+            <div className="!px-6 !py-5 !border-b !border-gray-100 !flex !justify-between !items-center !bg-gray-50/50">
+              <h2 className="!text-sm !font-bold !text-gray-900 !uppercase !tracking-wider !flex !items-center !gap-2 !m-0">
+                <Activity className="!w-4 !h-4 !text-[#1abc60]" /> Recent Transactions
+              </h2>
+              <button 
+                onClick={fetchWalletData}
+                className="!text-[#1abc60] !text-xs !font-bold hover:!underline !transition-all !no-underline !bg-transparent !border-none !cursor-pointer"
+              >
+                Refresh
+              </button>
+            </div>
+            
+            <div className="!divide-y !divide-gray-50 !flex-1 !max-h-[400px] !overflow-y-auto !custom-scrollbar">
+              {walletTransactions.length === 0 ? (
+                <div className="!px-6 !py-12 !text-center !text-gray-500 !text-sm !font-medium">No transactions yet</div>
+              ) : (
+                walletTransactions.map((txn: any, index: number) => (
+                  <div key={txn._id || index} className="!px-6 !py-4 !flex !items-center !justify-between hover:!bg-gray-50/50 !transition-colors">
+                    <div className="!flex !items-center !gap-4">
+                      <div className={`!w-10 !h-10 !rounded-xl !flex !items-center !justify-center !shrink-0 ${txn.type === 'credit' ? '!bg-emerald-50' : '!bg-red-50'}`}>
+                        <PlusCircle className={`!w-5 !h-5 ${txn.type === 'credit' ? '!text-emerald-600' : '!text-red-600'}`} />
+                      </div>
+                      <div>
+                        <p className="!text-sm !font-bold !text-gray-900 !m-0">{txn.description}</p>
+                        <p className="!text-[10px] !text-gray-500 !mt-1 !m-0">{new Date(txn.createdAt).toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <p className={`!text-base !font-bold !m-0 ${txn.type === 'credit' ? '!text-emerald-600' : '!text-red-600'}`}>
+                      {txn.type === 'credit' ? '+' : '-'}{' '}₹{Number(txn.amount).toLocaleString()}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* --- CHARTS SECTION --- */}
       <div className="!grid !grid-cols-1 !gap-6">

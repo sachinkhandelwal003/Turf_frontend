@@ -104,6 +104,12 @@ export default function MyBookingsPage() {
 
   const handleCancelBooking = async () => {
     if (!selectedBooking) return;
+    if (selectedBooking.status === 'cancelled') {
+      toast.error('Booking is already cancelled');
+      setIsModalOpen(false);
+      setSelectedBooking(null);
+      return;
+    }
     setActionLoading(true);
     try {
       await api.post(`/bookings/${selectedBooking._id}/cancel`);
@@ -354,7 +360,7 @@ export default function MyBookingsPage() {
                               )}
                             </div>
                             <div className="flex gap-3">
-                              {activeTab === 'upcoming' && booking.status === 'confirmed' && (
+                              {activeTab === 'upcoming' && booking.status === 'confirmed' && booking.status !== 'cancelled' && booking.status !== 'rejected' && (
                                 <button 
                                   onClick={() => openCancelModal(booking)}
                                   className="px-6 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border border-red-200"

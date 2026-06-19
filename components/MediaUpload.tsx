@@ -12,6 +12,7 @@ interface UploadedFile {
   originalFile?: File;
 }
 // ihg;rioeghoi'reh'gohrgioeh
+// uiregp4i3uqfgpiug
 interface MediaUploadProps {
   onFilesChange: (files: UploadedFile[]) => void;
   initialFiles?: (string | UploadedFile)[];

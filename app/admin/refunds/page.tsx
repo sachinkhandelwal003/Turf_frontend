@@ -21,19 +21,24 @@ interface Refund {
     date: string;
     startTime: string;
     endTime: string;
-    turf: {
+    turf?: {
       name: string;
-      location: {
+      location?: {
         city: string;
       };
     };
   };
-  user: {
-    name: string;
-    email: string;
-    phone: string;
+  user?: {
+    name?: string;
+    email?: string;
+    phone?: string;
   };
-  admin: {
+  userInfo?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+  };
+  admin?: {
     name: string;
     email: string;
   };
@@ -124,9 +129,12 @@ function AdminRefundsContent() {
         if (searchTerm) {
           const searchLower = searchTerm.toLowerCase();
           filteredRefunds = filteredRefunds.filter((refund: Refund) => 
-            (refund.user?.name && refund.user.name.toLowerCase().includes(searchLower)) ||
-            (refund.user?.email && refund.user.email.toLowerCase().includes(searchLower)) ||
-            (refund.user?.phone && refund.user.phone.includes(searchTerm)) ||
+            ((refund.userInfo?.name && refund.userInfo.name.toLowerCase().includes(searchLower)) ||
+            (refund.user?.name && refund.user.name.toLowerCase().includes(searchLower))) ||
+            ((refund.userInfo?.email && refund.userInfo.email.toLowerCase().includes(searchLower)) ||
+            (refund.user?.email && refund.user.email.toLowerCase().includes(searchLower))) ||
+            ((refund.userInfo?.phone && refund.userInfo.phone.includes(searchTerm)) ||
+            (refund.user?.phone && refund.user.phone.includes(searchTerm))) ||
             (refund.booking?.bookingId && refund.booking.bookingId.toLowerCase().includes(searchLower)) ||
             refund._id.toLowerCase().includes(searchLower)
           );
@@ -375,13 +383,13 @@ function AdminRefundsContent() {
                           <User className="!w-4.5 !h-4.5" />
                         </div>
                         <div className="!min-w-0">
-                          <p className="!text-[14px] !font-bold !text-slate-900 !truncate !m-0">{(refund.user?.name) || 'Guest User'}</p>
-                          <p className="!text-[12px] !font-medium !text-slate-555 !truncate !m-0">{(refund.user?.email) || ''}</p>
+                          <p className="!text-[14px] !font-bold !text-slate-900 !truncate !m-0">{(refund.userInfo?.name) || (refund.user?.name) || 'Guest User'}</p>
+                          <p className="!text-[12px] !font-medium !text-slate-555 !truncate !m-0">{(refund.userInfo?.email) || (refund.user?.email) || ''}</p>
                         </div>
                       </div>
                       <div className="!pl-[52px]">
                         <span className="!text-[10px] !font-bold !text-slate-500 !bg-slate-50 !px-2.5 !py-1 !rounded-md !border !border-slate-200">
-                          {(refund.user?.phone) || 'No phone'}
+                          {(refund.userInfo?.phone) || (refund.user?.phone) || 'No phone'}
                         </span>
                       </div>
                     </div>
@@ -540,9 +548,9 @@ function AdminRefundsContent() {
                   <div className="space-y-3">
                     <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">User Information</h3>
                     <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-2">
-                      <p className="text-sm"><span className="font-semibold text-slate-700">Name:</span> {selectedRefund.user?.name || '-'}</p>
-                      <p className="text-sm"><span className="font-semibold text-slate-700">Email:</span> {selectedRefund.user?.email || '-'}</p>
-                      <p className="text-sm"><span className="font-semibold text-slate-700">Phone:</span> {selectedRefund.user?.phone || '-'}</p>
+                      <p className="text-sm"><span className="font-semibold text-slate-700">Name:</span> {(selectedRefund.userInfo?.name) || (selectedRefund.user?.name) || '-'}</p>
+                      <p className="text-sm"><span className="font-semibold text-slate-700">Email:</span> {(selectedRefund.userInfo?.email) || (selectedRefund.user?.email) || '-'}</p>
+                      <p className="text-sm"><span className="font-semibold text-slate-700">Phone:</span> {(selectedRefund.userInfo?.phone) || (selectedRefund.user?.phone) || '-'}</p>
                     </div>
                   </div>
 

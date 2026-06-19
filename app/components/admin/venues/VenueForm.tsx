@@ -30,6 +30,7 @@ interface SportConfig {
   sportName: string;
   pricePerHour: string;
   slotDuration: number;
+  maxPlayers: number; // Maximum number of players needed for this sport
   slotPricings: { startTime: string; endTime: string; price: number; isPeak: boolean }[];
   courts: { name: string; isActive: boolean }[];
   images: string[]; // URLs of images
@@ -202,6 +203,7 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
                 sportName: defaultSport,
                 pricePerHour: prev.pricePerHour || '0',
                 slotDuration: 60,
+                maxPlayers: 10, // Default max players
                 slotPricings: [],
                 courts: [{ name: 'Court 1', isActive: true }],
                 images: [],
@@ -270,6 +272,7 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
               sportName: trimmedSportName, // Normalize name
               pricePerHour: String(existing.pricePerHour || ''),
               slotDuration: Number(existing.slotDuration || 60),
+              maxPlayers: Number(existing.maxPlayers || 10), // Load existing or default to 10
               images: (existing.images || []).map((img: string) => img.startsWith('http') ? img : `${baseUrl}${img}`),
               newImages: []
             };
@@ -279,6 +282,7 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
             sportName: trimmedSportName,
             pricePerHour: String(target.pricePerHour || '0'),
             slotDuration: 60,
+            maxPlayers: 10, // Default max players for new sport config
             slotPricings: [],
             courts: [{ name: 'Court 1', isActive: true }],
             images: [],
@@ -1199,6 +1203,27 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
                               </select>
                             </div>
                           </div>
+
+                          {form.interestToHost && (
+                            <div className="space-y-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Max Players</label>
+                              <div className="relative">
+                                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <input
+                                  type="number"
+                                  min="2"
+                                  value={config.maxPlayers}
+                                  onChange={(e) => {
+                                    const next = [...form.sportConfigs];
+                                    next[actualIdx].maxPlayers = Number(e.target.value);
+                                    setForm(prev => ({ ...prev, sportConfigs: next }));
+                                  }}
+                                  className="!w-full !pl-9 !pr-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm !font-bold focus:!border-[#1abc60] focus:!ring-2 focus:!ring-[#1abc60]/20"
+                                  placeholder="e.g. 10"
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="space-y-3">

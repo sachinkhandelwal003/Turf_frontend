@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { 
   Users, Shield, 
   Loader2, AlertCircle, RefreshCw,
-  MapPin, Clock, Trophy, BarChart3, PlusCircle, Trash2, Wallet
+  MapPin, Clock, Trophy, BarChart3, PlusCircle, Trash2, Wallet, Activity, Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/app/services/api';

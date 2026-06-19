@@ -124,6 +124,7 @@ const isBookingCompleted = (booking: Booking) => {
 };
 
 const getDisplayStatus = (booking: Booking) => {
+  if (booking.status === 'cancelled' || booking.status === 'rejected') return booking.status;
   if (isBookingCompleted(booking)) return 'completed';
   if (booking.status === 'confirmed') return 'upcoming';
   if (booking.status === 'pending') return 'upcoming';
@@ -218,6 +219,14 @@ export default function ProfilePage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
   const [refundPreview, setRefundPreview] = useState<any>(null);
+  const [cancelModalStep, setCancelModalStep] = useState<'confirm' | 'form'>('confirm');
+  // Cancel Form Inputs
+  const [cancelFormData, setCancelFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    upiId: ''
+  });
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -508,7 +517,19 @@ export default function ProfilePage() {
 
   // Open Cancel Modal
   const openCancelModal = async (booking: Booking) => {
+    if (booking.status === 'cancelled') {
+      toast.error('Booking is already cancelled');
+      return;
+    }
     setBookingToCancel(booking);
+    setCancelModalStep('confirm');
+    // Reset form with user's current info
+    setCancelFormData({
+      name: user?.name || '',
+      phone: user?.phone || '',
+      email: user?.email || '',
+      upiId: ''
+    });
     setShowCancelModal(true);
     await getRefundPreview(booking._id);
   };
@@ -516,9 +537,34 @@ export default function ProfilePage() {
   // Handle Cancel Booking
   const handleCancelBooking = async () => {
     if (!bookingToCancel) return;
+    if (bookingToCancel.status === 'cancelled') {
+      toast.error('Booking is already cancelled');
+      setShowCancelModal(false);
+      setBookingToCancel(null);
+      return;
+    }
+
+    // If we're on the confirm step, show the form
+    if (cancelModalStep === 'confirm') {
+      setCancelModalStep('form');
+      return;
+    }
+
+    // If we're on the form step, submit the data
     setCancelLoading(true);
     try {
-      const res = await api.post(`/bookings/${bookingToCancel._id}/cancel`);
+      const res = await api.post(`/bookings/${bookingToCancel._id}/cancel`, {
+        upiDetails: {
+          upiId: cancelFormData.upiId,
+          upiName: cancelFormData.name,
+          upiNote: ''
+        },
+        userInfo: {
+          name: cancelFormData.name,
+          phone: cancelFormData.phone,
+          email: cancelFormData.email
+        }
+      });
       if (res.data.success) {
         toast.success('Booking cancelled successfully');
         setBookings(prev => prev.map(b => b._id === bookingToCancel._id ? { ...b, status: 'cancelled' } : b));
@@ -527,7 +573,7 @@ export default function ProfilePage() {
       }
     } catch (error: unknown) {
       const apiError = getApiError(error);
-      toast.error(apiError.response?.data?.msg || 'Failed to cancel booking');
+      toast.error(apiError.response?.data?.msg || apiError.response?.data?.error || 'Failed to cancel booking');
     } finally {
       setCancelLoading(false);
     }
@@ -1030,14 +1076,14 @@ export default function ProfilePage() {
                                   {booking.paymentStatus}
                                 </span>
                                 <div className="!flex !items-center !gap-3">
-                                  {!isTourn && booking.status === 'confirmed' && getDisplayStatus(booking) === 'upcoming' && (
-                                    <button 
-                                      onClick={() => openCancelModal(booking)}
-                                      className="!text-[11px] !font-bold !text-red-600 !uppercase !tracking-wider hover:!text-red-700 !transition-all !bg-transparent !border-none !cursor-pointer"
-                                    >
-                                      Cancel
-                                    </button>
-                                  )}
+                                  {!isTourn && booking.status === 'confirmed' && getDisplayStatus(booking) === 'upcoming' && booking.status !== 'cancelled' && booking.status !== 'rejected' && (
+                                  <button 
+                                    onClick={() => openCancelModal(booking)}
+                                    className="!text-[11px] !font-bold !text-red-600 !uppercase !tracking-wider hover:!text-red-700 !transition-all !bg-transparent !border-none !cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                )}
                                   {isTourn ? (
                                     <button 
                                       onClick={() => router.push(`/tournament/${booking.tournament?._id || booking.tournamentId}`)}
@@ -1510,8 +1556,14 @@ export default function ProfilePage() {
             >
               <div className="!px-6 !py-4 !border-b !border-gray-100 !flex !justify-between !items-center !bg-red-50/50">
                 <div>
-                  <h3 className="!text-lg !font-bold !text-gray-900 !leading-tight">Cancel Booking</h3>
-                  <p className="!text-xs !font-medium !text-gray-500 !mt-0.5">Are you sure you want to cancel?</p>
+                  <h3 className="!text-lg !font-bold !text-gray-900 !leading-tight">
+                    {cancelModalStep === 'confirm' ? 'Cancel Booking' : 'Refund Details'}
+                  </h3>
+                  <p className="!text-xs !font-medium !text-gray-500 !mt-0.5">
+                    {cancelModalStep === 'confirm' 
+                      ? 'Are you sure you want to cancel?' 
+                      : 'Fill in your details for refund'}
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowCancelModal(false)}
@@ -1521,56 +1573,133 @@ export default function ProfilePage() {
                 </button>
               </div>
 
-              <div className="!p-6 !space-y-6">
-                {/* Booking Info */}
-                <div className="!bg-gray-50 !rounded-xl !p-4 !border !border-gray-100">
-                  <p className="!text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider !mb-2">Booking Details</p>
-                  <h4 className="!text-sm !font-bold !text-gray-900 mb-1">{bookingToCancel.turf?.name}</h4>
-                  <p className="!text-xs !text-gray-500">{bookingToCancel.date} • {bookingToCancel.startTime} - {bookingToCancel.endTime}</p>
-                  <p className="!text-sm !font-bold !text-[#1abc60] mt-2">₹{getBookingTotal(bookingToCancel)}</p>
-                </div>
+              {cancelModalStep === 'confirm' ? (
+                <div className="!p-6 !space-y-6">
+                  {/* Booking Info */}
+                  <div className="!bg-gray-50 !rounded-xl !p-4 !border !border-gray-100">
+                    <p className="!text-xs !font-semibold !text-gray-500 !uppercase !tracking-wider !mb-2">Booking Details</p>
+                    <h4 className="!text-sm !font-bold !text-gray-900 mb-1">{bookingToCancel.turf?.name}</h4>
+                    <p className="!text-xs !text-gray-500">{bookingToCancel.date} • {bookingToCancel.startTime} - {bookingToCancel.endTime}</p>
+                    <p className="!text-sm !font-bold !text-[#1abc60] mt-2">₹{getBookingTotal(bookingToCancel)}</p>
+                  </div>
 
-                {/* Cancellation Policy */}
-                <div className="!bg-amber-50 !rounded-xl !p-4 !border !border-amber-200">
-                  <p className="!text-xs !font-semibold !text-amber-700 !uppercase !tracking-wider mb-2">Cancellation Policy</p>
-                  {refundPreview ? (
-                    <div className="!space-y-2">
-                      <p className="!text-sm !font-bold !text-amber-900">{refundPreview.policyNote}</p>
-                      <div className="!grid !grid-cols-2 !gap-2 !text-xs">
-                        <div className="!bg-white !p-2 !rounded-lg">
-                          <span className="!text-gray-500">Your Refund:</span>
-                          <span className="!block !text-lg !font-bold !text-green-600">₹{refundPreview.refundAmount}</span>
+                  {/* Cancellation Policy */}
+                  <div className="!bg-amber-50 !rounded-xl !p-4 !border !border-amber-200">
+                    <p className="!text-xs !font-semibold !text-amber-700 !uppercase !tracking-wider mb-2">Cancellation Policy</p>
+                    {refundPreview ? (
+                      <div className="!space-y-2">
+                        <p className="!text-sm !font-bold !text-amber-900">{refundPreview.policyNote}</p>
+                        <div className="!grid !grid-cols-2 !gap-2 !text-xs">
+                          <div className="!bg-white !p-2 !rounded-lg">
+                            <span className="!text-gray-500">Your Refund:</span>
+                            <span className="!block !text-lg !font-bold !text-green-600">₹{refundPreview.refundAmount}</span>
+                          </div>
+                          <div className="!bg-white !p-2 !rounded-lg">
+                            <span className="!text-gray-500">Hours Left:</span>
+                            <span className="!block !text-lg !font-bold !text-gray-700">{refundPreview.hoursUntilBooking}h</span>
+                          </div>
                         </div>
-                        <div className="!bg-white !p-2 !rounded-lg">
-                          <span className="!text-gray-500">Hours Left:</span>
-                          <span className="!block !text-lg !font-bold !text-gray-700">{refundPreview.hoursUntilBooking}h</span>
-                        </div>
+                        {refundPreview.refundPercentage < 100 && (
+                          <p className="!text-xs !text-amber-600 !italic">Tip: Cancel earlier to get a higher refund!</p>
+                        )}
                       </div>
-                      {refundPreview.refundPercentage < 100 && (
-                        <p className="!text-xs !text-amber-600 !italic">Tip: Cancel earlier to get a higher refund!</p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="!text-xs !text-amber-600">Checking cancellation policy...</p>
-                  )}
+                    ) : (
+                      <p className="!text-xs !text-amber-600">Checking cancellation policy...</p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="!p-6 !space-y-4">
+                  {/* Name Input */}
+                  <div className="!space-y-1">
+                    <label className="!text-xs !font-semibold !text-gray-600 !uppercase !tracking-wider">Full Name</label>
+                    <input
+                      type="text"
+                      value={cancelFormData.name}
+                      onChange={(e) => setCancelFormData({ ...cancelFormData, name: e.target.value })}
+                      className="!w-full !px-4 !py-3 !bg-white !border !border-gray-300 !rounded-xl !font-medium !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all"
+                      placeholder="Enter your name"
+                    />
+                  </div>
+
+                  {/* Phone Input */}
+                  <div className="!space-y-1">
+                    <label className="!text-xs !font-semibold !text-gray-600 !uppercase !tracking-wider">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={cancelFormData.phone}
+                      onChange={(e) => setCancelFormData({ ...cancelFormData, phone: e.target.value })}
+                      className="!w-full !px-4 !py-3 !bg-white !border !border-gray-300 !rounded-xl !font-medium !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all"
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+
+                  {/* Email Input */}
+                  <div className="!space-y-1">
+                    <label className="!text-xs !font-semibold !text-gray-600 !uppercase !tracking-wider">Email Address</label>
+                    <input
+                      type="email"
+                      value={cancelFormData.email}
+                      onChange={(e) => setCancelFormData({ ...cancelFormData, email: e.target.value })}
+                      className="!w-full !px-4 !py-3 !bg-white !border !border-gray-300 !rounded-xl !font-medium !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+
+                  {/* UPI ID Input */}
+                  <div className="!space-y-1">
+                    <label className="!text-xs !font-semibold !text-gray-600 !uppercase !tracking-wider">UPI ID</label>
+                    <input
+                      type="text"
+                      value={cancelFormData.upiId}
+                      onChange={(e) => setCancelFormData({ ...cancelFormData, upiId: e.target.value })}
+                      className="!w-full !px-4 !py-3 !bg-white !border !border-gray-300 !rounded-xl !font-medium !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-all"
+                      placeholder="Enter your UPI ID"
+                    />
+                  </div>
+
+                  <p className="!text-xs !text-gray-500 !bg-amber-50 !p-3 !rounded-xl">
+                    *Refund will be processed within 5-7 working days
+                  </p>
+                </div>
+              )}
 
               <div className="!p-6 !border-t !border-gray-100 !bg-gray-50 !flex !gap-3">
-                <button
-                  onClick={() => setShowCancelModal(false)}
-                  className="!flex-1 !py-2.5 !bg-white !border !border-gray-300 !text-gray-700 !rounded-lg !font-semibold !text-sm hover:!bg-gray-100 !transition-colors !cursor-pointer"
-                >
-                  Keep Booking
-                </button>
-                <button
-                  onClick={handleCancelBooking}
-                  disabled={cancelLoading || (refundPreview && !refundPreview.canCancel)}
-                  className="!flex-1 !py-2.5 !bg-red-600 !text-white !border !border-red-600 !rounded-lg !font-semibold !text-sm hover:!bg-red-700 !transition-colors !cursor-pointer !flex !items-center !justify-center !gap-2 disabled:!opacity-60 disabled:!cursor-not-allowed"
-                >
-                  {cancelLoading ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : null}
-                  Confirm Cancel
-                </button>
+                {cancelModalStep === 'confirm' ? (
+                  <>
+                    <button
+                      onClick={() => setShowCancelModal(false)}
+                      className="!flex-1 !py-2.5 !bg-white !border !border-gray-300 !text-gray-700 !rounded-lg !font-semibold !text-sm hover:!bg-gray-100 !transition-colors !cursor-pointer"
+                    >
+                      Keep Booking
+                    </button>
+                    <button
+                      onClick={handleCancelBooking}
+                      disabled={cancelLoading || (refundPreview && !refundPreview.canCancel)}
+                      className="!flex-1 !py-2.5 !bg-red-600 !text-white !border !border-red-600 !rounded-lg !font-semibold !text-sm hover:!bg-red-700 !transition-colors !cursor-pointer !flex !items-center !justify-center !gap-2 disabled:!opacity-60 disabled:!cursor-not-allowed"
+                    >
+                      {cancelLoading ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : null}
+                      Next
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setCancelModalStep('confirm')}
+                      className="!flex-1 !py-2.5 !bg-white !border !border-gray-300 !text-gray-700 !rounded-lg !font-semibold !text-sm hover:!bg-gray-100 !transition-colors !cursor-pointer"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleCancelBooking}
+                      disabled={cancelLoading}
+                      className="!flex-1 !py-2.5 !bg-red-600 !text-white !border !border-red-600 !rounded-lg !font-semibold !text-sm hover:!bg-red-700 !transition-colors !cursor-pointer !flex !items-center !justify-center !gap-2 disabled:!opacity-60 disabled:!cursor-not-allowed"
+                    >
+                      {cancelLoading ? <Loader2 className="!w-4 !h-4 !animate-spin" /> : null}
+                      Submit & Cancel
+                    </button>
+                  </>
+                )}
               </div>
             </motion.div>
           </div>

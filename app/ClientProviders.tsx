@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { AuthProvider } from "@/app/context/AuthContext";
 import { ChatProvider } from "@/app/context/ChatContext";
 import { SettingsProvider, useSettings } from "@/app/context/SettingsContext";
@@ -12,9 +13,17 @@ import { Loader2 } from "lucide-react";
 function ProvidersContent({ children }: { children: React.ReactNode }) {
   const { settings, isLoading } = useSettings();
 
-  // Wait for settings to load before rendering GoogleOAuthProvider
-  // because we need the client ID from settings!
-  if (isLoading) {
+  // Wait for settings for 3 seconds max, then render anyway
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setTimedOut(true);
+    }, 3000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  if (isLoading && !timedOut) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-[#1abc60]" />

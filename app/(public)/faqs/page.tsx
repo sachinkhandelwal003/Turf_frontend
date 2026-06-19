@@ -44,7 +44,7 @@ const faqCategories = [
     questions: [
       {
         question: "What are GameOn Coins?",
-        answer: "GameOn Coins are our loyalty rewards. You earn 100 coins on your first booking and 50 coins on your second booking. These can be used for discounts on future bookings."
+        answer: "GameOn Coins are our loyalty rewards. You earn 1000 coins on your first booking and 50 coins on your second booking. These can be used for discounts on future bookings."
       },
       {
         question: "How do I redeem my coins?",

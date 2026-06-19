@@ -62,6 +62,36 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Failed to fetch settings:", error);
+      // Set default settings if API fails
+      setSettings({
+        siteName: "Game On India",
+        contactEmail: "support@gameonindia.tech",
+        frontendLogo: "/mainlogo.png",
+        backendLogo: "/mainlogo.png",
+        googleLogin: {
+          enabled: true,
+          clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
+          clientSecret: ""
+        },
+        appleLogin: {
+          enabled: false,
+          clientId: "",
+          teamId: "",
+          keyId: ""
+        },
+        maintenanceMode: false,
+        coinValue: 1,
+        heroBanner: {
+          title: "",
+          subtitle: "",
+          image: ""
+        },
+        razorpay: {
+          enabled: false,
+          keyId: "",
+          keySecret: ""
+        }
+      });
     } finally {
       setIsLoading(false);
     }

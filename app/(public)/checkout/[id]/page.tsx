@@ -242,7 +242,7 @@ export default function CheckoutPage() {
                   if (bookingsRes.data.success) {
                     const bookingCount = bookingsRes.data.bookings.length;
                     if (bookingCount === 1) {
-                      setRewardAmount(100);
+                      setRewardAmount(1000);
                       setShowCoinPopup(true);
                     } else if (bookingCount === 2) {
                       setRewardAmount(50);
@@ -306,7 +306,7 @@ export default function CheckoutPage() {
           if (bookingsRes.data.success) {
             const bookingCount = bookingsRes.data.bookings.length;
             if (bookingCount === 1) {
-              setRewardAmount(100);
+              setRewardAmount(1000);
               setShowCoinPopup(true);
             } else if (bookingCount === 2) {
               setRewardAmount(50);

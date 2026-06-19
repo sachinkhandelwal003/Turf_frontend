@@ -225,18 +225,8 @@ export default function VenueListPage() {
                           <span className="!block">Edit</span>
                         </Link>
                         
-                        {/* Status Update & Delete Buttons */}
+                        {/* Reject & Delete Buttons */}
                         <div className="!flex !items-center !gap-1.5 !border-l !border-gray-200 !pl-3 !ml-1">
-                          {venue.status !== 'approved' && (
-                            <button
-                              onClick={() => handleStatusUpdate(venue._id, 'approved')}
-                              disabled={actionLoading === venue._id}
-                              className="!inline-flex !items-center !justify-center !w-8 !h-8 !bg-white !border !border-green-200 !text-green-600 hover:!bg-green-50 !rounded-lg !transition-all !cursor-pointer disabled:!opacity-50 !shadow-sm"
-                              title="Approve Venue"
-                            >
-                              {actionLoading === venue._id ? <Loader2 className="!w-4 !h-4 !block !shrink-0 !animate-spin" /> : <Check className="!w-4 !h-4 !block !shrink-0 !opacity-100" />}
-                            </button>
-                          )}
                           {venue.status !== 'rejected' && (
                             <button
                               onClick={() => handleStatusUpdate(venue._id, 'rejected')}
@@ -311,18 +301,8 @@ export default function VenueListPage() {
                     </div>
                     
                     <div className="!flex !items-center !gap-2">
-                      {/* Action Buttons for Mobile */}
+                      {/* Reject & Delete Buttons for Mobile */}
                       <div className="!flex !items-center !gap-1.5 !mr-2 !pr-3 !border-r !border-gray-200">
-                        {venue.status !== 'approved' && (
-                          <button
-                            onClick={() => handleStatusUpdate(venue._id, 'approved')}
-                            disabled={actionLoading === venue._id}
-                            className="!inline-flex !items-center !justify-center !w-8 !h-8 !bg-white !border !border-green-200 !text-green-600 hover:!bg-green-50 !rounded-lg !transition-all !cursor-pointer disabled:!opacity-50 !shadow-sm"
-                            title="Approve"
-                          >
-                            {actionLoading === venue._id ? <Loader2 className="!w-4 !h-4 !block !shrink-0 !animate-spin" /> : <Check className="!w-4 !h-4 !block !shrink-0 !opacity-100" />}
-                          </button>
-                        )}
                         {venue.status !== 'rejected' && (
                           <button
                             onClick={() => handleStatusUpdate(venue._id, 'rejected')}

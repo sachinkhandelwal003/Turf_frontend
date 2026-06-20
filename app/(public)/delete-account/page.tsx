@@ -164,7 +164,6 @@ export default function DeleteAccountPage() {
               Go to Home
             </button>
           </div>
-          </>
         )}
       </div>
     </div>

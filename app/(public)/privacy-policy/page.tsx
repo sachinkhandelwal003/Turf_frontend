@@ -125,7 +125,7 @@ const sections = [
             <li><strong className="text-gray-900">Device data:</strong> Device model, OS and version, unique device identifiers (Android Advertising ID, IDFA on iOS, or equivalents), mobile network operator, screen resolution, app version, time-zone, and language.</li>
             <li><strong className="text-gray-900">Log data:</strong> IP address, login timestamps, session duration, screens viewed, taps and clicks, search queries, crash logs, and diagnostic information.</li>
             <li><strong className="text-gray-900">Approximate and precise location data:</strong> With your prior in-app permission, we collect your precise GPS location to show you nearby venues, sort venue results by distance, and improve &quot;venues near me&quot; discovery. You can deny or revoke this permission at any time from device settings.</li>
-            <li><strong className="text-gray-900">Cookies and similar technologies (website only):</strong> First-party cookies and local storage to keep you signed in, remember your city, and measure aggregate usage. See Section 11.</li>
+            <li><strong className="text-gray-900">Cookies and similar technologies (website only):</strong> First-party cookies and local storage to keep you signed in, remember your city, and measure aggregate usage. See Section 12.</li>
           </ul>
         </div>
 
@@ -407,8 +407,209 @@ const sections = [
     ),
   },
   {
-    id: "cookies",
+    id: "account-deletion",
     number: "11",
+    title: "Account Deletion",
+    content: (
+      <div className="space-y-8 text-gray-600 leading-relaxed">
+        <p>
+          You have the right to delete your GameOn account at any time. This section describes — in compliance with the Google Play Store and Apple App Store policies on account deletion — exactly how to request deletion, what data we delete, what data we are legally required to retain, and on what timeline.
+        </p>
+
+        <div>
+          <h4 className="text-gray-900 font-bold text-lg mb-3">11.1 How to request account deletion</h4>
+          <p className="mb-3">You may request account deletion through any of the following channels:</p>
+          <div className="overflow-x-auto border border-gray-200 rounded-2xl shadow-sm mb-3">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs w-1/4">Channel</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">How</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">In-app</td>
+                  <td className="px-6 py-4">Open the GameOn app → Profile → Settings → Account → Delete Account → confirm.</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">Web</td>
+                  <td className="px-6 py-4">Visit <a href="http://www.gameon-india.com/delete-account" className="text-blue-600 hover:underline">www.gameon-india.com/delete-account</a> — submit the form using your registered mobile number → confirm the OTP.</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">Email</td>
+                  <td className="px-6 py-4">Email support@gameon-india.com from your registered email address with the subject line &quot;Delete my account&quot;. We will respond with an OTP-based verification step.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-sm italic text-gray-500">The web URL above is publicly accessible without logging in, in compliance with the Google Play Store Account Deletion requirements.</p>
+        </div>
+
+        <div>
+          <h4 className="text-gray-900 font-bold text-lg mb-3">11.2 Verification</h4>
+          <p>Before processing any deletion request, we will verify that you are the legitimate account owner — typically by sending a one-time password (OTP) to your registered mobile number or email address. This protects your account against unauthorised deletion by another person who may have temporary access to your device. Verification is normally completed within 24 hours of your request.</p>
+        </div>
+
+        <div>
+          <h4 className="text-gray-900 font-bold text-lg mb-3">11.3 What we delete</h4>
+          <p className="mb-3">Upon verification, we permanently delete the following categories of your personal data, from active production systems within 7 days, and from all rolling backups within 30 days:</p>
+          <ul className="list-disc pl-5 space-y-2 marker:text-emerald-500">
+            <li><strong className="text-gray-900">Profile data</strong> — your name, date of birth, gender, profile photograph, sports of interest, skill level, preferred timings, preferred venues, captain badges, and any saved-favourites lists.</li>
+            <li><strong className="text-gray-900">Contact data</strong> — your mobile number, email address, postal address (if any), and saved emergency-contact details.</li>
+            <li><strong className="text-gray-900">Account credentials</strong> — your password (stored only as a salted hash), Google / Apple social-login tokens, and authentication session tokens.</li>
+            <li><strong className="text-gray-900">Communications data</strong> — your in-app chat messages, customer-support tickets, in-app feedback, and survey responses, except where a ticket is the subject of a legal hold or an ongoing dispute.</li>
+            <li><strong className="text-gray-900">Device data</strong> — push-notification tokens, device identifiers, IDFA / Android Advertising ID associated with your account.</li>
+            <li><strong className="text-gray-900">Behavioural data</strong> — in-app search history, browse history, recommendation signals, A/B-test bucketing.</li>
+            <li><strong className="text-gray-900">Phone contacts data</strong> (if previously granted) — any matched contacts cached against your account.</li>
+            <li><strong className="text-gray-900">Location data</strong> — precise GPS coordinates and city/locality stored against your account.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="text-gray-900 font-bold text-lg mb-3">11.4 What we anonymise (rather than delete)</h4>
+          <p className="mb-3">The following are anonymised — your personally identifying information is removed, but the underlying record is preserved with no link to you:</p>
+          <ul className="list-disc pl-5 space-y-2 marker:text-gray-400">
+            <li><strong className="text-gray-900">Reviews and ratings</strong> you have posted about venues. The review content stays attached to the venue (so future players continue to benefit from the feedback) but with the author identifier removed and replaced with &quot;Former GameOn user.&quot; This is standard practice across rating platforms and is consistent with venue owners&apos; contractual right to keep aggregated feedback on their listings.</li>
+            <li><strong className="text-gray-900">Aggregated and de-identified analytics</strong> that have already been irreversibly aggregated before your deletion request (for example, &quot;300 bookings in Saket on Saturday evening&quot;) — these cannot be reversed and remain in our reporting.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="text-gray-900 font-bold text-lg mb-3">11.5 What we are legally required to retain</h4>
+          <p className="mb-3">Indian tax and regulatory law requires us to retain certain transaction-related records even after you delete your account. We retain only the minimum necessary records, with personally identifying fields redacted where possible:</p>
+          <div className="overflow-x-auto border border-gray-200 rounded-2xl shadow-sm mb-3">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Category of retained data</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Retention period</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Legal basis</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Why</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">Booking & transaction records (invoices, refunds, GST data, payment-gateway IDs)</td>
+                  <td className="px-6 py-4">8 years from the end of the financial year in which the transaction occurred</td>
+                  <td className="px-6 py-4 text-emerald-700 bg-emerald-50/50">Section 36, Central Goods and Services Tax Act, 2017; Income Tax Act, 1961</td>
+                  <td className="px-6 py-4">Required for tax audit and GST reconciliation.</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">KYC documents (only if you are a Venue Partner)</td>
+                  <td className="px-6 py-4">8 years from the end of the partner relationship</td>
+                  <td className="px-6 py-4 text-emerald-700 bg-emerald-50/50">Prevention of Money Laundering Act, 2002</td>
+                  <td className="px-6 py-4">Required AML/KYC retention.</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">Records subject to a legal hold, court order, or law-enforcement request</td>
+                  <td className="px-6 py-4">Until the legal matter is resolved</td>
+                  <td className="px-6 py-4 text-emerald-700 bg-emerald-50/50">Mandatory compliance with lawful authority. Code of Criminal Procedure / IT Act, 2000 / court order</td>
+                  <td className="px-6 py-4">Mandatory compliance with lawful authority.</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">Records of marketing-consent grants and withdrawals</td>
+                  <td className="px-6 py-4">3 years from withdrawal</td>
+                  <td className="px-6 py-4 text-emerald-700 bg-emerald-50/50">Demonstrating consent under DPDP Act, 2023</td>
+                  <td className="px-6 py-4">To prove we honoured opt-out requests.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-sm text-gray-500">Within the retained records, your name, contact details and identifiers are redacted to the minimum extent permitted by law — typically your bookings become linked to a system identifier rather than your name and mobile.</p>
+        </div>
+
+        <div>
+          <h4 className="text-gray-900 font-bold text-lg mb-3">11.6 What you cannot delete or recover after the request</h4>
+          <ul className="list-disc pl-5 space-y-2 marker:text-red-400">
+            <li><strong className="text-gray-900">Past bookings</strong> - once you initiate account deletion, you cannot retrieve booking history, refund status, or invoice copies through your account. We recommend you download your data via Settings → Privacy → Download my data before initiating deletion, if you may need these records in the future.</li>
+            <li><strong className="text-gray-900">Active bookings</strong> - please cancel any upcoming bookings before requesting deletion. Pending bookings will be cancelled automatically (refunds will be processed per our standard cancellation policy), but you will not be able to attend bookings you had paid for.</li>
+            <li><strong className="text-gray-900">Pending refunds, credits or wallet balances</strong> - these are forfeited on account deletion unless you request them to be paid out to your registered bank account before deletion. We will not initiate refunds to a closed account.</li>
+            <li><strong className="text-gray-900">Reviews you posted</strong> - anonymised, not deleted (see §11.4).</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="text-gray-900 font-bold text-lg mb-3">11.7 Deactivation vs deletion</h4>
+          <p className="mb-3">There is an important distinction:</p>
+          <div className="overflow-x-auto border border-gray-200 rounded-2xl shadow-sm mb-3">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Feature</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Deactivation</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Deletion</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">What it does</td>
+                  <td className="px-6 py-4">Hides your profile and bookings from the public. You can log back in any time within 30 days and resume your account.</td>
+                  <td className="px-6 py-4">Permanently removes your personal data per §11.3. Cannot be reversed.</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">Reversible?</td>
+                  <td className="px-6 py-4 text-emerald-600 font-medium">Yes, within 30 days.</td>
+                  <td className="px-6 py-4 text-red-600 font-medium">No.</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">Default choice in the app?</td>
+                  <td className="px-6 py-4">Yes — when you tap &quot;Delete Account&quot; the first prompt offers Deactivation. You must explicitly tap &quot;Permanently delete&quot; to proceed to deletion.</td>
+                  <td className="px-6 py-4">No confirmation required.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-sm text-gray-600">If you want a short break from GameOn, deactivation is the right choice. If you are sure you no longer want a GameOn account, choose deletion.</p>
+        </div>
+
+        <div>
+          <h4 className="text-gray-900 font-bold text-lg mb-3">11.8 Timeline summary</h4>
+          <div className="overflow-x-auto border border-gray-200 rounded-2xl shadow-sm mb-3">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Step</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 uppercase tracking-wider text-xs">Time from request</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                <tr className="hover:bg-gray-50 transition-colors"><td className="px-6 py-4 font-bold text-gray-900">Acknowledgement email</td><td className="px-6 py-4">Within 24 hours</td></tr>
+                <tr className="hover:bg-gray-50 transition-colors"><td className="px-6 py-4 font-bold text-gray-900">Identity verification (OTP)</td><td className="px-6 py-4">Within 24 hours</td></tr>
+                <tr className="hover:bg-gray-50 transition-colors"><td className="px-6 py-4 font-bold text-gray-900">Active-data deletion from production</td><td className="px-6 py-4">Within 7 days of verified request</td></tr>
+                <tr className="hover:bg-gray-50 transition-colors"><td className="px-6 py-4 font-bold text-gray-900">Deletion from rolling backups</td><td className="px-6 py-4">Within 30 days</td></tr>
+                <tr className="hover:bg-gray-50 transition-colors"><td className="px-6 py-4 font-bold text-gray-900">Final confirmation email</td><td className="px-6 py-4">On completion (within 30 days)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-sm italic text-gray-500">Total maximum elapsed time, from request to full deletion: 30 days, in line with Section 12 of the DPDP Act, 2023.</p>
+        </div>
+
+        <div>
+          <h4 className="text-gray-900 font-bold text-lg mb-3">11.9 Special situations</h4>
+          <ul className="list-disc pl-5 space-y-2 marker:text-gray-400">
+            <li><strong className="text-gray-900">Venue Partners.</strong> If you are a Venue Partner, your venue listing, booking history attached to the venue, and tax records remain (linked to your business entity rather than you personally). Your partner-personal data — name, contact, authorised-representative photo — is deleted on the same timeline. Detailed Partner-side terms are in the Partner Terms &amp; Conditions.</li>
+            <li><strong className="text-gray-900">Users under 18.</strong> Deletion requests for accounts of users under 18 must be initiated by a parent or legal guardian. Contact support@gameon-india.com with proof of guardianship.</li>
+            <li><strong className="text-gray-900">Users with an active dispute, chargeback, or complaint.</strong> Deletion is deferred until the matter is resolved, and only the minimum data needed to resolve the dispute is retained for that period.</li>
+            <li><strong className="text-gray-900">Users with a legal hold.</strong> If a court, tribunal or law-enforcement agency has issued a hold on your records, we will inform you (unless legally prohibited) and defer deletion until the hold is lifted.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="text-gray-900 font-bold text-lg mb-3">11.10 Re-registering after deletion</h4>
+          <p>You may create a fresh GameOn account at any time using a different (or the same) mobile number. A new account starts with no history — you will not see your previously-completed bookings, captain badges, reviews you authored, or accumulated GameOn credits. The old account cannot be recovered or merged into the new one.</p>
+        </div>
+
+        <div>
+          <h4 className="text-gray-900 font-bold text-lg mb-3">11.11 Questions</h4>
+          <p>Any question about account deletion can be addressed to <a href="mailto:support@gameon-india.com" className="text-blue-600 hover:underline">support@gameon-india.com</a> or to our Grievance Officer (see Section 15). We do not charge a fee for account deletion under any circumstances.</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "cookies",
+    number: "12",
     title: "Cookies and Similar Technologies (Website)",
     content: (
       <div className="space-y-4 text-gray-600 leading-relaxed">
@@ -426,7 +627,7 @@ const sections = [
   },
   {
     id: "children",
-    number: "12",
+    number: "13",
     title: "Children's Privacy",
     content: (
       <div className="space-y-4 text-gray-600 leading-relaxed">
@@ -452,7 +653,7 @@ const sections = [
   },
   {
     id: "security",
-    number: "13",
+    number: "14",
     title: "Security",
     content: (
       <div className="space-y-4 text-gray-600 leading-relaxed">
@@ -485,7 +686,7 @@ const sections = [
   },
   {
     id: "grievance",
-    number: "14",
+    number: "15",
     title: "Grievance Officer",
     content: (
       <div className="space-y-6 text-gray-600 leading-relaxed">
@@ -520,7 +721,7 @@ const sections = [
   },
   {
     id: "changes",
-    number: "15",
+    number: "16",
     title: "Changes to This Privacy Policy",
     content: (
       <div className="space-y-4 text-gray-600 leading-relaxed">
@@ -542,7 +743,7 @@ const sections = [
   },
   {
     id: "governing-law",
-    number: "16",
+    number: "17",
     title: "Governing Law and Jurisdiction",
     content: (
       <div className="space-y-4 text-gray-600 leading-relaxed">
@@ -555,6 +756,41 @@ const sections = [
       </div>
     ),
   },
+  {
+    id: "contact-us",
+    number: "18",
+    title: "Contact Us",
+    content: (
+      <div className="space-y-4 text-gray-600 leading-relaxed">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+           <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-start gap-3">
+             <Mail className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+             <div>
+               <strong className="block text-gray-900 mb-1">Email</strong>
+               <a href="mailto:support@gameon-india.com" className="text-emerald-600 hover:underline">support@gameon-india.com</a>
+             </div>
+           </div>
+           <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-start gap-3">
+             <Phone className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+             <div>
+               <strong className="block text-gray-900 mb-1">Phone</strong>
+               <span>+91 88961 72818</span>
+             </div>
+           </div>
+           <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-start gap-3 sm:col-span-2">
+             <MapPin className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+             <div>
+               <strong className="block text-gray-900 mb-1">Postal Address</strong>
+               <span>GameOn Sports Services Private Limited, KH-126, Bypass Road, Shanti Shivpuri, Ghaziabad, Uttar Pradesh — 201001</span>
+             </div>
+           </div>
+        </div>
+        <p className="mt-4">
+           <strong>Website:</strong> <a href="https://www.gameon-india.com" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">www.gameon-india.com</a>
+        </p>
+      </div>
+    )
+  }
 ];
 
 const appendices = [
@@ -672,7 +908,7 @@ export default function PrivacyPolicy() {
             </h1>
             <div className="flex flex-wrap justify-center gap-4 lg:gap-8 pt-4 text-sm font-medium text-gray-500">
               <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-emerald-500" /> Effective: 4 May 2026</div>
-              <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-emerald-500" /> Updated: 20 May 2026</div>
+              <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-emerald-500" /> Updated: 6 June 2026</div>
               <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-emerald-500" /> India</div>
             </div>
           </motion.div>
@@ -763,7 +999,7 @@ export default function PrivacyPolicy() {
         </div>
       </section>
 
-      {/* ── FOOTER BAR (UPDATED FOR PERFECT ALIGNMENT) ── */}
+      {/* ── FOOTER BAR ── */}
       <footer className="border-t border-gray-100 bg-[#FAFAFA] pt-16 pb-8 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12 items-start">

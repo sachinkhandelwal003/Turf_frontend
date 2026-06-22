@@ -12,7 +12,7 @@ declare global {
   }
 }
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
@@ -37,6 +37,24 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [btnWidth, setBtnWidth] = useState<number>(300);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (cardRef.current) {
+        const clientWidth = cardRef.current.clientWidth;
+        const padding = window.innerWidth < 640 ? 48 : 80;
+        const calculatedWidth = clientWidth - padding;
+        const finalWidth = Math.max(200, Math.min(400, calculatedWidth));
+        setBtnWidth(finalWidth);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, [isClient]);
 
   // === ALL HANDLER FUNCTIONS FIRST ===
   const handleLogin = async (e: React.FormEvent) => {
@@ -213,7 +231,7 @@ function LoginForm() {
   return (
     <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-3 sm:p-4 font-sans py-8 sm:py-12 relative overflow-hidden">
       
-      <div className="bg-white w-full max-w-[420px] pt-14 pb-6 px-6 sm:p-10 rounded-2xl shadow-sm relative">
+      <div ref={cardRef} className="bg-white w-full max-w-[420px] pt-14 pb-6 px-6 sm:p-10 rounded-2xl shadow-sm relative">
         
         {/* Back Button */}
         <button 
@@ -303,29 +321,34 @@ function LoginForm() {
           )}
 
           {/* SOCIAL BUTTONS */}
-          <div className={`mb-8 ${showGoogleButton && showAppleButton ? 'grid grid-cols-2 gap-4' : 'flex justify-center'}`}>
+          <div className="flex flex-col gap-3.5 mb-8">
             {showGoogleButton && (
-              <div className="flex items-center justify-center">
+              <div className="flex justify-center w-full">
                 {isClient && (
                   <GoogleLogin
                     onSuccess={handleGoogleLoginSuccess}
                     onError={handleGoogleLoginError}
                     theme="outline"
                     size="large"
+                    shape="rectangular"
+                    width={btnWidth.toString()}
                   />
                 )}
               </div>
             )}
             {showAppleButton && (
-              <button 
-                type="button" 
-                onClick={triggerAppleLogin}
-                disabled={isLoading}
-                className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all text-base font-medium text-gray-800"
-              >
-                <span>Sign in with</span>
-                <AppleIcon />
-              </button>
+              <div className="flex justify-center w-full">
+                <button 
+                  type="button" 
+                  onClick={triggerAppleLogin}
+                  disabled={isLoading}
+                  style={{ width: `${btnWidth}px` }}
+                  className="flex items-center justify-center gap-2.5 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all text-[14px] font-semibold text-gray-800"
+                >
+                  <AppleIcon />
+                  <span>Sign in with Apple</span>
+                </button>
+              </div>
             )}
           </div>
 

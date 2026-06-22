@@ -224,14 +224,14 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div className="border-b border-gray-200 pb-5 mb-8">
+    <div className="max-w-6xl mx-auto px-0 sm:px-4 lg:px-8 py-4 sm:py-8 space-y-6">
+      <div className="border-b border-gray-200 pb-5 mb-8 px-4 sm:px-0">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">System Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Configure logos, authentication, and platform defaults.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-1 space-y-1.5">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="lg:col-span-1 flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-x-visible pb-2.5 lg:pb-0 scrollbar-none snap-x snap-mandatory -mx-4 px-4 lg:mx-0 lg:px-0">
           {([
             {id: "general", label: "Branding & General", icon: Globe },
             { id: "coins", label: "Coin System", icon: Coins },
@@ -243,28 +243,28 @@ export default function AdminSettingsPage() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-none lg:w-full flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all snap-start ${
                 activeTab === tab.id 
                   ? "bg-green-50 text-[#1abc60] shadow-sm border border-green-100" 
                   : "bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50 border border-transparent"
               }`}
             >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
+              <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="whitespace-nowrap">{tab.label}</span>
             </button>
           ))}
         </div>
 
         <div className="lg:col-span-3">
-          <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden p-6 sm:p-8">
+          <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden p-4 sm:p-6 md:p-8">
             
             {activeTab === "payment" && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
                 <div className="space-y-5">
                   <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2">Razorpay Payment Gateway</h3>
-                  <div className="p-6 bg-blue-50 rounded-xl border border-blue-200 space-y-4">
+                  <div className="p-4 sm:p-6 bg-blue-50 rounded-xl border border-blue-200 space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 shrink-0">
                         <CreditCard className="w-6 h-6" />
                       </div>
                       <div>
@@ -273,19 +273,19 @@ export default function AdminSettingsPage() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-between border border-gray-200 p-4 rounded-xl hover:border-gray-300 transition-all bg-gray-50/50">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-white border border-gray-200 rounded-lg flex items-center justify-center shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border border-gray-200 p-3 sm:p-4 rounded-xl hover:border-gray-300 transition-all bg-gray-50/50 gap-4">
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                        <div className="w-10 h-10 bg-white border border-gray-200 rounded-lg flex items-center justify-center shadow-sm shrink-0">
                           <svg className="w-6 h-6 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                           </svg>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <h3 className="text-sm font-semibold text-gray-900">Enable Razorpay</h3>
-                          <p className="text-xs text-gray-500 mt-0.5">Activate payment gateway integration</p>
+                          <p className="text-xs text-gray-500 mt-0.5 break-words">Activate payment gateway integration</p>
                         </div>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
                         <input 
                           type="checkbox" 
                           checked={settings.razorpay?.enabled || false} 
@@ -307,8 +307,8 @@ export default function AdminSettingsPage() {
                     </div>
 
                     {(settings.razorpay?.enabled) && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-gray-50 rounded-xl border border-gray-200 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <div className="space-y-1.5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 sm:p-5 bg-gray-50 rounded-xl border border-gray-200 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="space-y-1.5 min-w-0">
                           <label className="text-xs font-semibold text-gray-700">Key ID</label>
                           <input 
                             type="text"
@@ -328,7 +328,7 @@ export default function AdminSettingsPage() {
                             placeholder="rzp_test_..."
                           />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 min-w-0">
                           <label className="text-xs font-semibold text-gray-700">Key Secret</label>
                           <input 
                             type="password"
@@ -351,9 +351,9 @@ export default function AdminSettingsPage() {
                       </div>
                     )}
 
-                    <div className="p-4 bg-white/50 rounded-lg border border-blue-100 flex items-start gap-3">
-                      <Info className="w-4 h-4 text-blue-600 mt-0.5" />
-                      <p className="text-xs text-blue-800 leading-relaxed">
+                    <div className="p-3 sm:p-4 bg-white/50 rounded-lg border border-blue-100 flex items-start gap-2.5 min-w-0">
+                      <Info className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                      <p className="text-xs text-blue-800 leading-relaxed break-words">
                         Get your API keys from <a href="https://razorpay.com" target="_blank" className="font-bold underline">Razorpay Dashboard</a>. Use Test mode keys for development.
                       </p>
                     </div>
@@ -483,13 +483,13 @@ export default function AdminSettingsPage() {
                     <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2 flex items-center gap-2">
                       <Globe className="w-4 h-4 text-blue-500" /> Google Authentication
                     </h3>
-                    <div className="p-6 bg-gray-50 rounded-2xl border border-gray-200 space-y-5">
-                      <div className="flex items-center justify-between">
-                        <div>
+                    <div className="p-4 sm:p-6 bg-gray-50 rounded-2xl border border-gray-200 space-y-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="min-w-0">
                           <h4 className="text-sm font-bold text-gray-900">Enable Google Login</h4>
-                          <p className="text-xs text-gray-500">Allow users to sign in with their Google accounts</p>
+                          <p className="text-xs text-gray-500 mt-0.5 break-words">Allow users to sign in with their Google accounts</p>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="relative inline-flex items-center cursor-pointer shrink-0">
                           <input 
                             type="checkbox" 
                             checked={settings.googleLogin.enabled} 
@@ -506,7 +506,7 @@ export default function AdminSettingsPage() {
 
                       {settings.googleLogin.enabled && (
                         <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-2">
-                          <div className="space-y-1.5">
+                          <div className="space-y-1.5 min-w-0">
                             <label className="text-xs font-bold text-gray-700">Client ID</label>
                             <input 
                               value={settings.googleLogin.clientId}
@@ -519,7 +519,7 @@ export default function AdminSettingsPage() {
                               placeholder="xxxxxxxx-xxxx.apps.googleusercontent.com"
                             />
                           </div>
-                          <div className="space-y-1.5">
+                          <div className="space-y-1.5 min-w-0">
                             <label className="text-xs font-bold text-gray-700">Client Secret</label>
                             <input 
                               type="password"
@@ -542,13 +542,13 @@ export default function AdminSettingsPage() {
                     <h3 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2 flex items-center gap-2">
                       <Apple className="w-4 h-4 text-gray-900" /> Apple Authentication
                     </h3>
-                    <div className="p-6 bg-gray-50 rounded-2xl border border-gray-200 space-y-5">
-                      <div className="flex items-center justify-between">
-                        <div>
+                    <div className="p-4 sm:p-6 bg-gray-50 rounded-2xl border border-gray-200 space-y-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="min-w-0">
                           <h4 className="text-sm font-bold text-gray-900">Enable Apple Login</h4>
-                          <p className="text-xs text-gray-500">Allow users to sign in with their Apple ID</p>
+                          <p className="text-xs text-gray-500 mt-0.5 break-words">Allow users to sign in with their Apple ID</p>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="relative inline-flex items-center cursor-pointer shrink-0">
                           <input 
                             type="checkbox" 
                             checked={settings.appleLogin.enabled} 
@@ -565,7 +565,7 @@ export default function AdminSettingsPage() {
 
                       {settings.appleLogin.enabled && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
-                          <div className="space-y-1.5">
+                          <div className="space-y-1.5 min-w-0">
                             <label className="text-xs font-bold text-gray-700">Service ID (Client ID)</label>
                             <input 
                               value={settings.appleLogin.clientId}
@@ -577,7 +577,7 @@ export default function AdminSettingsPage() {
                               className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-400 transition-all text-sm" 
                             />
                           </div>
-                          <div className="space-y-1.5">
+                          <div className="space-y-1.5 min-w-0">
                             <label className="text-xs font-bold text-gray-700">Team ID</label>
                             <input 
                               value={settings.appleLogin.teamId}
@@ -589,7 +589,7 @@ export default function AdminSettingsPage() {
                               className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-400 transition-all text-sm" 
                             />
                           </div>
-                          <div className="space-y-1.5">
+                          <div className="space-y-1.5 min-w-0">
                             <label className="text-xs font-bold text-gray-700">Key ID</label>
                             <input 
                               value={settings.appleLogin.keyId}

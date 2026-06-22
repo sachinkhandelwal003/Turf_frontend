@@ -113,14 +113,7 @@ function AdminBookingsContent() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [upiId, setUpiId] = useState('platform@upi');
   
-  // Cancel booking modal states
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
-  const [cancelFormData, setCancelFormData] = useState({
-    upiId: '',
-    upiName: '',
-  });
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
 
   useEffect(() => {
     if (showOfflineModal && offlineData.turfId && offlineData.date) {
@@ -317,18 +310,19 @@ function AdminBookingsContent() {
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     if (newStatus === 'cancelled') {
-      const booking = bookings.find(b => b._id === id);
-      if (booking) {
-        setBookingToCancel(booking);
-        // Pre-fill form with user's data if available
-        setCancelFormData({
-          upiId: '',
-          upiName: '',
-        });
-        setShowCancelModal(true);
-      }
-      return;
+      const result = await Swal.fire({
+        title: "Cancel Booking?",
+        text: "Are you sure you want to cancel this booking?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#64748b",
+        confirmButtonText: "Yes, cancel it!"
+      });
+
+      if (!result.isConfirmed) return;
     }
+
     try {
       const res = await api.patch(`/bookings/${id}/status`, { status: newStatus });
       if (res.data.success) {
@@ -352,32 +346,7 @@ function AdminBookingsContent() {
       toast.error(error.response?.data?.error || 'Failed to mark as paid');
     }
   };
-  
-  const handleConfirmCancel = async () => {
-    if (!bookingToCancel) return;
 
-    try {
-      // 1. Cancel the booking and pass UPI details
-      const res = await api.post(`/bookings/${bookingToCancel._id}/cancel`, {
-        reason: 'venue_closed',
-        description: 'Cancelled by admin',
-        upiDetails: {
-          upiId: cancelFormData.upiId,
-          upiName: cancelFormData.upiName,
-        }
-      });
-      
-      // 2. Update booking in state
-      if (res.data.success) {
-        setBookings(bookings.map(b => b._id === bookingToCancel._id ? { ...b, status: 'cancelled' } : b));
-      }
-
-      setShowCancelModal(false);
-      setShowSuccessModal(true);
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to cancel booking');
-    }
-  };
 
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
@@ -598,13 +567,13 @@ function AdminBookingsContent() {
   }, [offlineData.slots, bookedSlotsForOffline]);
 
   return (
-    <div className="!w-full !font-sans !bg-white !rounded-[24px] !border !border-slate-200/80 !shadow-sm !p-6 md:!p-8 !space-y-6">
+    <div className="!w-full !font-sans !bg-white !rounded-[24px] !border !border-slate-200/80 !shadow-sm !p-4 sm:!p-6 md:!p-8 !space-y-6">
       
       {/* Header Section */}
       <div className="!flex !flex-col sm:!flex-row sm:!items-center !justify-between !gap-4 !pb-6 !border-b !border-slate-100">
         <div>
           <h1 className="!text-2xl md:!text-3xl !font-black !text-slate-900 !tracking-tight !m-0 !mb-1.5">Manage Bookings</h1>
-          <p className="!text-sm !font-medium !text-slate-500 !m-0">Monitor and moderate venue reservations</p>
+          <p className="!text-sm !font-medium !text-slate-550 !m-0">Monitor and moderate venue reservations</p>
         </div>
         <div className="!flex !items-center !gap-4">
           {!isSuperadmin && (
@@ -625,7 +594,7 @@ function AdminBookingsContent() {
       {/* Filters Section */}
       <div className="!space-y-4">
         {/* Main Search & Primary Filters */}
-        <div className="!grid !grid-cols-1 md:!grid-cols-12 !gap-4 !bg-slate-50/60 !p-5 !rounded-2xl !border !border-slate-100">
+        <div className="!grid !grid-cols-1 md:!grid-cols-12 !gap-4 !bg-slate-50/60 !p-4 sm:!p-5 !rounded-2xl !border !border-slate-100">
           
           {/* Search */}
           <div className="md:!col-span-5 !relative !group">
@@ -701,7 +670,7 @@ function AdminBookingsContent() {
         </div>
 
         {/* Date and Time Range Filters */}
-        <div className="!grid !grid-cols-1 sm:!grid-cols-2 lg:!grid-cols-4 !gap-4 !bg-slate-50/60 !p-5 !rounded-2xl !border !border-slate-100">
+        <div className="!grid !grid-cols-1 sm:!grid-cols-2 lg:!grid-cols-4 !gap-4 !bg-slate-50/60 !p-4 sm:!p-5 !rounded-2xl !border !border-slate-100">
           <div className="!space-y-2">
             <label className="!text-[11px] !font-bold !text-slate-500 !uppercase !tracking-wider !ml-1">Start Date</label>
             <input 
@@ -774,7 +743,7 @@ function AdminBookingsContent() {
                   exit={{ opacity: 0, y: -10 }}
                   className="!bg-white !rounded-2xl !border !border-slate-200/80 !overflow-hidden hover:!border-emerald-100 hover:!bg-emerald-50/5 !transition-all"
                 >
-                  <div className="!p-5 md:!p-6 !flex !flex-col lg:!flex-row !gap-6 !items-start lg:!items-center">
+                  <div className="!p-4 sm:!p-6 !flex !flex-col lg:!flex-row !gap-6 !items-start lg:!items-center">
                     
                     {/* Turf Info */}
                     <div className="!flex !items-center !gap-4 !flex-1 !min-w-0 !w-full">
@@ -834,7 +803,7 @@ function AdminBookingsContent() {
                       </div>
                       <div className="!pl-[52px]">
                         <span className="!text-[10px] !font-bold !text-slate-500 !bg-slate-50 !px-2.5 !py-1 !rounded-md !border !border-slate-200">
-                          {booking.user?.phone || 'No phone'}
+                          {(!booking.user?.phone || booking.user.phone === 'undefined') ? 'No phone' : booking.user.phone}
                         </span>
                       </div>
                     </div>
@@ -858,17 +827,17 @@ function AdminBookingsContent() {
                           </div>
                         )}
                       </div>
-                      <div className="!flex !flex-col !items-end !gap-1">
+                      <div className="!flex !flex-col lg:!items-end !items-start !gap-1">
                         <p className="!text-[10px] !font-bold !text-slate-400 !m-0 !uppercase !tracking-wider">
                           {booking.paymentStatus === 'paid' ? 'Paid via ' + (booking.paymentMethod || 'online') : 'Payment Pending'}
                         </p>
                         <p className="!text-lg !font-bold !text-slate-900 !m-0">₹{getBookingTotal(booking)}</p>
                         <div className="!flex !gap-4 !mt-1">
-                          <div className="!flex !flex-col !items-end">
+                          <div className="!flex !flex-col lg:!items-end !items-start">
                             <span className="!text-[9px] !font-bold !text-blue-500 !uppercase !tracking-wider">Wallet</span>
                             <span className="!text-[13px] !font-bold !text-blue-700">₹{(getBookingTotal(booking) * 0.8).toLocaleString()}</span>
                           </div>
-                          <div className="!flex !flex-col !items-end">
+                          <div className="!flex !flex-col lg:!items-end !items-start">
                             <span className="!text-[9px] !font-bold !text-orange-500 !uppercase !tracking-wider">Comm.</span>
                             <span className="!text-[13px] !font-bold !text-orange-700">₹{(getBookingTotal(booking) * 0.2).toLocaleString()}</span>
                           </div>
@@ -877,7 +846,7 @@ function AdminBookingsContent() {
                     </div>
 
                     {/* Actions */}
-                    <div className="!flex !flex-row lg:!flex-col !gap-2 !w-full lg:!w-32 !shrink-0">
+                    <div className="!flex !flex-col sm:!flex-row lg:!flex-col !gap-2 !w-full lg:!w-32 !shrink-0">
                       {booking.status === 'pending' && (
                         <button 
                           onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
@@ -1025,10 +994,10 @@ function AdminBookingsContent() {
 
               {/* Modal Form Body */}
               <form onSubmit={handleCreateOffline} className="!flex !flex-col !flex-1 !overflow-hidden">
-                <div className="!p-6 md:!p-8 !space-y-6 !overflow-y-auto !custom-scrollbar !flex-1">
+                <div className="!p-4 sm:!p-6 md:!p-8 !space-y-6 !overflow-y-auto !custom-scrollbar !flex-1">
                   
                   {/* Card 1: Venue & Sport */}
-                  <div className="!bg-white !p-6 !rounded-2xl !border !border-gray-100 !shadow-sm">
+                  <div className="!bg-white !p-4 sm:!p-6 !rounded-2xl !border !border-gray-100 !shadow-sm">
                     <h3 className="!text-[13px] !font-bold !text-gray-900 !mb-5 !flex !items-center !gap-2.5">
                       <span className="!w-6 !h-6 !rounded-full !bg-[#1abc60] !text-white !flex !items-center !justify-center !text-xs !font-bold">1</span> 
                       Venue Details
@@ -1074,7 +1043,7 @@ function AdminBookingsContent() {
 
                   {/* Card 2: Date, Time & Courts (Only visible if Turf is selected) */}
                   {offlineData.turfId && (
-                    <div className="!bg-white !p-6 !rounded-2xl !border !border-gray-100 !shadow-sm">
+                    <div className="!bg-white !p-4 sm:!p-6 !rounded-2xl !border !border-gray-100 !shadow-sm">
                        <h3 className="!text-[13px] !font-bold !text-gray-900 !mb-5 !flex !items-center !gap-2.5">
                         <span className="!w-6 !h-6 !rounded-full !bg-[#1abc60] !text-white !flex !items-center !justify-center !text-xs !font-bold">2</span> 
                         Schedule & Courts
@@ -1174,7 +1143,7 @@ function AdminBookingsContent() {
                   )}
 
                   {/* Card 3: Customer & Payment */}
-                  <div className="!bg-white !p-6 !rounded-2xl !border !border-gray-100 !shadow-sm">
+                  <div className="!bg-white !p-4 sm:!p-6 !rounded-2xl !border !border-gray-100 !shadow-sm">
                     <h3 className="!text-[13px] !font-bold !text-gray-900 !mb-5 !flex !items-center !gap-2.5">
                       <span className="!w-6 !h-6 !rounded-full !bg-[#1abc60] !text-white !flex !items-center !justify-center !text-xs !font-bold">3</span> 
                       Customer & Payment
@@ -1383,148 +1352,7 @@ function AdminBookingsContent() {
         )}
       </AnimatePresence>
 
-      {/* ============================================================== */}
-      {/* 3. CANCEL BOOKING MODAL (COLLECT UPI DETAILS)                  */}
-      {/* ============================================================== */}
-      <AnimatePresence>
-        {showCancelModal && (
-          <div className="!fixed !inset-0 !bg-slate-900/60 !z-[110] !flex !items-center !justify-center !p-4 !backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="!bg-white !rounded-[28px] !w-full !max-w-md !shadow-2xl !overflow-hidden !border !border-slate-200"
-            >
-              <div className="!p-6 md:!p-8 !space-y-6">
-                
-                {/* Header */}
-                <div className="!flex !justify-between !items-start">
-                  <div className="!text-left">
-                    <h3 className="!text-xl !font-bold !text-slate-900 !m-0 !leading-none">Cancel Booking</h3>
-                    <p className="!text-xs !font-medium !text-slate-500 !mt-1.5 !m-0">Enter customer's UPI details for refund</p>
-                  </div>
-                  <button 
-                    onClick={() => setShowCancelModal(false)} 
-                    className="!p-2.5 !bg-transparent hover:!bg-slate-100 !text-slate-400 hover:!text-slate-655 !rounded-full !transition-all !cursor-pointer !-mt-2 !-mr-2 !border-none"
-                  >
-                    <X className="!w-5 !h-5 !block" />
-                  </button>
-                </div>
 
-                {/* Booking Details Preview */}
-                {bookingToCancel && (
-                  <div className="!bg-slate-50 !border !border-slate-200 !rounded-2xl !p-5">
-                    <p className="!text-[10px] !font-bold !text-slate-500 !uppercase !tracking-wider !mb-2 !m-0">Booking ID</p>
-                    <p className="!text-lg !font-black !text-slate-900 !m-0">{bookingToCancel.bookingId}</p>
-                    <div className="!mt-4 !flex !flex-wrap !gap-3">
-                      <div className="!flex !items-center !gap-2">
-                        <span className="!w-2 !h-2 !rounded-full !bg-[#1abc60]"></span>
-                        <span className="!text-xs !font-medium !text-slate-600 !m-0">{bookingToCancel.date}</span>
-                      </div>
-                      <div className="!flex !items-center !gap-2">
-                        <span className="!w-2 !h-2 !rounded-full !bg-amber-500"></span>
-                        <span className="!text-xs !font-medium !text-slate-600 !m-0">{bookingToCancel.startTime}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* UPI Details Form */}
-                <div className="!space-y-5">
-                  <div className="!space-y-2">
-                    <label className="!block !text-[11px] !font-bold !text-slate-500 !uppercase !tracking-wider !text-left !ml-1">Customer UPI Name</label>
-                    <input 
-                      type="text" 
-                      value={cancelFormData.upiName} 
-                      onChange={(e) => setCancelFormData({...cancelFormData, upiName: e.target.value})}
-                      placeholder="Customer's full name"
-                      className="!w-full !px-4 !py-3.5 !bg-slate-50 hover:!bg-slate-100 !border !border-slate-200 !rounded-xl !text-sm !font-bold !text-slate-900 focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !outline-none !transition-all"
-                    />
-                  </div>
-                  <div className="!space-y-2">
-                    <label className="!block !text-[11px] !font-bold !text-slate-500 !uppercase !tracking-wider !text-left !ml-1">UPI ID <span className="!text-red-500">*</span></label>
-                    <input 
-                      type="text" 
-                      value={cancelFormData.upiId} 
-                      onChange={(e) => setCancelFormData({...cancelFormData, upiId: e.target.value})}
-                      placeholder="e.g. customer@upi"
-                      className="!w-full !px-4 !py-3.5 !bg-slate-50 hover:!bg-slate-100 !border !border-slate-200 !rounded-xl !text-sm !font-bold !text-slate-900 focus:!ring-1 focus:!ring-[#1abc60] focus:!border-[#1abc60] !outline-none !transition-all"
-                    />
-                  </div>
-                  
-                  {/* Info Box */}
-                  <div className="!bg-amber-50 !border !border-amber-100 !p-4 !rounded-xl !flex !items-start !gap-3">
-                    <Info className="!w-5 !h-5 !text-amber-500 !shrink-0" />
-                    <p className="!text-xs !text-amber-800 !leading-relaxed !text-left !font-medium !m-0">
-                      Refund will be processed within 5-7 working days. Make sure UPI details are correct.
-                    </p>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="!flex !gap-3 !pt-2">
-                    <button 
-                      onClick={() => setShowCancelModal(false)}
-                      className="!flex-1 !py-3 !px-4 !bg-white !border !border-slate-200 !text-slate-600 !rounded-xl !text-xs !font-bold hover:!bg-slate-50 !transition-all !cursor-pointer"
-                    >
-                      Go Back
-                    </button>
-                    <button 
-                      onClick={handleConfirmCancel}
-                      className="!flex-[1.5] !py-3 !px-4 !bg-red-600 !text-white !rounded-xl !text-xs !font-bold hover:!bg-red-700 !transition-all !cursor-pointer !shadow-md hover:!shadow-lg hover:!shadow-red-600/20 !flex !items-center !justify-center !gap-2 !border-none"
-                    >
-                      <X className="!w-4 !h-4" />
-                      Confirm Cancel
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ============================================================== */}
-      {/* 4. CANCEL SUCCESS MODAL                                        */}
-      {/* ============================================================== */}
-      <AnimatePresence>
-        {showSuccessModal && (
-          <div className="!fixed !inset-0 !bg-slate-900/60 !z-[110] !flex !items-center !justify-center !p-4 !backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="!bg-white !rounded-[28px] !w-full !max-w-md !shadow-2xl !overflow-hidden !border !border-slate-200"
-            >
-              <div className="!p-6 md:!p-8 !text-center !space-y-6">
-                
-                <div className="!w-20 !h-20 !rounded-full !bg-emerald-50 !flex !items-center !justify-center !mx-auto">
-                  <CheckCircle2 className="!w-10 !h-10 !text-[#1abc60]" />
-                </div>
-                
-                <div className="!space-y-2">
-                  <h3 className="!text-xl !font-bold !text-slate-900 !m-0">Booking Cancelled!</h3>
-                  <p className="!text-xs !font-medium !text-slate-500 !m-0 !leading-relaxed">
-                    Refund has been initiated. Customer will receive the refund within 5-7 working days.
-                  </p>
-                </div>
-                
-                <button 
-                  onClick={() => {
-                    setShowSuccessModal(false);
-                    setBookingToCancel(null);
-                    setCancelFormData({ upiId: '', upiName: '' });
-                  }}
-                  className="!w-full !py-3.5 !bg-[#1abc60] !text-white !rounded-xl !text-xs !font-bold hover:!bg-[#169c4e] !transition-all !cursor-pointer !shadow-md hover:!shadow-lg hover:!shadow-[#1abc60]/20 !border-none"
-                >
-                  Got it
-                </button>
-
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

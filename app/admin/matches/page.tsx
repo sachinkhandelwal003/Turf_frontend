@@ -95,8 +95,8 @@ export default function AdminMatchesPage() {
 
   const filteredMatches = matches.filter(match => {
     const matchesSearch = match.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         match.host.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         match.turf.name.toLowerCase().includes(searchTerm.toLowerCase());
+                         (match.host?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (match.turf?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || match.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -194,8 +194,8 @@ export default function AdminMatchesPage() {
             >
               {/* Card Header */}
               <div className="!p-6 !border-b !border-gray-50 !bg-gray-50/50">
-                <div className="!flex !items-start !justify-between !gap-4">
-                  <div className="!flex-1">
+                <div className="!flex !flex-col sm:!flex-row sm:!items-start !justify-between !gap-4">
+                  <div className="!flex-1 !w-full">
                     <div className="!flex !items-center !gap-2 !mb-2">
                       <span className={`!px-3 !py-1 !rounded-full !text-xs !font-bold !uppercase !tracking-wider ${
                         match.status === 'open' ? '!bg-green-100 !text-green-700' :
@@ -215,15 +215,17 @@ export default function AdminMatchesPage() {
                     <h3 className="!text-xl !font-bold !text-gray-900 !line-clamp-1">{match.title}</h3>
                     <p className="!text-[#1abc60] !font-semibold !flex !items-center !gap-1.5 !mt-1">
                       <MapPin className="!w-4 !h-4" />
-                      {match.turf.name}
+                      {match.turf?.name || 'Unknown Venue'}
                     </p>
                   </div>
-                  <div className="!text-right">
-                    <p className="!text-sm !text-gray-500">Sport</p>
-                    <p className="!font-bold !text-gray-900">{match.sport}</p>
-                    <div className="!mt-2">
-                      <p className="!text-xs !text-gray-500">Price/Player</p>
-                      <p className="!text-lg !font-bold !text-gray-900">₹{match.pricePerPlayer}</p>
+                  <div className="!text-left sm:!text-right !shrink-0 !border-t sm:!border-t-0 !border-gray-100 !pt-4 sm:!pt-0 !flex sm:!flex-col !justify-between sm:!justify-start !gap-4 !w-full sm:!w-auto">
+                    <div>
+                      <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-wider">Sport</p>
+                      <p className="!font-bold !text-gray-900 !text-sm">{match.sport}</p>
+                    </div>
+                    <div>
+                      <p className="!text-[10px] !font-bold !text-gray-400 !uppercase !tracking-wider">Price/Player</p>
+                      <p className="!text-base !font-black !text-gray-900">₹{match.pricePerPlayer}</p>
                     </div>
                   </div>
                 </div>
@@ -275,8 +277,8 @@ export default function AdminMatchesPage() {
                   <p className="!text-xs !text-gray-500 !mb-3 !font-bold !uppercase !tracking-wider">Host Details</p>
                   <div className="!flex !items-center !gap-3">
                     <div className="!relative !w-12 !h-12 !rounded-xl !overflow-hidden !bg-gray-200">
-                      {match.host.profilePhoto ? (
-                        <img src={match.host.profilePhoto} alt={match.host.name} className="!w-full !h-full !object-cover" />
+                      {match.host?.profilePhoto ? (
+                        <img src={match.host.profilePhoto} alt={match.host?.name || 'Host'} className="!w-full !h-full !object-cover" />
                       ) : (
                         <div className="!w-full !h-full !flex !items-center !justify-center !text-gray-400">
                           <UserIcon className="!w-6 !h-6" />
@@ -284,10 +286,10 @@ export default function AdminMatchesPage() {
                       )}
                     </div>
                     <div>
-                      <p className="!font-bold !text-gray-900 !line-clamp-1">{match.host.name}</p>
+                      <p className="!font-bold !text-gray-900 !line-clamp-1">{match.host?.name || 'Unknown Host'}</p>
                       <p className="!text-xs !text-gray-500 !flex !items-center !gap-1">
                         <Phone className="!w-3 !h-3" />
-                        {match.host.phone || 'N/A'}
+                        {match.host?.phone || 'N/A'}
                       </p>
                     </div>
                   </div>
@@ -296,15 +298,15 @@ export default function AdminMatchesPage() {
 
               {/* Joined Players Section */}
               <div className="!p-6 !bg-gray-50/30 !border-t !border-gray-50">
-                <div className="!flex !items-center !justify-between !mb-4">
-                  <h4 className="!text-sm !font-bold !text-gray-900 !flex !items-center !gap-2">
-                    <ShieldCheck className="!w-4 !h-4 !text-[#1abc60]" />
+                <div className="!flex !flex-col sm:!flex-row sm:!items-center !justify-between !gap-3 !mb-4">
+                  <h4 className="!text-sm !font-bold !text-gray-900 !flex !items-center !gap-2 !w-full sm:!w-auto">
+                    <ShieldCheck className="!w-4 !h-4 !text-[#1abc60] !shrink-0" />
                     Confirmed Players ({match.revenue.confirmedPlayers} / {match.totalPlayersNeeded})
                   </h4>
                   {(match.status === 'open' || match.status === 'full') && (
                     <button
                       onClick={() => handleCancelHosting(match._id)}
-                      className="!px-3 !py-1 !text-xs !font-bold !text-red-600 hover:!bg-red-50 !rounded-lg !border !border-red-200 !transition-all !cursor-pointer"
+                      className="!px-3 !py-1.5 !text-xs !font-bold !text-red-600 hover:!bg-red-50 !rounded-lg !border !border-red-200 !transition-all !cursor-pointer !shrink-0 !w-full sm:!w-auto !text-center"
                     >
                       Cancel Hosting
                     </button>
@@ -316,18 +318,18 @@ export default function AdminMatchesPage() {
                     <div 
                       key={idx} 
                       className="!flex !items-center !gap-2 !bg-white !px-3 !py-2 !rounded-xl !border !border-gray-100 !shadow-sm"
-                      title={player.user.phone || 'No phone'}
+                      title={player.user?.phone || 'No phone'}
                     >
                       <div className="!w-6 !h-6 !rounded-full !overflow-hidden !bg-gray-100">
-                        {player.user.profilePhoto ? (
-                          <img src={player.user.profilePhoto} alt={player.user.name} className="!w-full !h-full !object-cover" />
+                        {player.user?.profilePhoto ? (
+                          <img src={player.user.profilePhoto} alt={player.user?.name || 'Player'} className="!w-full !h-full !object-cover" />
                         ) : (
                           <div className="!w-full !h-full !flex !items-center !justify-center !text-gray-400 !bg-gray-200">
                             <UserIcon className="!w-3 !h-3" />
                           </div>
                         )}
                       </div>
-                      <span className="!text-xs !font-medium !text-gray-700">{player.user.name}</span>
+                      <span className="!text-xs !font-medium !text-gray-700">{player.user?.name || 'Deleted User'}</span>
                     </div>
                   ))}
                   {match.joinedPlayers.length === 0 && (

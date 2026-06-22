@@ -383,7 +383,7 @@ export default function AdminDashboard() {
                 : `Welcome back, ${currentUser?.name}. Track your venue's growth.`}
             </p>
           </div>
-          <div className="!flex !flex-wrap !items-center !gap-3">
+          <div className="!flex !flex-col sm:!flex-row sm:!items-center !gap-3 !w-full md:!w-auto">
             {isSuperadmin && (
               <>
                 <select
@@ -392,7 +392,7 @@ export default function AdminDashboard() {
                     setSelectedCity(e.target.value);
                     setSelectedTurf('');
                   }}
-                  className="!px-4 !py-2.5 !bg-gray-50 !border !border-gray-200 !text-gray-700 !rounded-xl hover:!bg-white !text-sm !font-semibold !transition-colors !outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !appearance-none !cursor-pointer"
+                  className="!w-full sm:!w-auto !px-4 !py-2.5 !bg-gray-50 !border !border-gray-200 !text-gray-700 !rounded-xl hover:!bg-white !text-sm !font-semibold !transition-colors !outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !appearance-none !cursor-pointer"
                 >
                   <option value="">All Cities</option>
                   {cities.map(city => (
@@ -403,7 +403,7 @@ export default function AdminDashboard() {
                 <select
                   value={selectedTurf}
                   onChange={(e) => setSelectedTurf(e.target.value)}
-                  className="!px-4 !py-2.5 !bg-gray-50 !border !border-gray-200 !text-gray-700 !rounded-xl hover:!bg-white !text-sm !font-semibold !transition-colors !outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !appearance-none !cursor-pointer"
+                  className="!w-full sm:!w-auto !px-4 !py-2.5 !bg-gray-50 !border !border-gray-200 !text-gray-700 !rounded-xl hover:!bg-white !text-sm !font-semibold !transition-colors !outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !appearance-none !cursor-pointer"
                 >
                   <option value="">All Grounds</option>
                   {allTurfs
@@ -418,10 +418,11 @@ export default function AdminDashboard() {
             <button
               onClick={fetchDashboardData}
               disabled={refreshing}
-              className="!flex !items-center !justify-center !w-11 !h-11 !bg-gray-50 !border !border-gray-200 !text-gray-600 !rounded-xl hover:!bg-white !transition-colors !cursor-pointer !disabled:!opacity-50"
+              className="!w-full sm:!w-11 !h-11 !flex !items-center !justify-center !bg-gray-50 !border !border-gray-200 !text-gray-600 !rounded-xl hover:!bg-white !transition-colors !cursor-pointer disabled:!opacity-50"
               title="Refresh Data"
             >
               <RefreshCw className={`!w-5 !h-5 ${refreshing ? '!animate-spin' : ''}`} />
+              <span className="sm:hidden !ml-2 !text-sm !font-bold">Refresh Stats</span>
             </button>
           </div>
         </div>
@@ -430,21 +431,21 @@ export default function AdminDashboard() {
         <div className="!p-6 md:!p-8 !space-y-8 !bg-gray-50/30">
           
           {/* Revenue KPIs (Top Row) */}
-          <div className="!grid !grid-cols-1 sm:!grid-cols-2 lg:!grid-cols-4 !gap-5 md:!gap-6">
-            {[
+          <div className={`!grid !grid-cols-1 sm:!grid-cols-2 ${isSuperadmin ? 'lg:!grid-cols-4' : 'lg:!grid-cols-5'} !gap-5 md:!gap-6`}>
+            {(isSuperadmin ? [
               { 
-                title: isSuperadmin ? 'Total Revenue' : 'Total Bookings', 
-                value: isSuperadmin ? (stats.revenue?.total || 0) : (stats.bookings?.total || 0), 
-                sub: isSuperadmin ? 'Gross platform earnings' : 'Total bookings received', 
-                icon: isSuperadmin ? BarChart3 : Calendar, 
+                title: 'Total Revenue', 
+                value: `₹${(stats.revenue?.total || 0).toLocaleString()}`, 
+                sub: 'Gross platform earnings', 
+                icon: BarChart3, 
                 color: '!text-emerald-600', 
                 bg: '!bg-emerald-50', 
                 border: '!border-emerald-100 hover:!border-emerald-300' 
               },
               { 
-                title: 'Pending Amount', 
-                value: isSuperadmin ? (stats.revenue?.settlements?.pendingToSettle || 0) : pendingPayout, 
-                sub: isSuperadmin ? 'Awaiting Settlements' : 'Awaiting Payment', 
+                title: 'Pending Settlements', 
+                value: `₹${(stats.revenue?.settlements?.pendingToSettle || 0).toLocaleString()}`, 
+                sub: 'Awaiting Settlements', 
                 icon: Clock, 
                 color: '!text-orange-600', 
                 bg: '!bg-orange-50', 
@@ -452,7 +453,7 @@ export default function AdminDashboard() {
               },
               { 
                 title: 'Online Revenue', 
-                value: stats.revenue?.wallet || (stats.revenue?.total || 0) - (stats.revenue?.offline || 0), 
+                value: `₹${(stats.revenue?.wallet || (stats.revenue?.total || 0) - (stats.revenue?.offline || 0)).toLocaleString()}`, 
                 sub: 'Paid via Wallet/Online', 
                 icon: Wallet, 
                 color: '!text-blue-600', 
@@ -461,14 +462,60 @@ export default function AdminDashboard() {
               },
               { 
                 title: 'Offline Revenue', 
-                value: stats.revenue?.offline || 0, 
+                value: `₹${(stats.revenue?.offline || 0).toLocaleString()}`, 
                 sub: 'Cash/Direct payments', 
                 icon: Shield, 
                 color: '!text-purple-600', 
                 bg: '!bg-purple-50', 
                 border: '!border-purple-100 hover:!border-purple-300' 
               },
-            ].map((stat, i) => (
+            ] : [
+              { 
+                title: 'Your Revenue (80%)', 
+                value: `₹${((stats.revenue?.total || 0) * 0.8).toLocaleString()}`, 
+                sub: 'Your 80% share of total sales', 
+                icon: BarChart3, 
+                color: '!text-emerald-600', 
+                bg: '!bg-emerald-50', 
+                border: '!border-emerald-100 hover:!border-emerald-300' 
+              },
+              { 
+                title: 'Total Bookings', 
+                value: (stats.bookings?.total || 0).toString(), 
+                sub: 'Total bookings received', 
+                icon: Calendar, 
+                color: '!text-teal-600', 
+                bg: '!bg-teal-50', 
+                border: '!border-teal-100 hover:!border-teal-300' 
+              },
+              { 
+                title: 'Pending Payout', 
+                value: `₹${pendingPayout.toLocaleString()}`, 
+                sub: 'Awaiting Payment/Payout', 
+                icon: Clock, 
+                color: '!text-orange-600', 
+                bg: '!bg-orange-50', 
+                border: '!border-orange-100 hover:!border-orange-300' 
+              },
+              { 
+                title: 'Online Revenue', 
+                value: `₹${(stats.revenue?.wallet || (stats.revenue?.total || 0) - (stats.revenue?.offline || 0)).toLocaleString()}`, 
+                sub: 'Paid via Wallet/Online', 
+                icon: Wallet, 
+                color: '!text-blue-600', 
+                bg: '!bg-blue-50', 
+                border: '!border-[#4382f6]/10 hover:!border-blue-300' 
+              },
+              { 
+                title: 'Offline Revenue', 
+                value: `₹${(stats.revenue?.offline || 0).toLocaleString()}`, 
+                sub: 'Cash/Direct payments', 
+                icon: Shield, 
+                color: '!text-purple-600', 
+                bg: '!bg-purple-50', 
+                border: '!border-purple-100 hover:!border-purple-300' 
+              },
+            ]).map((stat, i) => (
               <motion.div 
                 key={i} 
                 initial={{ opacity: 0, y: 10 }} 
@@ -482,7 +529,7 @@ export default function AdminDashboard() {
                 <div>
                   <p className="!text-[11px] !font-bold !text-gray-500 !uppercase !tracking-widest !mb-1 !m-0">{stat.title}</p>
                   <h3 className="!text-2xl md:!text-3xl !font-bold !text-gray-900 !leading-none !tracking-tight !m-0">
-                    {isSuperadmin || i > 0 ? `₹${stat.value.toLocaleString()}` : stat.value}
+                    {stat.value}
                   </h3>
                   <p className="!text-[10px] !text-gray-400 !font-semibold !mt-2 !uppercase !tracking-wide !m-0">{stat.sub}</p>
                 </div>
@@ -580,7 +627,7 @@ export default function AdminDashboard() {
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="!lg:!col-span-1 !bg-gradient-to-br !from-[#1abc60] !to-[#16a085] !rounded-[24px] !p-6 md:!p-8 !text-white !shadow-lg"
+            className="lg:!col-span-1 !bg-gradient-to-br !from-[#1abc60] !to-[#16a085] !rounded-[24px] !p-6 md:!p-8 !text-white !shadow-lg"
           >
             <div className="!flex !items-center !justify-between !mb-6">
               <div>
@@ -611,7 +658,7 @@ export default function AdminDashboard() {
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="!lg:!col-span-2 !bg-white !rounded-[24px] !border !border-gray-200 !shadow-sm !overflow-hidden !flex !flex-col"
+            className="lg:!col-span-2 !bg-white !rounded-[24px] !border !border-gray-200 !shadow-sm !overflow-hidden !flex !flex-col"
           >
             <div className="!px-6 !py-5 !border-b !border-gray-100 !flex !justify-between !items-center !bg-gray-50/50">
               <h2 className="!text-sm !font-bold !text-gray-900 !uppercase !tracking-wider !flex !items-center !gap-2 !m-0">
@@ -705,8 +752,8 @@ export default function AdminDashboard() {
               <div className="!px-6 !py-12 !text-center !text-gray-500 !text-sm !font-medium">No venues found</div>
             ) : (
               recentTurfs.map((t) => (
-                <div key={t._id} className="!px-6 !py-4 !flex !items-center !justify-between hover:!bg-gray-50/50 !transition-colors">
-                  <div className="!flex !items-center !gap-4 !min-w-0">
+                <div key={t._id} className="!px-4 sm:!px-6 !py-4 !flex !flex-col sm:!flex-row sm:!items-center !justify-between hover:!bg-gray-50/50 !transition-colors !gap-4">
+                  <div className="!flex !items-center !gap-4 !min-w-0 !w-full sm:!w-auto">
                     <div className="!w-12 !h-12 !rounded-xl !bg-gray-100 !flex !items-center !justify-center !overflow-hidden !shrink-0 !border !border-gray-200">
                       {t.images && t.images.length > 0 ? (
                         <img src={getImageUrl(t.images[0])} alt={t.name} className="!w-full !h-full !object-cover" />
@@ -727,7 +774,7 @@ export default function AdminDashboard() {
                       <p className="!text-[10px] !text-gray-400 !mt-0.5 !truncate">Owner: {t.owner?.name || 'Unknown'}</p>
                     </div>
                   </div>
-                  <div className="!flex !flex-col !items-end !gap-1.5 !shrink-0 !ml-4">
+                  <div className="!flex sm:!flex-col !items-center sm:!items-end !justify-between sm:!justify-start !gap-1.5 !shrink-0 !w-full sm:!w-auto !border-t sm:!border-t-0 !border-gray-50 !pt-3 sm:!pt-0">
                     <span className={`!px-2.5 !py-1 !rounded-md !text-[9px] !font-bold !uppercase !tracking-widest !border ${
                       t.status === 'approved' ? '!bg-emerald-50 !text-emerald-700 !border-emerald-200' :
                       t.status === 'rejected' ? '!bg-red-50 !text-red-700 !border-red-200' : '!bg-amber-50 !text-amber-700 !border-amber-200'
@@ -741,6 +788,7 @@ export default function AdminDashboard() {
                         title="Book Offline"
                       >
                         <PlusCircle className="!w-3.5 !h-3.5" />
+                        <span className="sm:hidden !ml-1">Book</span>
                       </Link>
                       <button
                         onClick={() => handleDeleteVenue(t._id)}
@@ -748,6 +796,7 @@ export default function AdminDashboard() {
                         title="Delete Venue"
                       >
                         <Trash2 className="!w-3.5 !h-3.5" />
+                        <span className="sm:hidden !ml-1">Delete</span>
                       </button>
                     </div>
                   </div>
@@ -777,8 +826,8 @@ export default function AdminDashboard() {
               <div className="!px-6 !py-12 !text-center !text-gray-500 !text-sm !font-medium">No users found</div>
             ) : (
               recentUsers.map((u) => (
-                <div key={u._id} className="!px-6 !py-4 !flex !items-center !justify-between hover:!bg-gray-50/50 !transition-colors">
-                  <div className="!flex !items-center !gap-4 !min-w-0">
+                <div key={u._id} className="!px-4 sm:!px-6 !py-4 !flex !flex-col sm:!flex-row sm:!items-center !justify-between hover:!bg-gray-50/50 !transition-colors !gap-4">
+                  <div className="!flex !items-center !gap-4 !min-w-0 !w-full sm:!w-auto">
                     <div className="!w-10 !h-10 !rounded-full !bg-blue-50 !text-blue-600 !flex !items-center !justify-center !font-bold !text-sm !overflow-hidden !border !border-blue-100 !shrink-0">
                       {u.profilePhoto ? (
                         <img src={getImageUrl(u.profilePhoto)} alt={u.name} className="!w-full !h-full !object-cover" />
@@ -792,7 +841,7 @@ export default function AdminDashboard() {
                       <p className="!text-[10px] !text-gray-400 !mt-0.5">Joined: {new Date(u.createdAt).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <div className="!flex !flex-col !items-end !gap-2 !shrink-0 !ml-4">
+                  <div className="!flex sm:!flex-col !items-center sm:!items-end !justify-between sm:!justify-start !gap-2 !shrink-0 !w-full sm:!w-auto !border-t sm:!border-t-0 !border-gray-50 !pt-3 sm:!pt-0">
                     <span className={`!px-2.5 !py-1 !rounded-md !text-[9px] !font-bold !uppercase !tracking-widest !border ${
                       u.role === 'superadmin' ? '!bg-purple-50 !text-purple-700 !border-purple-200' :
                       u.role === 'admin' ? '!bg-blue-50 !text-blue-700 !border-blue-200' : '!bg-gray-50 !text-gray-700 !border-gray-200'
@@ -806,6 +855,7 @@ export default function AdminDashboard() {
                         title="Delete User"
                       >
                         <Trash2 className="!w-3.5 !h-3.5" />
+                        <span className="sm:hidden !ml-1">Delete User</span>
                       </button>
                     )}
                   </div>

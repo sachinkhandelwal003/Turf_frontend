@@ -918,7 +918,7 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Booking Type Filter (Ground vs Tournament) */}
-                  <div className="!flex !gap-2">
+                  <div className="!flex !flex-wrap !gap-2">
                     <button 
                       onClick={() => setTypeFilter('all')}
                       className={`!px-4 !py-2 !rounded-lg !text-sm !font-semibold !transition-all !border !cursor-pointer ${typeFilter === 'all' ? '!bg-[#1abc60] !text-white !border-[#1abc60]' : '!bg-white !text-gray-600 !border-gray-200 hover:!bg-gray-50'}`}
@@ -1131,7 +1131,7 @@ export default function ProfilePage() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="!bg-white !p-8 sm:!p-10 !rounded-2xl !border !border-gray-200 !shadow-sm !space-y-8"
+                  className="!bg-white !p-5 sm:!p-8 md:!p-10 !rounded-2xl !border !border-gray-200 !shadow-sm !space-y-8"
                 >
                   <div>
                     <h2 className="!text-xl !font-bold !text-gray-900">Account Settings</h2>

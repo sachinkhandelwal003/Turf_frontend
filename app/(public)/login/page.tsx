@@ -69,18 +69,11 @@ function LoginForm() {
     try {
       const user = await login(email, password);
 
-      // RESTRICTION: Only 'user' role can login through public portal
-      if (user.role !== 'user') {
-        // Log them out immediately as they shouldn't be in the public portal session
-        localStorage.removeItem('token');
-        localStorage.removeItem('adminUser');
-        toast.error("Admins must login through the Admin Portal.");
-        return;
-      }
-
       toast.success("Logged in Successfully! 🎉");
 
-      if (redirect) {
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        router.push('/admin/dashboard');
+      } else if (redirect) {
         router.push(redirect);
       } else {
         router.push('/');
@@ -98,16 +91,11 @@ function LoginForm() {
     try {
       const user = await googleLogin(credentialResponse.credential);
       
-      if (user.role !== 'user') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('adminUser');
-        toast.error("Admins must login through the Admin Portal.");
-        return;
-      }
-
       toast.success("Logged in Successfully! 🎉");
       
-      if (redirect) {
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        router.push('/admin/dashboard');
+      } else if (redirect) {
         router.push(redirect);
       } else {
         router.push('/');
@@ -134,16 +122,11 @@ function LoginForm() {
 
       const userData = await appleLogin(id_token, fullName);
 
-      if (userData.role !== 'user') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('adminUser');
-        toast.error("Admins must login through the Admin Portal.");
-        return;
-      }
-
       toast.success("Logged in Successfully! 🎉");
 
-      if (redirect) {
+      if (userData.role === 'admin' || userData.role === 'superadmin') {
+        router.push('/admin/dashboard');
+      } else if (redirect) {
         router.push(redirect);
       } else {
         router.push('/');

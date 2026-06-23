@@ -65,7 +65,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       // Set default settings if API fails
       setSettings({
         siteName: "Game On India",
-        contactEmail: "support@gameonindia.tech",
+        contactEmail: "support@gameon-india.com",
         frontendLogo: "/mainlogo.png",
         backendLogo: "/mainlogo.png",
         googleLogin: {

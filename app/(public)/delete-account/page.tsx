@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gameonindia.tech/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gameon-india.com/api";
 
 export default function DeleteAccountPage() {
   const router = useRouter();

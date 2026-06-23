@@ -15,10 +15,10 @@ const getApiUrl = () => {
     }
   }
 
-  return 'https://gameonindia.tech/api';
+  return 'https://gameon-india.com/api';
 };
 
-const API_URL = typeof window !== 'undefined' ? getApiUrl() : 'https://gameonindia.tech/api';
+const API_URL = typeof window !== 'undefined' ? getApiUrl() : 'https://gameon-india.com/api';
 
 
 const api = axios.create({

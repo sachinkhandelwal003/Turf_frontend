@@ -20,17 +20,14 @@ export default function Home() {
       {/* 3. Top Rated Venues */}
       <PreferredVenues />
 
-      {/* {/* 4. Browse by Sports */}
+      {/* 4. Browse by Sports */}
       <PopularSports />
- {/* 6. Latest News & Blogs */}
+
+      {/* 6. Latest News & Blogs */}
       <Tournament />
+
       {/* 5. Booking Process Steps */}
       <HowItWorks />
-
-     
-
-      {/* 7. Bottom Call to Action for Venue Owners */}
-      {/* <PartnerCTA /> */} 
 
     </main>
   );

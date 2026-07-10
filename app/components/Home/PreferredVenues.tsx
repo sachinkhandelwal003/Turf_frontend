@@ -313,7 +313,8 @@ export default function FeaturedVenues() {
         reviewsCount: t.reviewsCount || 0,
         img: displayImage,
         distance,
-        createdAt: t.createdAt
+        createdAt: t.createdAt,
+        offer_summary: t.offer_summary,
       };
     });
 
@@ -431,6 +432,15 @@ export default function FeaturedVenues() {
                          alt={venue.name} 
                          className="w-full h-full object-cover" 
                        />
+                       {venue.offer_summary && (
+                         <div className={`absolute bottom-0 left-0 right-0 py-2.5 px-3 text-[11px] font-extrabold text-center uppercase tracking-wider backdrop-blur-sm z-10 !truncate !whitespace-nowrap ${
+                           venue.offer_summary.strip_style === 'white'
+                             ? 'bg-white/95 text-[#1abc60] border-t border-gray-150'
+                             : 'bg-[#1abc60] text-white'
+                         }`} title={venue.offer_summary.description || venue.offer_summary.badge_text}>
+                           <span>★ {venue.offer_summary.description || venue.offer_summary.badge_text}</span>
+                         </div>
+                       )}
                     </div>
                     
                     <div className="absolute top-5 right-5 bg-white px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">

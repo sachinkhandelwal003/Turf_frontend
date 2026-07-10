@@ -76,6 +76,12 @@ interface Venue {
     lat?: number;
     lng?: number;
   };
+  offer_summary?: {
+    badge_text: string;
+    percent: number;
+    description?: string;
+    strip_style: 'green' | 'white';
+  };
 }
 
 // ============= Subcomponents =============
@@ -137,12 +143,23 @@ const VenueCard = ({ venue, userCoords }: { venue: Venue; userCoords: { lat: num
         {/* Image Area */}
         <div className="relative h-[220px] w-full bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
           {!imgError ? (
-            <img 
-              src={venue.image} 
-              alt={venue.title} 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              onError={() => setImgError(true)}
-            />
+            <>
+              <img 
+                src={venue.image} 
+                alt={venue.title} 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                onError={() => setImgError(true)}
+              />
+              {venue.offer_summary && (
+                <div className={`absolute bottom-0 left-0 right-0 py-2.5 px-3 text-[11px] font-extrabold text-center uppercase tracking-wider backdrop-blur-sm z-10 !truncate !whitespace-nowrap ${
+                  venue.offer_summary.strip_style === 'white'
+                    ? 'bg-white/95 text-[#1abc60] border-t border-gray-150'
+                    : 'bg-[#1abc60] text-white'
+                }`} title={venue.offer_summary.description || venue.offer_summary.badge_text}>
+                  <span>★ {venue.offer_summary.description || venue.offer_summary.badge_text}</span>
+                </div>
+              )}
+            </>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-200">
               <div className="text-center">
@@ -494,7 +511,8 @@ function GroundContent() {
               image: displayImage,
               featured: t.isFeatured || t.rating >= 4.5 || false,
               hasTournament,
-              coordinates: t.location?.coordinates
+              coordinates: t.location?.coordinates,
+              offer_summary: t.offer_summary,
             };
           });
         

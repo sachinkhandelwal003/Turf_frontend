@@ -160,7 +160,8 @@ export default function VenueDetailsPage() {
             rates: t.rates || [],
             slotPricings: t.slotPricings || [],
             availableSlots: t.availableSlots || [],
-            unavailableDates: t.unavailableDates || []
+            unavailableDates: t.unavailableDates || [],
+            offer: t.offer
           };
           setVenue(mappedVenue);
           
@@ -358,13 +359,49 @@ export default function VenueDetailsPage() {
         slotPrice = basePriceForDuration;
       }
 
+      let offer = null;
+      let displayPrice = slotPrice;
+      if (venue?.offer?.isActive) {
+        const startMins = cur;
+        let isOfferSlot = false;
+        if (venue.offer.targetType === "all") {
+          isOfferSlot = true;
+        } else if (venue.offer.targetType === "evening") {
+          isOfferSlot = (startMins >= 18 * 60); // >= 6 PM
+        } else if (venue.offer.targetType === "custom") {
+          const offerStart = parseTimeToMinutes(venue.offer.startHour || "18:00");
+          const offerEnd = parseTimeToMinutes(venue.offer.endHour || "22:00");
+          let isMatch = (startMins >= offerStart && startMins < offerEnd);
+
+          if (!isMatch && venue.offer.customRanges && venue.offer.customRanges.length > 0) {
+            isMatch = venue.offer.customRanges.some((range: any) => {
+              const rangeStart = parseTimeToMinutes(range.startHour || "18:00");
+              const rangeEnd = parseTimeToMinutes(range.endHour || "22:00");
+              return (startMins >= rangeStart && startMins < rangeEnd);
+            });
+          }
+          isOfferSlot = isMatch;
+        }
+
+        if (isOfferSlot) {
+          const discountAmt = (slotPrice * Number(venue.offer.percentage || 0)) / 100;
+          displayPrice = Math.max(0, Math.round(slotPrice - discountAmt));
+          offer = {
+            percent: Number(venue.offer.percentage),
+            discounted_price: displayPrice
+          };
+        }
+      }
+
       groups[type].push({
         time: label,
         status: (isPast || bookedCourts.length >= activeCourtNames.length) ? "disabled" : "available",
         value: timeVal,
         bookedCourts,
         isPast,
-        totalPrice: slotPrice // Direct total price (base + any extra)
+        totalPrice: displayPrice, // Discounted price
+        originalPrice: slotPrice, // Original price
+        offer: offer
       });
       cur += d;
     }
@@ -464,7 +501,35 @@ export default function VenueDetailsPage() {
 
         const basePrice = (effectiveHourlyRate * (slotDuration / 60));
         const extraPrice = Number(customSlot?.extraPrice || dynamicSlot?.price || 0);
-        const slotPrice = basePrice + extraPrice;
+        let slotPrice = basePrice + extraPrice;
+        
+        if (venue?.offer?.isActive) {
+          const startMins = cur;
+          let isOfferSlot = false;
+          if (venue.offer.targetType === "all") {
+            isOfferSlot = true;
+          } else if (venue.offer.targetType === "evening") {
+            isOfferSlot = (startMins >= 18 * 60); // >= 6 PM
+          } else if (venue.offer.targetType === "custom") {
+            const offerStart = parseTimeToMinutes(venue.offer.startHour || "18:00");
+            const offerEnd = parseTimeToMinutes(venue.offer.endHour || "22:00");
+            let isMatch = (startMins >= offerStart && startMins < offerEnd);
+
+            if (!isMatch && venue.offer.customRanges && venue.offer.customRanges.length > 0) {
+              isMatch = venue.offer.customRanges.some((range: any) => {
+                const rangeStart = parseTimeToMinutes(range.startHour || "18:00");
+                const rangeEnd = parseTimeToMinutes(range.endHour || "22:00");
+                return (startMins >= rangeStart && startMins < rangeEnd);
+              });
+            }
+            isOfferSlot = isMatch;
+          }
+
+          if (isOfferSlot) {
+            const discountAmt = (slotPrice * Number(venue.offer.percentage || 0)) / 100;
+            slotPrice = Math.max(0, Math.round(slotPrice - discountAmt));
+          }
+        }
           
         return sum + (slotPrice * selectedCourts.length);
       }, 0);
@@ -639,6 +704,15 @@ export default function VenueDetailsPage() {
                   alt={venue.title} 
                   className="!w-full !h-full !object-cover !transition-all !duration-500"
                 />
+                {venue.offer && venue.offer.isActive && (
+                  <div className={`absolute bottom-0 left-0 right-0 py-2.5 px-4 text-xs md:text-sm font-extrabold flex items-center justify-center gap-1.5 backdrop-blur-sm z-10 ${
+                    venue.offer.stripStyle === 'white'
+                      ? 'bg-white/95 text-[#1abc60] border-t border-gray-150'
+                      : 'bg-[#1abc60] text-white'
+                  }`}>
+                    <span>★ {venue.offer.description || `Offer on this ground - ${venue.offer.percentage}% OFF`}</span>
+                  </div>
+                )}
               </div>
               
               {currentImages && currentImages.length > 1 && (
@@ -901,18 +975,33 @@ export default function VenueDetailsPage() {
                           `}
                         >
                           <div className="!flex !flex-col">
-                            <span className={`!text-sm !font-bold ${isDisabled ? '!text-gray-400' : isSelected ? '!text-[#1abc60]' : '!text-gray-700'}`}>
-                              {slot.time}
-                            </span>
+                            <div className="!flex !items-center !gap-2">
+                              <span className={`!text-sm !font-bold ${isDisabled ? '!text-gray-400' : isSelected ? '!text-[#1abc60]' : '!text-gray-700'}`}>
+                                {slot.time}
+                              </span>
+                              {slot.offer && !isDisabled && (
+                                <span className="!inline-flex !items-center !bg-[#1abc60] !text-white !text-[9px] !font-black !px-1.5 !py-0.5 !rounded !uppercase !tracking-wider">
+                                  {slot.offer.percent}% OFF
+                                </span>
+                              )}
+                            </div>
                             {isDisabled && (
                               <span className="!text-[10px] !font-bold !text-gray-400 !uppercase !mt-0.5">
                                 {slot.isPast ? "Time Passed" : "Already Booked"}
                               </span>
                             )}
                           </div>
-                          <span className={`!text-sm !font-bold ${isDisabled ? '!text-gray-300' : '!text-[#1abc60]'}`}>
-                            ₹{slot.totalPrice}
-                          </span>
+                          
+                          <div className="!flex !items-center !gap-2">
+                            {slot.offer && !isDisabled && (
+                              <span className="!text-xs !text-gray-400 !line-through">
+                                ₹{slot.originalPrice}
+                              </span>
+                            )}
+                            <span className={`!text-sm !font-bold ${isDisabled ? '!text-gray-300' : '!text-[#1abc60]'}`}>
+                              ₹{slot.totalPrice}
+                            </span>
+                          </div>
                         </button>
                       );
                     })}

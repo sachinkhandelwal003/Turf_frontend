@@ -215,8 +215,17 @@ export default function ExploreTurfsPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-xl hover:shadow-gray-200/50 transition-all group"
                     >
-                      <div className="h-56 bg-gray-100 relative">
+                      <div className="h-56 bg-gray-100 relative overflow-hidden">
                         <img src={displayImage} alt={turf.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        {turf.offer_summary && (
+                          <div className={`absolute bottom-0 left-0 right-0 py-2.5 px-3 text-[11px] font-extrabold text-center uppercase tracking-wider backdrop-blur-sm z-10 !truncate !whitespace-nowrap ${
+                            turf.offer_summary.strip_style === 'white'
+                              ? 'bg-white/95 text-[#1abc60] border-t border-gray-150'
+                              : 'bg-[#1abc60] text-white'
+                          }`} title={turf.offer_summary.description || turf.offer_summary.badge_text}>
+                            <span>★ {turf.offer_summary.description || turf.offer_summary.badge_text}</span>
+                          </div>
+                        )}
                         <div className="absolute top-4 left-4 bg-[#1abc60] text-white text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-lg shadow-green-900/20">Featured</div>
                         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
                           <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />

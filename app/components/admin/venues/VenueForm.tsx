@@ -4,7 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { 
   Camera, ChevronDown, Circle, ImagePlus, Loader2, MapPin, Upload, CheckCircle2,
   Building, FileText, IndianRupee, Clock, Landmark, Mail, Hash, Calendar, Info,
-  PlusCircle, Trash2, Trophy
+  PlusCircle, Trash2, Trophy, X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -37,6 +37,18 @@ interface SportConfig {
   newImages?: File[]; // For new uploads
 }
 
+interface OfferFormShape {
+  isActive: boolean;
+  percentage: string;
+  badgeText: string;
+  description: string;
+  stripStyle: 'green' | 'white';
+  targetType: 'all' | 'evening' | 'custom';
+  startHour: string;
+  endHour: string;
+  customRanges?: { startHour: string; endHour: string }[];
+}
+
 interface FormShape {
   name: string;
   description: string;
@@ -61,6 +73,7 @@ interface FormShape {
   sportConfigs: SportConfig[];
   interestToHost: boolean;
   coordinates?: { lat: number; lng: number };
+  offer?: OfferFormShape;
 }
 
 interface ApiCarryForwardShape {
@@ -93,6 +106,17 @@ const defaultForm: FormShape = {
   sportConfigs: [],
   interestToHost: false,
   coordinates: undefined,
+  offer: {
+    isActive: false,
+    percentage: '20',
+    badgeText: '20% OFF • on this ground',
+    description: 'Offer on this ground - 20% OFF on evening slots',
+    stripStyle: 'green',
+    targetType: 'all',
+    startHour: '18:00',
+    endHour: '22:00',
+    customRanges: [],
+  },
 };
 
 const fallbackSports = ['Football', 'Cricket', 'Tennis', 'Basketball'];
@@ -290,6 +314,8 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
           };
         });
 
+        const targetOffer = target.offer || {};
+
         setForm({
           name: target.name || '',
           description: target.description || '',
@@ -318,6 +344,17 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
           sportConfigs: sportConfigs,
           interestToHost: !!target.interestToHost,
           coordinates: target.location?.coordinates,
+          offer: {
+            isActive: !!targetOffer.isActive,
+            percentage: String(targetOffer.percentage ?? '20'),
+            badgeText: targetOffer.badgeText || '20% OFF • on this ground',
+            description: targetOffer.description || 'Offer on this ground - 20% OFF on evening slots',
+            stripStyle: targetOffer.stripStyle || 'green',
+            targetType: targetOffer.targetType || 'all',
+            startHour: targetOffer.startHour || '18:00',
+            endHour: targetOffer.endHour || '22:00',
+            customRanges: targetOffer.customRanges || [],
+          },
         });
         if (Array.isArray(target.operatingHours) && target.operatingHours.length) {
           setOperatingHours(
@@ -398,6 +435,7 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
             sportName: trimmedValue,
             pricePerHour: prev.pricePerHour || '0',
             slotDuration: 60,
+            maxPlayers: 10,
             slotPricings: [],
             courts: [{ name: 'Court 1', isActive: true }],
             images: [],
@@ -695,6 +733,10 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
           return img;
         });
         payload.append('existingImages', JSON.stringify(strippedExistingImages));
+      }
+      
+      if (form.offer) {
+        payload.append('offer', JSON.stringify(form.offer));
       }
       
       if (mode === 'edit') {
@@ -1577,6 +1619,251 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Section 7: Special Offers & Discounts */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1abc60] text-xs font-bold text-white shadow-sm">7</span>
+          <h2 className="text-base font-semibold text-gray-900">Special Offers & Discounts</h2>
+        </div>
+        
+        <div className="p-6 space-y-6">
+          <div className="flex items-center gap-3 bg-green-50/50 p-4 rounded-xl border border-green-100/50">
+            <input 
+              type="checkbox"
+              id="offerActiveToggle"
+              checked={form.offer?.isActive || false}
+              onChange={(e) => setForm(prev => ({
+                ...prev,
+                offer: prev.offer ? { ...prev.offer, isActive: e.target.checked } : {
+                  isActive: e.target.checked,
+                  percentage: '20',
+                  badgeText: '20% OFF • on this ground',
+                  description: 'Offer on this ground - 20% OFF on evening slots',
+                  stripStyle: 'green',
+                  targetType: 'all',
+                  startHour: '18:00',
+                  endHour: '22:00',
+                  customRanges: []
+                }
+              }))}
+              className="!h-5 !w-5 !rounded !border-gray-300 !text-[#1abc60] !cursor-pointer"
+            />
+            <div>
+              <label htmlFor="offerActiveToggle" className="text-sm font-bold text-gray-900 cursor-pointer">
+                Enable Active Promo/Offer on this Ground
+              </label>
+              <p className="text-xs text-gray-500 m-0">If checked, slot prices will reflect the discount and badges will be shown on listings & venue page.</p>
+            </div>
+          </div>
+
+          {form.offer?.isActive && (
+            <div className="grid gap-6 md:grid-cols-2 pt-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Discount Percentage (%)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-bold">%</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={form.offer.percentage}
+                    onChange={(e) => setForm(prev => ({
+                      ...prev,
+                      offer: prev.offer ? { ...prev.offer, percentage: e.target.value } : undefined
+                    }))}
+                    placeholder="e.g. 20"
+                    className="!w-full !pl-8 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Strip & Ribbon Accent Style</label>
+                <select
+                  value={form.offer.stripStyle}
+                  onChange={(e) => setForm(prev => ({
+                    ...prev,
+                    offer: prev.offer ? { ...prev.offer, stripStyle: e.target.value as 'green' | 'white' } : undefined
+                  }))}
+                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                >
+                  <option value="green">Green Accent (Filled green, white text)</option>
+                  <option value="white">White Accent (Subtle white, green text)</option>
+                </select>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium text-gray-700">Listings Badge Text</label>
+                <input
+                  type="text"
+                  value={form.offer.badgeText}
+                  onChange={(e) => setForm(prev => ({
+                    ...prev,
+                    offer: prev.offer ? { ...prev.offer, badgeText: e.target.value } : undefined
+                  }))}
+                  placeholder="e.g. 20% OFF • on this ground"
+                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
+                />
+                <p className="text-[11px] text-gray-400">Renders as a horizontal overlay strip at the bottom of the card image on listings.</p>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium text-gray-700">Venue Photo Ribbon Detail Text</label>
+                <input
+                  type="text"
+                  value={form.offer.description}
+                  onChange={(e) => setForm(prev => ({
+                    ...prev,
+                    offer: prev.offer ? { ...prev.offer, description: e.target.value } : undefined
+                  }))}
+                  placeholder="e.g. Offer on this ground - 20% OFF on evening slots"
+                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
+                />
+                <p className="text-[11px] text-gray-400">Renders as a banner overlay across the auto-scrolling photos gallery on the venue detail page.</p>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium text-gray-700">Target Slots</label>
+                <select
+                  value={form.offer.targetType}
+                  onChange={(e) => setForm(prev => ({
+                    ...prev,
+                    offer: prev.offer ? { ...prev.offer, targetType: e.target.value as 'all' | 'evening' | 'custom' } : undefined
+                  }))}
+                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                >
+                  <option value="all">Apply to All Slots</option>
+                  <option value="evening">Apply to Evening Slots (6:00 PM onwards)</option>
+                  <option value="custom">Apply to Custom Slots Hour Range</option>
+                </select>
+              </div>
+
+              {form.offer.targetType === 'custom' && (
+                <div className="space-y-4 md:col-span-2">
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-150 relative space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Slot Hour Range 1</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-600">Start Time</label>
+                        <select
+                          value={form.offer.startHour}
+                          onChange={(e) => setForm(prev => ({
+                            ...prev,
+                            offer: prev.offer ? { ...prev.offer, startHour: e.target.value } : undefined
+                          }))}
+                          className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                        >
+                          {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-600">End Time</label>
+                        <select
+                          value={form.offer.endHour}
+                          onChange={(e) => setForm(prev => ({
+                            ...prev,
+                            offer: prev.offer ? { ...prev.offer, endHour: e.target.value } : undefined
+                          }))}
+                          className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                        >
+                          {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {form.offer.customRanges?.map((range, index) => (
+                    <div key={index} className="bg-gray-50 p-4 rounded-xl border border-gray-150 relative space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Slot Hour Range {index + 2}</span>
+                        <button
+                          type="button"
+                          onClick={() => setForm(prev => {
+                            if (!prev.offer || !prev.offer.customRanges) return prev;
+                            return {
+                              ...prev,
+                              offer: {
+                                ...prev.offer,
+                                customRanges: prev.offer.customRanges.filter((_, idx) => idx !== index)
+                              }
+                            };
+                          })}
+                          className="!p-1 !text-red-500 hover:!bg-red-50 !rounded-lg !transition-colors !border-none !cursor-pointer flex items-center gap-1 text-xs font-bold"
+                        >
+                          <X className="w-3.5 h-3.5" /> Remove
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-gray-600">Start Time</label>
+                          <select
+                            value={range.startHour}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setForm(prev => {
+                                if (!prev.offer || !prev.offer.customRanges) return prev;
+                                const nextRanges = [...prev.offer.customRanges];
+                                nextRanges[index] = { ...nextRanges[index], startHour: val };
+                                return { ...prev, offer: { ...prev.offer, customRanges: nextRanges } };
+                              });
+                            }}
+                            className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                          >
+                            {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-gray-600">End Time</label>
+                          <select
+                            value={range.endHour}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setForm(prev => {
+                                if (!prev.offer || !prev.offer.customRanges) return prev;
+                                const nextRanges = [...prev.offer.customRanges];
+                                nextRanges[index] = { ...nextRanges[index], endHour: val };
+                                return { ...prev, offer: { ...prev.offer, customRanges: nextRanges } };
+                              });
+                            }}
+                            className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                          >
+                            {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => setForm(prev => {
+                      if (!prev.offer) return prev;
+                      const currentRanges = prev.offer.customRanges || [];
+                      const newRange = {
+                        startHour: prev.offer.startHour || '18:00',
+                        endHour: prev.offer.endHour || '22:00'
+                      };
+                      return {
+                        ...prev,
+                        offer: {
+                          ...prev.offer,
+                          customRanges: [...currentRanges, newRange]
+                        }
+                      };
+                    })}
+                    className="!flex !items-center !justify-center !gap-2 !w-full !py-3 !bg-white hover:!bg-gray-50 !border !border-dashed !border-[#1abc60] !text-[#1abc60] !rounded-xl !text-sm !font-bold !cursor-pointer !transition-all"
+                  >
+                    <span>+ Add Another Custom Slot Range</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

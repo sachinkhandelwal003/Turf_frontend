@@ -554,8 +554,39 @@ function GroundContent() {
       return matchesSearch && matchesCategory && matchesRating && matchesPrice && venue.isActive && matchesTournament;
     });
     
-    // Sort by rating and featured
+    // Sort by proximity/distance if userCoords is available, otherwise by rating and featured
     filtered.sort((a, b) => {
+      let distA: number | null = null;
+      let distB: number | null = null;
+
+      if (userCoords) {
+        const getCoordDist = (v: Venue) => {
+          let lat = v.coordinates?.lat;
+          let lng = v.coordinates?.lng;
+          if ((!lat || !lng) && v.location) {
+            const parts = v.location.split(',');
+            const city = parts[parts.length - 1].trim().toLowerCase();
+            const fallback = CITY_COORDS_FALLBACK[city];
+            if (fallback) {
+              lat = fallback.lat;
+              lng = fallback.lng;
+            }
+          }
+          return (lat && lng) ? calculateDistance(userCoords.lat, userCoords.lng, lat, lng) : null;
+        };
+
+        distA = getCoordDist(a);
+        distB = getCoordDist(b);
+      }
+
+      if (distA !== null && distB !== null) {
+        if (distA !== distB) return distA - distB;
+      } else if (distA !== null) {
+        return -1;
+      } else if (distB !== null) {
+        return 1;
+      }
+
       if (a.featured && !b.featured) return -1;
       if (!a.featured && b.featured) return 1;
       return b.rating - a.rating;

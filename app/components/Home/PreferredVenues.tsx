@@ -318,8 +318,14 @@ export default function FeaturedVenues() {
       };
     });
 
-    // Sort by createdAt descending (newest first)
+    // Sort by distance (if available), then by rating / createdAt
     venuesWithDistance.sort((a, b) => {
+      if (a.distance !== null && b.distance !== null) {
+        return a.distance - b.distance;
+      }
+      if (a.distance !== null) return -1;
+      if (b.distance !== null) return 1;
+      
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return dateB - dateA;

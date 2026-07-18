@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Send, Loader2, MessageSquare, Clock, Globe, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import api from '@/app/services/api';
 
 export default function ContactSupportPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,12 +20,20 @@ export default function ContactSupportPage() {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast.success("Message sent! Our team will get back to you soon.");
-    setFormData({ name: '', email: '', subject: '', message: '' });
-    setIsSubmitting(false);
+    try {
+      const res = await api.post('/support', formData);
+      if (res.data.success) {
+        toast.success("Message sent! Our team will get back to you soon.");
+        setFormData({ name: '', email: '', subject: '', message: '' });
+      } else {
+        toast.error(res.data.error || "Failed to send message.");
+      }
+    } catch (err: any) {
+      console.error("Support submission error:", err);
+      toast.error(err.response?.data?.error || "Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const contactInfo = [

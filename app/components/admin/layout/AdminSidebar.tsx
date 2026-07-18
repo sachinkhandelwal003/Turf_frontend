@@ -82,6 +82,7 @@ const baseMenuItems: MenuItem[] = [
 
 const superadminMenuItems: MenuItem[] = [
   { href: '/admin/admin-accounts', label: 'Admin Accounts', icon: Shield, permission: 'superadmin_only' },
+  { href: '/admin/support', label: 'Contact Support', icon: MessageSquare, permission: 'superadmin_only' },
 ];
 
 interface AdminSidebarProps {

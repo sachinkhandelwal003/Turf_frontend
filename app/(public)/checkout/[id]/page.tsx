@@ -36,6 +36,9 @@ interface Booking {
   endTime: string;
   courts: string[];
   price: number;
+  originalPrice?: number;
+  discountAmount?: number;
+  discountPercentage?: number;
   totalAmount: number;
   convenienceFee: number;
   isMultiple?: boolean;
@@ -363,7 +366,7 @@ export default function CheckoutPage() {
           <h1 className="!text-3xl md:!text-4xl !font-bold !tracking-tight !text-gray-900 !mb-2 !m-0">
             Secure Checkout
           </h1>
-          <p className="!text-gray-500 !text-sm md:!text-base !font-medium !m-0">Complete your booking for <span className="!font-bold !text-gray-800">{booking.turf.name}</span></p>
+          <p className="!text-gray-500 !text-sm md:!text-base !font-medium !m-0">Complete your booking for <span className="!font-bold !text-gray-800">{booking?.turf?.name || 'Venue'}</span></p>
         </div>
 
         <div className="!flex !flex-col lg:!flex-row !gap-8 !items-start">
@@ -705,8 +708,17 @@ export default function CheckoutPage() {
                       {booking.isMultiple && <span className="!text-xs"> ({booking.bookingCount} slots × {booking.courts.length} courts)</span>}
                       {!booking.isMultiple && booking.courts.length > 1 && <span className="!text-xs"> ({booking.courts.length} courts)</span>}
                     </span>
-                    <span className="!text-gray-900 !font-bold">₹{booking.price.toFixed(2)}</span>
+                    <span className="!text-gray-900 !font-bold">₹{((booking.originalPrice && booking.originalPrice > 0) ? booking.originalPrice : booking.price).toFixed(2)}</span>
                   </div>
+                  
+                  {booking.discountAmount && booking.discountAmount > 0 && (
+                    <div className="!flex !justify-between !text-sm !font-bold !text-[#1abc60]">
+                      <span className="!flex !items-center !gap-1.5">
+                        <Ticket className="!w-4 !h-4" /> Coupon Applied ({booking.discountPercentage || 0}% OFF)
+                      </span>
+                      <span>- ₹{booking.discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
                   
                   <div className="!flex !justify-between !text-sm !font-medium !text-gray-500">
                     <span>Convenience Fee</span>

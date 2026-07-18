@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import api from '@/app/services/api';
 import Swal from 'sweetalert2';
+import { useAuth } from '@/app/context/AuthContext';
 
 type VenueFormMode = 'add' | 'edit';
 
@@ -47,6 +48,9 @@ interface OfferFormShape {
   startHour: string;
   endHour: string;
   customRanges?: { startHour: string; endHour: string }[];
+  fundingModel?: 'platform' | 'co-funded';
+  gameonPct?: string;
+  venuePct?: string;
 }
 
 interface FormShape {
@@ -74,6 +78,7 @@ interface FormShape {
   interestToHost: boolean;
   coordinates?: { lat: number; lng: number };
   offer?: OfferFormShape;
+  superAdminOffer?: OfferFormShape;
 }
 
 interface ApiCarryForwardShape {
@@ -129,6 +134,7 @@ type OperatingHour = { day: string; open: string; close: string; isOpen: boolean
 
 export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFormProps) {
   const router = useRouter();
+  const { isSuperadmin } = useAuth();
   const [form, setForm] = useState<FormShape>(defaultForm);
   const [loading, setLoading] = useState(mode === 'edit');
   const [saving, setSaving] = useState(false);
@@ -737,6 +743,10 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
       
       if (form.offer) {
         payload.append('offer', JSON.stringify(form.offer));
+      }
+
+      if (form.superAdminOffer) {
+        payload.append('superAdminOffer', JSON.stringify(form.superAdminOffer));
       }
       
       if (mode === 'edit') {
@@ -1630,236 +1640,561 @@ export default function VenueForm({ mode, turfId, onSuccess, onCancel }: VenueFo
         </div>
         
         <div className="p-6 space-y-6">
-          <div className="flex items-center gap-3 bg-green-50/50 p-4 rounded-xl border border-green-100/50">
-            <input 
-              type="checkbox"
-              id="offerActiveToggle"
-              checked={form.offer?.isActive || false}
-              onChange={(e) => setForm(prev => ({
-                ...prev,
-                offer: prev.offer ? { ...prev.offer, isActive: e.target.checked } : {
-                  isActive: e.target.checked,
-                  percentage: '20',
-                  badgeText: '20% OFF • on this ground',
-                  description: 'Offer on this ground - 20% OFF on evening slots',
-                  stripStyle: 'green',
-                  targetType: 'all',
-                  startHour: '18:00',
-                  endHour: '22:00',
-                  customRanges: []
-                }
-              }))}
-              className="!h-5 !w-5 !rounded !border-gray-300 !text-[#1abc60] !cursor-pointer"
-            />
-            <div>
-              <label htmlFor="offerActiveToggle" className="text-sm font-bold text-gray-900 cursor-pointer">
-                Enable Active Promo/Offer on this Ground
-              </label>
-              <p className="text-xs text-gray-500 m-0">If checked, slot prices will reflect the discount and badges will be shown on listings & venue page.</p>
-            </div>
-          </div>
-
-          {form.offer?.isActive && (
-            <div className="grid gap-6 md:grid-cols-2 pt-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Discount Percentage (%)</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-bold">%</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="99"
-                    value={form.offer.percentage}
-                    onChange={(e) => setForm(prev => ({
-                      ...prev,
-                      offer: prev.offer ? { ...prev.offer, percentage: e.target.value } : undefined
-                    }))}
-                    placeholder="e.g. 20"
-                    className="!w-full !pl-8 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
-                  />
+          {!isSuperadmin ? (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 bg-green-50/50 p-4 rounded-xl border border-green-100/50">
+                <input 
+                  type="checkbox"
+                  id="offerActiveToggle"
+                  checked={form.offer?.isActive || false}
+                  onChange={(e) => setForm(prev => ({
+                    ...prev,
+                    offer: prev.offer ? { ...prev.offer, isActive: e.target.checked } : {
+                      isActive: e.target.checked,
+                      percentage: '20',
+                      badgeText: '20% OFF • on this ground',
+                      description: 'Offer on this ground - 20% OFF on evening slots',
+                      stripStyle: 'green',
+                      targetType: 'all',
+                      startHour: '18:00',
+                      endHour: '22:00',
+                      customRanges: [],
+                      fundingModel: 'platform',
+                      gameonPct: '100',
+                      venuePct: '0',
+                    }
+                  }))}
+                  className="!h-5 !w-5 !rounded !border-gray-300 !text-[#1abc60] !cursor-pointer"
+                />
+                <div>
+                  <label htmlFor="offerActiveToggle" className="text-sm font-bold text-gray-900 cursor-pointer">
+                    Enable Active Promo/Offer on this Ground
+                  </label>
+                  <p className="text-xs text-gray-500 m-0">If checked, slot prices will reflect the discount and badges will be shown on listings & venue page.</p>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Strip & Ribbon Accent Style</label>
-                <select
-                  value={form.offer.stripStyle}
-                  onChange={(e) => setForm(prev => ({
-                    ...prev,
-                    offer: prev.offer ? { ...prev.offer, stripStyle: e.target.value as 'green' | 'white' } : undefined
-                  }))}
-                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
-                >
-                  <option value="green">Green Accent (Filled green, white text)</option>
-                  <option value="white">White Accent (Subtle white, green text)</option>
-                </select>
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-medium text-gray-700">Listings Badge Text</label>
-                <input
-                  type="text"
-                  value={form.offer.badgeText}
-                  onChange={(e) => setForm(prev => ({
-                    ...prev,
-                    offer: prev.offer ? { ...prev.offer, badgeText: e.target.value } : undefined
-                  }))}
-                  placeholder="e.g. 20% OFF • on this ground"
-                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
-                />
-                <p className="text-[11px] text-gray-400">Renders as a horizontal overlay strip at the bottom of the card image on listings.</p>
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-medium text-gray-700">Venue Photo Ribbon Detail Text</label>
-                <input
-                  type="text"
-                  value={form.offer.description}
-                  onChange={(e) => setForm(prev => ({
-                    ...prev,
-                    offer: prev.offer ? { ...prev.offer, description: e.target.value } : undefined
-                  }))}
-                  placeholder="e.g. Offer on this ground - 20% OFF on evening slots"
-                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
-                />
-                <p className="text-[11px] text-gray-400">Renders as a banner overlay across the auto-scrolling photos gallery on the venue detail page.</p>
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-medium text-gray-700">Target Slots</label>
-                <select
-                  value={form.offer.targetType}
-                  onChange={(e) => setForm(prev => ({
-                    ...prev,
-                    offer: prev.offer ? { ...prev.offer, targetType: e.target.value as 'all' | 'evening' | 'custom' } : undefined
-                  }))}
-                  className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
-                >
-                  <option value="all">Apply to All Slots</option>
-                  <option value="evening">Apply to Evening Slots (6:00 PM onwards)</option>
-                  <option value="custom">Apply to Custom Slots Hour Range</option>
-                </select>
-              </div>
-
-              {form.offer.targetType === 'custom' && (
-                <div className="space-y-4 md:col-span-2">
-                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-150 relative space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Slot Hour Range 1</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-600">Start Time</label>
-                        <select
-                          value={form.offer.startHour}
-                          onChange={(e) => setForm(prev => ({
-                            ...prev,
-                            offer: prev.offer ? { ...prev.offer, startHour: e.target.value } : undefined
-                          }))}
-                          className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
-                        >
-                          {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-600">End Time</label>
-                        <select
-                          value={form.offer.endHour}
-                          onChange={(e) => setForm(prev => ({
-                            ...prev,
-                            offer: prev.offer ? { ...prev.offer, endHour: e.target.value } : undefined
-                          }))}
-                          className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
-                        >
-                          {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                        </select>
-                      </div>
+              {form.offer?.isActive && (
+                <div className="grid gap-6 md:grid-cols-2 pt-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Discount Percentage (%)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-bold">%</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="99"
+                        value={form.offer.percentage}
+                        onChange={(e) => setForm(prev => ({
+                          ...prev,
+                          offer: prev.offer ? { ...prev.offer, percentage: e.target.value } : undefined
+                        }))}
+                        placeholder="e.g. 20"
+                        className="!w-full !pl-8 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
+                      />
                     </div>
                   </div>
 
-                  {form.offer.customRanges?.map((range, index) => (
-                    <div key={index} className="bg-gray-50 p-4 rounded-xl border border-gray-150 relative space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Slot Hour Range {index + 2}</span>
-                        <button
-                          type="button"
-                          onClick={() => setForm(prev => {
-                            if (!prev.offer || !prev.offer.customRanges) return prev;
-                            return {
-                              ...prev,
-                              offer: {
-                                ...prev.offer,
-                                customRanges: prev.offer.customRanges.filter((_, idx) => idx !== index)
-                              }
-                            };
-                          })}
-                          className="!p-1 !text-red-500 hover:!bg-red-50 !rounded-lg !transition-colors !border-none !cursor-pointer flex items-center gap-1 text-xs font-bold"
-                        >
-                          <X className="w-3.5 h-3.5" /> Remove
-                        </button>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Strip & Ribbon Accent Style</label>
+                    <select
+                      value={form.offer.stripStyle}
+                      onChange={(e) => setForm(prev => ({
+                        ...prev,
+                        offer: prev.offer ? { ...prev.offer, stripStyle: e.target.value as 'green' | 'white' } : undefined
+                      }))}
+                      className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                    >
+                      <option value="green">Green Accent (Filled green, white text)</option>
+                      <option value="white">White Accent (Subtle white, green text)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2 border-t border-gray-100 pt-4 mt-2">
+                    <label className="text-sm font-semibold text-gray-800">Discount Funding Model</label>
+                    <select
+                      value={form.offer.fundingModel || 'platform'}
+                      onChange={(e) => setForm(prev => ({
+                        ...prev,
+                        offer: prev.offer ? { 
+                          ...prev.offer, 
+                          fundingModel: e.target.value as 'platform' | 'co-funded',
+                          ...(e.target.value === 'platform' ? { gameonPct: '100', venuePct: '0' } : { gameonPct: '50', venuePct: '50' })
+                        } : undefined
+                      }))}
+                      className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                    >
+                      <option value="platform">Type 1 — Platform-funded (GameOn Bears 100% of Discount)</option>
+                      <option value="co-funded">Type 2 — Co-funded (Split between GameOn & Venue)</option>
+                    </select>
+                  </div>
+
+                  {(form.offer.fundingModel || 'platform') === 'co-funded' && (
+                    <div className="grid grid-cols-2 gap-4 md:col-span-2 bg-gray-50 p-4 rounded-xl border border-gray-150">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-700">GameOn Contribution Share (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={form.offer.gameonPct || '50'}
+                          onChange={(e) => setForm(prev => ({
+                            ...prev,
+                            offer: prev.offer ? { ...prev.offer, gameonPct: e.target.value } : undefined
+                          }))}
+                          placeholder="e.g. 50"
+                          className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                        />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-gray-600">Start Time</label>
-                          <select
-                            value={range.startHour}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setForm(prev => {
-                                if (!prev.offer || !prev.offer.customRanges) return prev;
-                                const nextRanges = [...prev.offer.customRanges];
-                                nextRanges[index] = { ...nextRanges[index], startHour: val };
-                                return { ...prev, offer: { ...prev.offer, customRanges: nextRanges } };
-                              });
-                            }}
-                            className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
-                          >
-                            {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-gray-600">End Time</label>
-                          <select
-                            value={range.endHour}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setForm(prev => {
-                                if (!prev.offer || !prev.offer.customRanges) return prev;
-                                const nextRanges = [...prev.offer.customRanges];
-                                nextRanges[index] = { ...nextRanges[index], endHour: val };
-                                return { ...prev, offer: { ...prev.offer, customRanges: nextRanges } };
-                              });
-                            }}
-                            className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
-                          >
-                            {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                          </select>
-                        </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-700">Venue/Partner Contribution Share (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={form.offer.venuePct || '50'}
+                          onChange={(e) => setForm(prev => ({
+                            ...prev,
+                            offer: prev.offer ? { ...prev.offer, venuePct: e.target.value } : undefined
+                          }))}
+                          placeholder="e.g. 50"
+                          className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                        />
                       </div>
                     </div>
-                  ))}
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setForm(prev => {
-                      if (!prev.offer) return prev;
-                      const currentRanges = prev.offer.customRanges || [];
-                      const newRange = {
-                        startHour: prev.offer.startHour || '18:00',
-                        endHour: prev.offer.endHour || '22:00'
-                      };
-                      return {
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-medium text-gray-700">Listings Badge Text</label>
+                    <input
+                      type="text"
+                      value={form.offer.badgeText}
+                      onChange={(e) => setForm(prev => ({
                         ...prev,
-                        offer: {
-                          ...prev.offer,
-                          customRanges: [...currentRanges, newRange]
-                        }
-                      };
-                    })}
-                    className="!flex !items-center !justify-center !gap-2 !w-full !py-3 !bg-white hover:!bg-gray-50 !border !border-dashed !border-[#1abc60] !text-[#1abc60] !rounded-xl !text-sm !font-bold !cursor-pointer !transition-all"
-                  >
-                    <span>+ Add Another Custom Slot Range</span>
-                  </button>
+                        offer: prev.offer ? { ...prev.offer, badgeText: e.target.value } : undefined
+                      }))}
+                      placeholder="e.g. 20% OFF • on this ground"
+                      className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
+                    />
+                    <p className="text-[11px] text-gray-400">Renders as a horizontal overlay strip at the bottom of the card image on listings.</p>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-medium text-gray-700">Venue Photo Ribbon Detail Text</label>
+                    <input
+                      type="text"
+                      value={form.offer.description}
+                      onChange={(e) => setForm(prev => ({
+                        ...prev,
+                        offer: prev.offer ? { ...prev.offer, description: e.target.value } : undefined
+                      }))}
+                      placeholder="e.g. Offer on this ground - 20% OFF on evening slots"
+                      className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60]"
+                    />
+                    <p className="text-[11px] text-gray-400">Renders as a banner overlay across the auto-scrolling photos gallery on the venue detail page.</p>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-medium text-gray-700">Target Slots</label>
+                    <select
+                      value={form.offer.targetType}
+                      onChange={(e) => setForm(prev => ({
+                        ...prev,
+                        offer: prev.offer ? { ...prev.offer, targetType: e.target.value as 'all' | 'evening' | 'custom' } : undefined
+                      }))}
+                      className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                    >
+                      <option value="all">Apply to All Slots</option>
+                      <option value="evening">Apply to Evening Slots (6:00 PM onwards)</option>
+                      <option value="custom">Apply to Custom Slots Hour Range</option>
+                    </select>
+                  </div>
+
+                  {form.offer.targetType === 'custom' && (
+                    <div className="space-y-4 md:col-span-2">
+                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-150 relative space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Slot Hour Range 1</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-xs font-semibold text-gray-600">Start Time</label>
+                            <select
+                              value={form.offer.startHour}
+                              onChange={(e) => setForm(prev => ({
+                                ...prev,
+                                offer: prev.offer ? { ...prev.offer, startHour: e.target.value } : undefined
+                              }))}
+                              className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                            >
+                              {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-semibold text-gray-600">End Time</label>
+                            <select
+                              value={form.offer.endHour}
+                              onChange={(e) => setForm(prev => ({
+                                ...prev,
+                                offer: prev.offer ? { ...prev.offer, endHour: e.target.value } : undefined
+                              }))}
+                              className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                            >
+                              {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {form.offer.customRanges?.map((range, index) => (
+                        <div key={index} className="bg-gray-50 p-4 rounded-xl border border-gray-150 relative space-y-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Slot Hour Range {index + 2}</span>
+                            <button
+                              type="button"
+                              onClick={() => setForm(prev => {
+                                if (!prev.offer || !prev.offer.customRanges) return prev;
+                                return {
+                                  ...prev,
+                                  offer: {
+                                    ...prev.offer,
+                                    customRanges: prev.offer.customRanges.filter((_, idx) => idx !== index)
+                                  }
+                                };
+                              })}
+                              className="!p-1 !text-red-500 hover:!bg-red-50 !rounded-lg !transition-colors !border-none !cursor-pointer flex items-center gap-1 text-xs font-bold"
+                            >
+                              <X className="w-3.5 h-3.5" /> Remove
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold text-gray-600">Start Time</label>
+                              <select
+                                value={range.startHour}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setForm(prev => {
+                                    if (!prev.offer || !prev.offer.customRanges) return prev;
+                                    const nextRanges = [...prev.offer.customRanges];
+                                    nextRanges[index] = { ...nextRanges[index], startHour: val };
+                                    return { ...prev, offer: { ...prev.offer, customRanges: nextRanges } };
+                                  });
+                                }}
+                                className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                              >
+                                {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold text-gray-600">End Time</label>
+                              <select
+                                value={range.endHour}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setForm(prev => {
+                                    if (!prev.offer || !prev.offer.customRanges) return prev;
+                                    const nextRanges = [...prev.offer.customRanges];
+                                    nextRanges[index] = { ...nextRanges[index], endHour: val };
+                                    return { ...prev, offer: { ...prev.offer, customRanges: nextRanges } };
+                                  });
+                                }}
+                                className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                              >
+                                {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={() => setForm(prev => {
+                          if (!prev.offer) return prev;
+                          const currentRanges = prev.offer.customRanges || [];
+                          const newRange = {
+                            startHour: prev.offer.startHour || '18:00',
+                            endHour: prev.offer.endHour || '22:00'
+                          };
+                          return {
+                            ...prev,
+                            offer: {
+                              ...prev.offer,
+                              customRanges: [...currentRanges, newRange]
+                            }
+                          };
+                        })}
+                        className="!flex !items-center !justify-center !gap-2 !w-full !py-3 !bg-white hover:!bg-gray-50 !border !border-dashed !border-[#1abc60] !text-[#1abc60] !rounded-xl !text-sm !font-bold !cursor-pointer !transition-all"
+                      >
+                        <span>+ Add Another Custom Slot Range</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100/50">
+                <input 
+                  type="checkbox"
+                  id="superAdminOfferActiveToggle"
+                  checked={form.superAdminOffer?.isActive || false}
+                  onChange={(e) => setForm(prev => ({
+                    ...prev,
+                    superAdminOffer: prev.superAdminOffer ? { ...prev.superAdminOffer, isActive: e.target.checked } : {
+                      isActive: e.target.checked,
+                      percentage: '20',
+                      badgeText: '20% OFF • Coupon Applied',
+                      description: 'Offer on this ground - 20% OFF on evening slots',
+                      stripStyle: 'green',
+                      targetType: 'all',
+                      startHour: '18:00',
+                      endHour: '22:00',
+                      customRanges: [],
+                      fundingModel: 'platform',
+                      gameonPct: '100',
+                      venuePct: '0',
+                    }
+                  }))}
+                  className="!h-5 !w-5 !rounded !border-gray-300 !text-blue-600 !cursor-pointer"
+                />
+                <div>
+                  <label htmlFor="superAdminOfferActiveToggle" className="text-sm font-bold text-gray-900 cursor-pointer">
+                    Enable Super Admin Special Promo/Offer on this Ground
+                  </label>
+                  <p className="text-xs text-gray-500 m-0">If checked, this discount will combine with the admin discount. Renders as "Coupon Applied" with the summed percentage.</p>
+                </div>
+              </div>
+
+              {form.superAdminOffer?.isActive && (
+                <div className="grid gap-6 md:grid-cols-2 pt-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Super Admin Discount Percentage (%)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-bold">%</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="99"
+                        value={form.superAdminOffer.percentage}
+                        onChange={(e) => setForm(prev => ({
+                          ...prev,
+                          superAdminOffer: prev.superAdminOffer ? { ...prev.superAdminOffer, percentage: e.target.value } : undefined
+                        }))}
+                        placeholder="e.g. 20"
+                        className="!w-full !pl-8 !pr-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm !text-gray-900 focus:!outline-none focus:!ring-2 focus:!ring-[#1abc60]/20 focus:!border-[#1abc60] !transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Accent Style</label>
+                    <select
+                      value={form.superAdminOffer.stripStyle}
+                      onChange={(e) => setForm(prev => ({
+                        ...prev,
+                        superAdminOffer: prev.superAdminOffer ? { ...prev.superAdminOffer, stripStyle: e.target.value as 'green' | 'white' } : undefined
+                      }))}
+                      className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                    >
+                      <option value="green">Green Accent (Filled green, white text)</option>
+                      <option value="white">White Accent (Subtle white, green text)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2 border-t border-gray-100 pt-4 mt-2">
+                    <label className="text-sm font-semibold text-gray-800">Discount Funding Model</label>
+                    <select
+                      value={form.superAdminOffer.fundingModel || 'platform'}
+                      onChange={(e) => setForm(prev => ({
+                        ...prev,
+                        superAdminOffer: prev.superAdminOffer ? { 
+                          ...prev.superAdminOffer, 
+                          fundingModel: e.target.value as 'platform' | 'co-funded',
+                          ...(e.target.value === 'platform' ? { gameonPct: '100', venuePct: '0' } : { gameonPct: '50', venuePct: '50' })
+                        } : undefined
+                      }))}
+                      className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                    >
+                      <option value="platform">Type 1 — Platform-funded (GameOn Bears 100% of Discount)</option>
+                      <option value="co-funded">Type 2 — Co-funded (Split between GameOn & Venue)</option>
+                    </select>
+                  </div>
+
+                  {(form.superAdminOffer.fundingModel || 'platform') === 'co-funded' && (
+                    <div className="grid grid-cols-2 gap-4 md:col-span-2 bg-gray-50 p-4 rounded-xl border border-gray-150">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-700">GameOn Contribution Share (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={form.superAdminOffer.gameonPct || '50'}
+                          onChange={(e) => setForm(prev => ({
+                            ...prev,
+                            superAdminOffer: prev.superAdminOffer ? { ...prev.superAdminOffer, gameonPct: e.target.value } : undefined
+                          }))}
+                          placeholder="e.g. 50"
+                          className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-700">Venue/Partner Contribution Share (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={form.superAdminOffer.venuePct || '50'}
+                          onChange={(e) => setForm(prev => ({
+                            ...prev,
+                            superAdminOffer: prev.superAdminOffer ? { ...prev.superAdminOffer, venuePct: e.target.value } : undefined
+                          }))}
+                          placeholder="e.g. 50"
+                          className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-medium text-gray-700">Target Slots</label>
+                    <select
+                      value={form.superAdminOffer.targetType}
+                      onChange={(e) => setForm(prev => ({
+                        ...prev,
+                        superAdminOffer: prev.superAdminOffer ? { ...prev.superAdminOffer, targetType: e.target.value as 'all' | 'evening' | 'custom' } : undefined
+                      }))}
+                      className="!w-full !px-3 !py-2.5 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                    >
+                      <option value="all">Apply to All Slots</option>
+                      <option value="evening">Apply to Evening Slots (6:00 PM onwards)</option>
+                      <option value="custom">Apply to Custom Slots Hour Range</option>
+                    </select>
+                  </div>
+
+                  {form.superAdminOffer.targetType === 'custom' && (
+                    <div className="space-y-4 md:col-span-2">
+                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-150 relative space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Slot Hour Range 1</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-xs font-semibold text-gray-600">Start Time</label>
+                            <select
+                              value={form.superAdminOffer.startHour}
+                              onChange={(e) => setForm(prev => ({
+                                ...prev,
+                                superAdminOffer: prev.superAdminOffer ? { ...prev.superAdminOffer, startHour: e.target.value } : undefined
+                              }))}
+                              className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                            >
+                              {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-semibold text-gray-600">End Time</label>
+                            <select
+                              value={form.superAdminOffer.endHour}
+                              onChange={(e) => setForm(prev => ({
+                                ...prev,
+                                superAdminOffer: prev.superAdminOffer ? { ...prev.superAdminOffer, endHour: e.target.value } : undefined
+                              }))}
+                              className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                            >
+                              {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {form.superAdminOffer.customRanges?.map((range, index) => (
+                        <div key={index} className="bg-gray-50 p-4 rounded-xl border border-gray-150 relative space-y-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Slot Hour Range {index + 2}</span>
+                            <button
+                              type="button"
+                              onClick={() => setForm(prev => {
+                                if (!prev.superAdminOffer || !prev.superAdminOffer.customRanges) return prev;
+                                return {
+                                  ...prev,
+                                  superAdminOffer: {
+                                    ...prev.superAdminOffer,
+                                    customRanges: prev.superAdminOffer.customRanges.filter((_, idx) => idx !== index)
+                                  }
+                                };
+                              })}
+                              className="!p-1 !text-red-500 hover:!bg-red-50 !rounded-lg !transition-colors !border-none !cursor-pointer flex items-center gap-1 text-xs font-bold"
+                            >
+                              <X className="w-3.5 h-3.5" /> Remove
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold text-gray-600">Start Time</label>
+                              <select
+                                value={range.startHour}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setForm(prev => {
+                                    if (!prev.superAdminOffer || !prev.superAdminOffer.customRanges) return prev;
+                                    const nextRanges = [...prev.superAdminOffer.customRanges];
+                                    nextRanges[index] = { ...nextRanges[index], startHour: val };
+                                    return { ...prev, superAdminOffer: { ...prev.superAdminOffer, customRanges: nextRanges } };
+                                  });
+                                }}
+                                className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                              >
+                                {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold text-gray-600">End Time</label>
+                              <select
+                                value={range.endHour}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setForm(prev => {
+                                    if (!prev.superAdminOffer || !prev.superAdminOffer.customRanges) return prev;
+                                    const nextRanges = [...prev.superAdminOffer.customRanges];
+                                    nextRanges[index] = { ...nextRanges[index], endHour: val };
+                                    return { ...prev, superAdminOffer: { ...prev.superAdminOffer, customRanges: nextRanges } };
+                                  });
+                                }}
+                                className="!w-full !px-3 !py-2 !bg-white !border !border-gray-300 !rounded-lg !text-sm focus:!outline-none"
+                              >
+                                {TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={() => setForm(prev => {
+                          if (!prev.superAdminOffer) return prev;
+                          const currentRanges = prev.superAdminOffer.customRanges || [];
+                          const newRange = {
+                            startHour: prev.superAdminOffer.startHour || '18:00',
+                            endHour: prev.superAdminOffer.endHour || '22:00'
+                          };
+                          return {
+                            ...prev,
+                            superAdminOffer: {
+                              ...prev.superAdminOffer,
+                              customRanges: [...currentRanges, newRange]
+                            }
+                          };
+                        })}
+                        className="!flex !items-center !justify-center !gap-2 !w-full !py-3 !bg-white hover:!bg-gray-50 !border !border-dashed !border-[#1abc60] !text-[#1abc60] !rounded-xl !text-sm !font-bold !cursor-pointer !transition-all"
+                      >
+                        <span>+ Add Another Custom Slot Range</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

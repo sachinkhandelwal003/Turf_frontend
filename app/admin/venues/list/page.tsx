@@ -227,7 +227,17 @@ export default function VenueListPage() {
                         
                         {/* Reject & Delete Buttons */}
                         <div className="!flex !items-center !gap-1.5 !border-l !border-gray-200 !pl-3 !ml-1">
-                          {venue.status !== 'rejected' && (
+                          {user?.role === 'superadmin' && venue.status !== 'approved' && (
+                            <button
+                              onClick={() => handleStatusUpdate(venue._id, 'approved')}
+                              disabled={actionLoading === venue._id}
+                              className="!inline-flex !items-center !justify-center !w-8 !h-8 !bg-white !border !border-emerald-250 !text-emerald-600 hover:!bg-emerald-50 hover:!border-emerald-300 !rounded-lg !transition-all !cursor-pointer disabled:!opacity-50 !shadow-sm"
+                              title="Approve Venue"
+                            >
+                              {actionLoading === venue._id ? <Loader2 className="!w-4 !h-4 !block !shrink-0 !animate-spin" /> : <Check className="!w-4 !h-4 !block !shrink-0 !opacity-100" />}
+                            </button>
+                          )}
+                          {user?.role === 'superadmin' && venue.status !== 'rejected' && (
                             <button
                               onClick={() => handleStatusUpdate(venue._id, 'rejected')}
                               disabled={actionLoading === venue._id}
@@ -303,7 +313,17 @@ export default function VenueListPage() {
                     <div className="!flex !items-center !gap-2">
                       {/* Reject & Delete Buttons for Mobile */}
                       <div className="!flex !items-center !gap-1.5 !mr-2 !pr-3 !border-r !border-gray-200">
-                        {venue.status !== 'rejected' && (
+                        {user?.role === 'superadmin' && venue.status !== 'approved' && (
+                          <button
+                            onClick={() => handleStatusUpdate(venue._id, 'approved')}
+                            disabled={actionLoading === venue._id}
+                            className="!inline-flex !items-center !justify-center !w-8 !h-8 !bg-white !border !border-emerald-250 !text-emerald-600 hover:!bg-emerald-50 hover:!border-emerald-300 !rounded-lg !transition-all !cursor-pointer disabled:!opacity-50 !shadow-sm"
+                            title="Approve"
+                          >
+                            {actionLoading === venue._id ? <Loader2 className="!w-4 !h-4 !block !shrink-0 !animate-spin" /> : <Check className="!w-4 !h-4 !block !shrink-0 !opacity-100" />}
+                          </button>
+                        )}
+                        {user?.role === 'superadmin' && venue.status !== 'rejected' && (
                           <button
                             onClick={() => handleStatusUpdate(venue._id, 'rejected')}
                             disabled={actionLoading === venue._id}

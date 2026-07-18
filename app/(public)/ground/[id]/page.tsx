@@ -161,7 +161,8 @@ export default function VenueDetailsPage() {
             slotPricings: t.slotPricings || [],
             availableSlots: t.availableSlots || [],
             unavailableDates: t.unavailableDates || [],
-            offer: t.offer
+            offer: t.offer,
+            superAdminOffer: t.superAdminOffer
           };
           setVenue(mappedVenue);
           
@@ -361,6 +362,8 @@ export default function VenueDetailsPage() {
 
       let offer = null;
       let displayPrice = slotPrice;
+      let totalDiscountPercent = 0;
+
       if (venue?.offer?.isActive) {
         const startMins = cur;
         let isOfferSlot = false;
@@ -384,13 +387,44 @@ export default function VenueDetailsPage() {
         }
 
         if (isOfferSlot) {
-          const discountAmt = (slotPrice * Number(venue.offer.percentage || 0)) / 100;
-          displayPrice = Math.max(0, Math.round(slotPrice - discountAmt));
-          offer = {
-            percent: Number(venue.offer.percentage),
-            discounted_price: displayPrice
-          };
+          totalDiscountPercent += Number(venue.offer.percentage || 0);
         }
+      }
+
+      if (venue?.superAdminOffer?.isActive) {
+        const startMins = cur;
+        let isSuperAdminOfferSlot = false;
+        if (venue.superAdminOffer.targetType === "all") {
+          isSuperAdminOfferSlot = true;
+        } else if (venue.superAdminOffer.targetType === "evening") {
+          isSuperAdminOfferSlot = (startMins >= 18 * 60); // >= 6 PM
+        } else if (venue.superAdminOffer.targetType === "custom") {
+          const offerStart = parseTimeToMinutes(venue.superAdminOffer.startHour || "18:00");
+          const offerEnd = parseTimeToMinutes(venue.superAdminOffer.endHour || "22:00");
+          let isMatch = (startMins >= offerStart && startMins < offerEnd);
+
+          if (!isMatch && venue.superAdminOffer.customRanges && venue.superAdminOffer.customRanges.length > 0) {
+            isMatch = venue.superAdminOffer.customRanges.some((range: any) => {
+              const rangeStart = parseTimeToMinutes(range.startHour || "18:00");
+              const rangeEnd = parseTimeToMinutes(range.endHour || "22:00");
+              return (startMins >= rangeStart && startMins < rangeEnd);
+            });
+          }
+          isSuperAdminOfferSlot = isMatch;
+        }
+
+        if (isSuperAdminOfferSlot) {
+          totalDiscountPercent += Number(venue.superAdminOffer.percentage || 0);
+        }
+      }
+
+      if (totalDiscountPercent > 0) {
+        const discountAmt = (slotPrice * totalDiscountPercent) / 100;
+        displayPrice = Math.max(0, Math.round(slotPrice - discountAmt));
+        offer = {
+          percent: totalDiscountPercent,
+          discounted_price: displayPrice
+        };
       }
 
       groups[type].push({
@@ -503,8 +537,10 @@ export default function VenueDetailsPage() {
         const extraPrice = Number(customSlot?.extraPrice || dynamicSlot?.price || 0);
         let slotPrice = basePrice + extraPrice;
         
+        let totalDiscountPercent = 0;
+        const startMins = cur;
+
         if (venue?.offer?.isActive) {
-          const startMins = cur;
           let isOfferSlot = false;
           if (venue.offer.targetType === "all") {
             isOfferSlot = true;
@@ -526,9 +562,39 @@ export default function VenueDetailsPage() {
           }
 
           if (isOfferSlot) {
-            const discountAmt = (slotPrice * Number(venue.offer.percentage || 0)) / 100;
-            slotPrice = Math.max(0, Math.round(slotPrice - discountAmt));
+            totalDiscountPercent += Number(venue.offer.percentage || 0);
           }
+        }
+
+        if (venue?.superAdminOffer?.isActive) {
+          let isSuperAdminOfferSlot = false;
+          if (venue.superAdminOffer.targetType === "all") {
+            isSuperAdminOfferSlot = true;
+          } else if (venue.superAdminOffer.targetType === "evening") {
+            isSuperAdminOfferSlot = (startMins >= 18 * 60); // >= 6 PM
+          } else if (venue.superAdminOffer.targetType === "custom") {
+            const offerStart = parseTimeToMinutes(venue.superAdminOffer.startHour || "18:00");
+            const offerEnd = parseTimeToMinutes(venue.superAdminOffer.endHour || "22:00");
+            let isMatch = (startMins >= offerStart && startMins < offerEnd);
+
+            if (!isMatch && venue.superAdminOffer.customRanges && venue.superAdminOffer.customRanges.length > 0) {
+              isMatch = venue.superAdminOffer.customRanges.some((range: any) => {
+                const rangeStart = parseTimeToMinutes(range.startHour || "18:00");
+                const rangeEnd = parseTimeToMinutes(range.endHour || "22:00");
+                return (startMins >= rangeStart && startMins < rangeEnd);
+              });
+            }
+            isSuperAdminOfferSlot = isMatch;
+          }
+
+          if (isSuperAdminOfferSlot) {
+            totalDiscountPercent += Number(venue.superAdminOffer.percentage || 0);
+          }
+        }
+
+        if (totalDiscountPercent > 0) {
+          const discountAmt = (slotPrice * totalDiscountPercent) / 100;
+          slotPrice = Math.max(0, Math.round(slotPrice - discountAmt));
         }
           
         return sum + (slotPrice * selectedCourts.length);
@@ -704,15 +770,34 @@ export default function VenueDetailsPage() {
                   alt={venue.title} 
                   className="!w-full !h-full !object-cover !transition-all !duration-500"
                 />
-                {venue.offer && venue.offer.isActive && (
-                  <div className={`absolute bottom-0 left-0 right-0 py-2.5 px-4 text-xs md:text-sm font-extrabold flex items-center justify-center gap-1.5 backdrop-blur-sm z-10 ${
-                    venue.offer.stripStyle === 'white'
-                      ? 'bg-white/95 text-[#1abc60] border-t border-gray-150'
-                      : 'bg-[#1abc60] text-white'
-                  }`}>
-                    <span>★ {venue.offer.description || `Offer on this ground - ${venue.offer.percentage}% OFF`}</span>
-                  </div>
-                )}
+                {(() => {
+                  let totalPercent = 0;
+                  let isActive = false;
+                  let stripStyle = 'green';
+                  if (venue.offer && venue.offer.isActive) {
+                    totalPercent += Number(venue.offer.percentage || 0);
+                    isActive = true;
+                    stripStyle = venue.offer.stripStyle || 'green';
+                  }
+                  if (venue.superAdminOffer && venue.superAdminOffer.isActive) {
+                    totalPercent += Number(venue.superAdminOffer.percentage || 0);
+                    isActive = true;
+                    if (venue.superAdminOffer.stripStyle === 'green') {
+                      stripStyle = 'green';
+                    }
+                  }
+                  if (!isActive || totalPercent === 0) return null;
+
+                  return (
+                    <div className={`absolute bottom-0 left-0 right-0 py-2.5 px-4 text-xs md:text-sm font-extrabold flex items-center justify-center gap-1.5 backdrop-blur-sm z-10 ${
+                      stripStyle === 'white'
+                        ? 'bg-white/95 text-[#1abc60] border-t border-gray-150'
+                        : 'bg-[#1abc60] text-white'
+                    }`}>
+                      <span>★ Offer on this ground - {totalPercent}% OFF</span>
+                    </div>
+                  );
+                })()}
               </div>
               
               {currentImages && currentImages.length > 1 && (

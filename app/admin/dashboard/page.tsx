@@ -261,7 +261,7 @@ export default function AdminDashboard() {
 
             const completedSettlements = mySettlements.filter((s: any) => s.status === 'completed');
             const totalPaid = completedSettlements.reduce((sum: number, s: any) => sum + s.amount, 0);
-            const totalWalletShare = (currentStats.revenue?.total || 0) * 0.8;
+            const totalWalletShare = currentStats.revenue?.venueShare || ((currentStats.revenue?.total || 0) * 0.8);
             setPendingPayout(Math.max(0, totalWalletShare - totalPaid));
           } catch (e) {
             console.error('Error calculating pending payout:', e);
@@ -443,6 +443,24 @@ export default function AdminDashboard() {
                 border: '!border-emerald-100 hover:!border-emerald-300' 
               },
               { 
+                title: 'GameOn Share', 
+                value: `₹${(stats.revenue?.platformShare || 0).toLocaleString()}`, 
+                sub: 'Gross platform commission', 
+                icon: Shield, 
+                color: '!text-blue-600', 
+                bg: '!bg-blue-50', 
+                border: '!border-blue-100 hover:!border-blue-300' 
+              },
+              { 
+                title: 'Venue Partner Share', 
+                value: `₹${(stats.revenue?.venueShare || 0).toLocaleString()}`, 
+                sub: 'Gross partner payouts', 
+                icon: Wallet, 
+                color: '!text-purple-600', 
+                bg: '!bg-purple-50', 
+                border: '!border-purple-100 hover:!border-purple-300' 
+              },
+              { 
                 title: 'Pending Settlements', 
                 value: `₹${(stats.revenue?.settlements?.pendingToSettle || 0).toLocaleString()}`, 
                 sub: 'Awaiting Settlements', 
@@ -451,46 +469,28 @@ export default function AdminDashboard() {
                 bg: '!bg-orange-50', 
                 border: '!border-orange-100 hover:!border-orange-300' 
               },
-              { 
-                title: 'Online Revenue', 
-                value: `₹${(stats.revenue?.wallet || (stats.revenue?.total || 0) - (stats.revenue?.offline || 0)).toLocaleString()}`, 
-                sub: 'Paid via Wallet/Online', 
-                icon: Wallet, 
-                color: '!text-blue-600', 
-                bg: '!bg-blue-50', 
-                border: '!border-blue-100 hover:!border-blue-300' 
-              },
-              { 
-                title: 'Offline Revenue', 
-                value: `₹${(stats.revenue?.offline || 0).toLocaleString()}`, 
-                sub: 'Cash/Direct payments', 
-                icon: Shield, 
-                color: '!text-purple-600', 
-                bg: '!bg-purple-50', 
-                border: '!border-purple-100 hover:!border-purple-300' 
-              },
             ] : [
               { 
-                title: 'Your Revenue (80%)', 
-                value: `₹${((stats.revenue?.total || 0) * 0.8).toLocaleString()}`, 
-                sub: 'Your 80% share of total sales', 
+                title: 'Your Revenue', 
+                value: `₹${(stats.revenue?.venueShare || 0).toLocaleString()}`, 
+                sub: 'Your calculated share of sales', 
                 icon: BarChart3, 
                 color: '!text-emerald-600', 
                 bg: '!bg-emerald-50', 
                 border: '!border-emerald-100 hover:!border-emerald-300' 
               },
               { 
-                title: 'Total Bookings', 
-                value: (stats.bookings?.total || 0).toString(), 
-                sub: 'Total bookings received', 
-                icon: Calendar, 
-                color: '!text-teal-600', 
-                bg: '!bg-teal-50', 
-                border: '!border-teal-100 hover:!border-teal-300' 
+                title: 'GameOn Commission', 
+                value: `₹${(stats.revenue?.platformShare || 0).toLocaleString()}`, 
+                sub: 'Platform share of bookings', 
+                icon: Shield, 
+                color: '!text-purple-600', 
+                bg: '!bg-purple-50', 
+                border: '!border-purple-100 hover:!border-purple-300' 
               },
               { 
                 title: 'Pending Payout', 
-                value: `₹${pendingPayout.toLocaleString()}`, 
+                value: `₹${(stats.revenue?.settlements?.pendingToSettle ?? pendingPayout).toLocaleString()}`, 
                 sub: 'Awaiting Payment/Payout', 
                 icon: Clock, 
                 color: '!text-orange-600', 
@@ -499,7 +499,7 @@ export default function AdminDashboard() {
               },
               { 
                 title: 'Online Revenue', 
-                value: `₹${(stats.revenue?.wallet || (stats.revenue?.total || 0) - (stats.revenue?.offline || 0)).toLocaleString()}`, 
+                value: `₹${(stats.revenue?.wallet || 0).toLocaleString()}`, 
                 sub: 'Paid via Wallet/Online', 
                 icon: Wallet, 
                 color: '!text-blue-600', 
@@ -510,10 +510,10 @@ export default function AdminDashboard() {
                 title: 'Offline Revenue', 
                 value: `₹${(stats.revenue?.offline || 0).toLocaleString()}`, 
                 sub: 'Cash/Direct payments', 
-                icon: Shield, 
-                color: '!text-purple-600', 
-                bg: '!bg-purple-50', 
-                border: '!border-purple-100 hover:!border-purple-300' 
+                icon: Users, 
+                color: '!text-teal-600', 
+                bg: '!bg-teal-50', 
+                border: '!border-teal-100 hover:!border-teal-300' 
               },
             ]).map((stat, i) => (
               <motion.div 

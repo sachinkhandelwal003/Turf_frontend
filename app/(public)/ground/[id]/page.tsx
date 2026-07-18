@@ -707,12 +707,15 @@ export default function VenueDetailsPage() {
       return `${url}${url.includes('?') ? '&' : '?'}output=embed`;
     }
     if (url.includes('goo.gl/maps') || url.includes('maps.app.goo.gl')) {
-      return url; 
+      return ''; // fallback to address search
     }
     return url;
   };
 
-  const embedUrl = venue ? toEmbedUrl(venue.mapUrl) : '';
+  const mapQuery = venue ? [venue.name, venue.address].filter(Boolean).join(', ') : '';
+  const embedUrl = venue 
+    ? (toEmbedUrl(venue.mapUrl) || `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`)
+    : '';
   const [year, month, day] = selectedDate.split('-').map(Number);
   const dateObj = new Date(year, month - 1, day);
   const dayNameForDisplay = dateObj.toLocaleDateString("en-US", { weekday: "long" });

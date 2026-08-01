@@ -894,16 +894,6 @@ export default function VenueDetailsPage() {
                 
                 {/* Date Picker */}
                 <div 
-                  onClick={() => {
-                    if (dateInputRef.current) {
-                      try {
-                        // @ts-ignore
-                        dateInputRef.current.showPicker();
-                      } catch (e) {
-                        dateInputRef.current.click();
-                      }
-                    }
-                  }}
                   className="!relative !bg-white hover:!bg-gray-50 !border !border-gray-200 !rounded-xl !px-4 !py-4 !flex !items-center !justify-between !cursor-pointer focus-within:!border-[#1abc60] focus-within:!ring-1 focus-within:!ring-[#1abc60] !transition-all"
                 >
                   <div className="!flex !items-center !text-sm !font-bold !text-gray-800">
@@ -917,7 +907,7 @@ export default function VenueDetailsPage() {
                     value={selectedDate}
                     min={todayDateStr}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="!absolute !inset-0 !w-full !h-full !opacity-0 !cursor-pointer !-z-10"
+                    className="!absolute !inset-0 !w-full !h-full !opacity-0 !cursor-pointer !z-10"
                   />
                 </div>
 

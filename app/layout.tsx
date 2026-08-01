@@ -18,6 +18,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preload" href="/heroimage.webp" as="image" type="image/webp" fetchPriority="high" />
+      </head>
       <body className={`${inter.className} overflow-x-hidden`}>
         <Suspense fallback={
           <div className="flex items-center justify-center min-h-screen">

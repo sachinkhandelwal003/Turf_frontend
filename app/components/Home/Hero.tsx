@@ -20,7 +20,7 @@ export default function Hero() {
   const [heroData, setHeroData] = useState({
     title: "UP YOUR GAME",
     subtitle: "Premium sports venues, professional training, and competitive matches. Book your victory in seconds.",
-    image: "/heroimage.png"
+    image: "/heroimage.webp"
   });
 
   const locationRef = useRef<HTMLDivElement>(null);
@@ -112,7 +112,7 @@ export default function Hero() {
           }
           
           const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
-          let finalImageUrl = "/heroimage.png"; 
+          let finalImageUrl = "/heroimage.webp"; 
           
           if (image) {
             if (image.startsWith('http')) {
@@ -178,6 +178,9 @@ export default function Hero() {
           src={heroData.image}
           alt="Sports Turf Banner"
           className="w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
         {/* Dark overlay */}
         <div className="absolute inset-0 bg-black/40"></div>
